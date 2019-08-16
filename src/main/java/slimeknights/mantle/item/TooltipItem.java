@@ -30,12 +30,7 @@ public class TooltipItem extends Item {
 
   public static void addOptionalTooltip(ItemStack stack, List<ITextComponent> tooltip) {
     if (I18n.hasKey(stack.getDisplayName() + ".tooltip")) {
-      tooltip.addAll(LocUtils.getTooltips(TextFormatting.GRAY.toString() +
-              LocUtils.translateRecursive(stack.getDisplayName() + ".tooltip")));
-    }
-    else if (I18n.hasKey(stack.getDisplayName() + ".tooltip")) {
-      tooltip.addAll(LocUtils.getTooltips(
-              TextFormatting.GRAY.toString() + LocUtils.translateRecursive(stack.getDisplayName() + ".tooltip")));
+      tooltip.addAll(LocUtils.getTooltips(TextFormatting.GRAY.toString() + LocUtils.translateRecursive(stack.getDisplayName() + ".tooltip")));
     }
   }
 }
