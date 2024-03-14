@@ -258,7 +258,7 @@ public class JsonHelper {
     try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
       return GsonHelper.parse(reader);
     } catch (JsonParseException | IOException e) {
-      Mantle.logger.error("Failed to load JSON from resource " + resource.getLocation(), e);
+      Mantle.logger.error("Failed to load JSON from resource {} from pack '{}'", resource.getLocation(), resource.getSourceName(), e);
       return null;
     }
   }
