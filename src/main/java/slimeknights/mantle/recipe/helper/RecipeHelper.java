@@ -135,7 +135,9 @@ public class RecipeHelper {
    * Serializes the fluid stack into JSON
    * @param stack  Stack to serialize
    * @return  JSON data
+   * @deprecated use {@link slimeknights.mantle.data.loadable.common.FluidStackLoadable}
    */
+  @Deprecated
   public static JsonObject serializeFluidStack(FluidStack stack) {
     JsonObject json = new JsonObject();
     json.addProperty("fluid", Registry.FLUID.getKey(stack.getFluid()).toString());
@@ -148,7 +150,9 @@ public class RecipeHelper {
    * @param json  JSON data
    * @return  Fluid stack instance
    * @throws JsonSyntaxException if syntax is invalid
+   * @deprecated use {@link slimeknights.mantle.data.loadable.common.FluidStackLoadable}
    */
+  @Deprecated
   public static FluidStack deserializeFluidStack(JsonObject json) {
     String fluidName = GsonHelper.getAsString(json, "fluid");
     Fluid fluid = ForgeRegistries.FLUIDS.getValue(new ResourceLocation(fluidName));
@@ -167,7 +171,9 @@ public class RecipeHelper {
    * @param <C>     Class type
    * @return  Item read from JSON with the given class type
    * @throws JsonSyntaxException  If the key is missing, or the value is not the right class
+   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables#ITEM}
    */
+  @Deprecated
   public static <C> C deserializeItem(String name, String key, Class<C> clazz) {
     Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(name));
     if (item == null) {
@@ -186,7 +192,9 @@ public class RecipeHelper {
    * Reads an item from the packet buffer
    * @param buffer  Buffer instance
    * @return  Item read from the buffer
+   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables#ITEM}
    */
+  @Deprecated
   public static Item readItem(FriendlyByteBuf buffer) {
     return Item.byId(buffer.readVarInt());
   }
@@ -198,7 +206,9 @@ public class RecipeHelper {
    * @param <T>     Class type
    * @return  Item read from the buffer with the given class type
    * @throws DecoderException  If the value is not the right class
+   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables#ITEM}
    */
+  @Deprecated
   public static <T> T readItem(FriendlyByteBuf buffer, Class<T> clazz) {
     Item item = readItem(buffer);
     if (!clazz.isInstance(item)) {
@@ -211,7 +221,9 @@ public class RecipeHelper {
    * Writes an item to the packet buffer
    * @param buffer  Buffer instance
    * @param item    Item to write
+   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables#ITEM}
    */
+  @Deprecated
   public static void writeItem(FriendlyByteBuf buffer, ItemLike item) {
     buffer.writeVarInt(Item.getId(item.asItem()));
   }

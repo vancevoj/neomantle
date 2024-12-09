@@ -2,18 +2,17 @@ package slimeknights.mantle.recipe.crafting;
 
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
+import net.minecraft.core.NonNullList;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingRecipe;
-import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.item.crafting.ShapelessRecipe;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.core.NonNullList;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import slimeknights.mantle.recipe.MantleRecipeSerializers;
 import slimeknights.mantle.util.JsonHelper;
@@ -88,7 +87,7 @@ public class ShapedFallbackRecipe extends ShapedRecipe {
     @Override
     public ShapedFallbackRecipe fromJson(ResourceLocation id, JsonObject json) {
       ShapedRecipe base = super.fromJson(id, json);
-      List<ResourceLocation> alternatives = JsonHelper.parseList(json, "alternatives", (element, name) -> new ResourceLocation(GsonHelper.convertToString(element, name)));
+      List<ResourceLocation> alternatives = JsonHelper.parseList(json, "alternatives", JsonHelper::convertToResourceLocation);
       return new ShapedFallbackRecipe(base, alternatives);
     }
 
