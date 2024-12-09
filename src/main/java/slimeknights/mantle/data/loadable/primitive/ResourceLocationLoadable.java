@@ -10,6 +10,9 @@ import slimeknights.mantle.data.loadable.Loadables;
  * @see Loadables#RESOURCE_LOCATION
  */
 public interface ResourceLocationLoadable<T> extends StringLoadable<T> {
+  /** This is just an alias to minimize mistakes from the statically inherited StringLoadable default. */
+  StringLoadable<ResourceLocation> DEFAULT = Loadables.RESOURCE_LOCATION;
+
   /**
    * Converts this value from a resource location.
    * @param name   Location to parse
