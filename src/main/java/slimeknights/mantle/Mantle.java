@@ -49,6 +49,7 @@ import slimeknights.mantle.fluid.transfer.FillFluidContainerTransfer;
 import slimeknights.mantle.fluid.transfer.FillFluidWithNBTTransfer;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
 import slimeknights.mantle.item.LecternBookItem;
+import slimeknights.mantle.loot.LootTableInjector;
 import slimeknights.mantle.loot.MantleLoot;
 import slimeknights.mantle.network.MantleNetwork;
 import slimeknights.mantle.recipe.crafting.ShapedFallbackRecipe;
@@ -107,6 +108,7 @@ public class Mantle {
     MantleCommand.init();
     OffhandCooldownTracker.init();
     TagPreference.init();
+    LootTableInjector.init();
   }
 
   private void register(RegisterEvent event) {

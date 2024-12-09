@@ -19,7 +19,10 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.minecraftforge.common.ToolAction;
+import net.minecraftforge.common.loot.LootModifierManager;
+import slimeknights.mantle.data.loadable.common.GsonLoadable;
 import slimeknights.mantle.data.loadable.common.RegistryLoadable;
 import slimeknights.mantle.data.loadable.primitive.ResourceLocationLoadable;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
@@ -68,6 +71,10 @@ public class Loadables {
   public static final StringLoadable<TagKey<Item>> ITEM_TAG = tagKey(Registry.ITEM_REGISTRY);
   public static final StringLoadable<TagKey<Potion>> POTION_TAG = tagKey(Registry.POTION_REGISTRY);
   public static final StringLoadable<TagKey<BlockEntityType<?>>> BLOCK_ENTITY_TYPE_TAG = tagKey(Registry.BLOCK_ENTITY_TYPE_REGISTRY);
+
+  /* Loot tables */
+  /** Loadable for a loot entry instance */
+  public static final Loadable<LootPoolEntryContainer> LOOT_ENTRY = new GsonLoadable<>(LootModifierManager.GSON_INSTANCE, LootPoolEntryContainer.class);
 
 
   /* Helpers */
