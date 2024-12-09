@@ -141,8 +141,8 @@ public class ColoredBlockModel extends SimpleBlockModel {
   }
 
   @Override
-  public BakedModel bakeDynamic(IGeometryBakingContext owner, ModelState transform) {
-    return bakeModel(owner, getElements(), colorData, Material::sprite, transform, ItemOverrides.EMPTY, BAKE_LOCATION);
+  public BakedModel bakeWithElements(IGeometryBakingContext owner, List<BlockElement> elements, ModelState transform) {
+    return bakeModel(owner, elements, colorData, Material::sprite, transform, ItemOverrides.EMPTY, BAKE_LOCATION);
   }
 
   /**
