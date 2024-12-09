@@ -137,10 +137,7 @@ public class FluidCuboid {
       String name = entry.getKey();
       Direction dir = Direction.byName(name);
       if (dir != null) {
-        JsonObject face = GsonHelper.convertToJsonObject(entry.getValue(), name);
-        boolean flowing = GsonHelper.getAsBoolean(face, "flowing", false);
-        int rotation = ModelHelper.getRotation(face, "rotation");
-        faces.put(dir, new FluidFace(flowing, rotation));
+        faces.put(dir, FluidFace.fromJson(GsonHelper.convertToJsonObject(entry.getValue(), name)));
       } else {
         throw new JsonSyntaxException("Unknown face '" + name + "'");
       }
@@ -148,8 +145,46 @@ public class FluidCuboid {
     return faces;
   }
 
+  /** Serializes this cuboid to JSON */
+  public JsonObject toJson() {
+    JsonObject json = new JsonObject();
+    json.add("from", ModelHelper.vectorToJson(from));
+    json.add("to", ModelHelper.vectorToJson(to));
+    if (!DEFAULT_FACES.equals(this.faces)) {
+      JsonObject faces = new JsonObject();
+      for (Entry<Direction, FluidFace> entry : this.faces.entrySet()) {
+        faces.add(entry.getKey().getSerializedName(), entry.getValue().toJson());
+      }
+      json.add("faces", faces);
+    }
+    return json;
+  }
+
   /** Represents a single fluid face in the model */
   public record FluidFace(boolean isFlowing, int rotation) {
     public static final FluidFace NORMAL = new FluidFace(false, 0);
+
+    public FluidFace {
+      if (!ModelHelper.checkRotation(rotation)) {
+        throw new IllegalArgumentException("Rotation must be 0/90/180/270");
+      }
+    }
+
+    /** Deserializes this from JSON */
+    public static FluidFace fromJson(JsonObject json) {
+      boolean flowing = GsonHelper.getAsBoolean(json, "flowing", false);
+      int rotation = ModelHelper.getRotation(json, "rotation");
+      return new FluidFace(flowing, rotation);
+    }
+
+    /** Serializes this to JSON */
+    public JsonObject toJson() {
+      JsonObject json = new JsonObject();
+      json.addProperty("flowing", isFlowing);
+      if (rotation != 0) {
+        json.addProperty("rotation", rotation);
+      }
+      return json;
+    }
   }
 }

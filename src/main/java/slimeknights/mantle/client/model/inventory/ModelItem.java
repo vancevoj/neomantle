@@ -107,6 +107,31 @@ public class ModelItem {
     return new ModelItem(center, size, x, y, transformType);
   }
 
+  /** Converts this to JSON */
+  public JsonObject toJson() {
+    JsonObject json = new JsonObject();
+    json.addProperty("size", size);
+    if (size != 0) {
+      if (!ModelHelper.checkRotation(x)) {
+        throw new IllegalStateException("Invalid X rotation " + x + ", must be 0/90/180/270");
+      }
+      if (!ModelHelper.checkRotation(y)) {
+        throw new IllegalStateException("Invalid Y rotation " + y + ", must be 0/90/180/270");
+      }
+      json.add("center", ModelHelper.vectorToJson(center));
+      if (x != 0) {
+        json.addProperty("x", x);
+      }
+      if (y != 0) {
+        json.addProperty("y", y);
+      }
+      if (transform != TransformType.NONE) {
+        json.addProperty("transform", transform.getSerializeName());
+      }
+    }
+    return json;
+  }
+
   /**
    * Gets a list of model items from JSON
    * @param parent  Parent JSON object

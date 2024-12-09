@@ -171,6 +171,21 @@ public class ColoredBlockModel extends SimpleBlockModel {
       }
       return new ColorData(color, luminosity, uvlock);
     }
+
+    /** Serializes this data to JSON */
+    public JsonObject toJson() {
+      JsonObject json = new JsonObject();
+      if (this.color != -1) {
+        json.add("color", ColorLoadable.ALPHA.serialize(this.color));
+      }
+      if (this.luminosity != -1) {
+        json.addProperty("luminosity", this.luminosity);
+      }
+      if (this.uvlock != null) {
+        json.addProperty("uvlock", this.uvlock);
+      }
+      return json;
+    }
   }
 
 
