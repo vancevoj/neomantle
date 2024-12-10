@@ -175,6 +175,19 @@ public class BookScreen extends Screen {
         renderPageBackground(matrixStack, true);
       }
 
+      // add page numbers at bottom
+      if (this.book.appearance.drawPageNumbers) {
+        if (renderLeft) {
+          String pNum = this.page * 2 + "";
+          fontRenderer.draw(leftMatrix, pNum, (PAGE_WIDTH - fontRenderer.width(pNum)) / 2f, PAGE_HEIGHT - 10, 0xFFAAAAAA);
+        }
+        if (renderRight) {
+          String pNum = this.page * 2 + 1 + "";
+          fontRenderer.draw(rightMatrix, pNum, (PAGE_WIDTH - fontRenderer.width(pNum)) / 2f, PAGE_HEIGHT - 10, 0xFFAAAAAA);
+        }
+
+      }
+
       int leftMX = this.getMouseX(false);
       int rightMX = this.getMouseX(true);
       int mY = this.getMouseY();
