@@ -1,24 +1,12 @@
 package slimeknights.mantle.recipe.helper;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
-import io.netty.handler.codec.DecoderException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.world.Container;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraft.world.level.ItemLike;
-import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.registries.ForgeRegistries;
 import slimeknights.mantle.recipe.IMultiRecipe;
 
 import java.util.Comparator;
@@ -126,105 +114,5 @@ public class RecipeHelper {
    */
   public static <I extends Container, T extends Recipe<I>, C> List<C> getJEIRecipes(RecipeManager manager, RecipeType<T> type, Class<C> clazz) {
     return getJEIRecipes(manager.byType(type).values().stream(), clazz);
-  }
-
-
-  /* JSON */
-
-  /**
-   * Serializes the fluid stack into JSON
-   * @param stack  Stack to serialize
-   * @return  JSON data
-   * @deprecated use {@link slimeknights.mantle.data.loadable.common.FluidStackLoadable}
-   */
-  @Deprecated
-  public static JsonObject serializeFluidStack(FluidStack stack) {
-    JsonObject json = new JsonObject();
-    json.addProperty("fluid", BuiltInRegistries.FLUID.getKey(stack.getFluid()).toString());
-    json.addProperty("amount", stack.getAmount());
-    return json;
-  }
-
-  /**
-   * Deserializes the fluid stack from JSON
-   * @param json  JSON data
-   * @return  Fluid stack instance
-   * @throws JsonSyntaxException if syntax is invalid
-   * @deprecated use {@link slimeknights.mantle.data.loadable.common.FluidStackLoadable}
-   */
-  @Deprecated
-  public static FluidStack deserializeFluidStack(JsonObject json) {
-    String fluidName = GsonHelper.getAsString(json, "fluid");
-    Fluid fluid = ForgeRegistries.FLUIDS.getValue(new ResourceLocation(fluidName));
-    if (fluid == null || fluid == Fluids.EMPTY) {
-      throw new JsonSyntaxException("Unknown fluid " + fluidName);
-    }
-    int amount = GsonHelper.getAsInt(json, "amount");
-    return new FluidStack(fluid, amount);
-  }
-
-  /**
-   * Gets an item from JSON and validates it class type
-   * @param name  String containing an item name
-   * @param key   Key to use for errors
-   * @param clazz   Output class
-   * @param <C>     Class type
-   * @return  Item read from JSON with the given class type
-   * @throws JsonSyntaxException  If the key is missing, or the value is not the right class
-   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables#ITEM}
-   */
-  @Deprecated
-  public static <C> C deserializeItem(String name, String key, Class<C> clazz) {
-    Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(name));
-    if (item == null) {
-      throw new JsonSyntaxException("Invalid " + key + ": Unknown item " + name + "'");
-    }
-    if (!clazz.isInstance(item)) {
-      throw new JsonSyntaxException("Invalid " + key + ": must be " + clazz.getSimpleName());
-    }
-    return clazz.cast(item);
-  }
-
-
-  /* Packet buffer utils */
-
-  /**
-   * Reads an item from the packet buffer
-   * @param buffer  Buffer instance
-   * @return  Item read from the buffer
-   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables#ITEM}
-   */
-  @Deprecated
-  public static Item readItem(FriendlyByteBuf buffer) {
-    return Item.byId(buffer.readVarInt());
-  }
-
-  /**
-   * Reads an item from the packet buffer and validates its class type
-   * @param buffer  Buffer instance
-   * @param clazz   Output class
-   * @param <T>     Class type
-   * @return  Item read from the buffer with the given class type
-   * @throws DecoderException  If the value is not the right class
-   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables#ITEM}
-   */
-  @Deprecated
-  public static <T> T readItem(FriendlyByteBuf buffer, Class<T> clazz) {
-    Item item = readItem(buffer);
-    if (!clazz.isInstance(item)) {
-      throw new DecoderException("Invalid item '" + BuiltInRegistries.ITEM.getKey(item) + "', must be " + clazz.getSimpleName());
-    }
-    return clazz.cast(item);
-  }
-
-  /**
-   * Writes an item to the packet buffer
-   * @param buffer  Buffer instance
-   * @param item    Item to write
-   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables#ITEM}
-   */
-  @Deprecated
-  public static void writeItem(FriendlyByteBuf buffer, ItemLike item) {
-    buffer.writeVarInt(Item.getId(item.asItem()));
   }
 }

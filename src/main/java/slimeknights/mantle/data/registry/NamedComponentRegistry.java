@@ -2,7 +2,6 @@ package slimeknights.mantle.data.registry;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nullable;
@@ -56,33 +55,5 @@ public class NamedComponentRegistry<T> extends AbstractNamedComponentRegistry<T>
   @Override
   public Collection<T> getValues() {
     return values.values();
-  }
-
-
-  /* Deprecated aliases */
-
-  /** @deprecated use {@link #decode(FriendlyByteBuf)} */
-  @Deprecated(forRemoval = true)
-  public void toNetwork(T src, FriendlyByteBuf buffer) {
-    encode(buffer, src);
-  }
-
-  /** @deprecated use {@link #decode(FriendlyByteBuf)} */
-  @Deprecated(forRemoval = true)
-  public T fromNetwork(FriendlyByteBuf buffer) {
-    return decode(buffer);
-  }
-
-  /** @deprecated use {@link #decode(FriendlyByteBuf)} */
-  @Deprecated(forRemoval = true)
-  public void toNetworkOptional(@Nullable T src, FriendlyByteBuf buffer) {
-    encodeOptional(buffer, src);
-  }
-
-  /** @deprecated use {@link #decode(FriendlyByteBuf)} */
-  @Nullable
-  @Deprecated(forRemoval = true)
-  public T fromNetworkOptional(FriendlyByteBuf buffer) {
-    return decodeOptional(buffer);
   }
 }

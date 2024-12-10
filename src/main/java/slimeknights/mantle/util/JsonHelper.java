@@ -20,7 +20,6 @@ import net.minecraftforge.network.PacketDistributor.PacketTarget;
 import net.minecraftforge.registries.IForgeRegistry;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.common.BlockStateLoadable;
-import slimeknights.mantle.data.loadable.common.ColorLoadable;
 import slimeknights.mantle.network.NetworkWrapper;
 import slimeknights.mantle.network.packet.ISimplePacket;
 
@@ -215,20 +214,6 @@ public class JsonHelper {
   public static <T extends Enum<T>> T getAsEnum(JsonObject json, String key, Class<T> enumClass) {
     String name = GsonHelper.getAsString(json, key);
     return enumByName(name, enumClass);
-  }
-
-  /**
-   * Parses a color as a string
-   * @param color  Color to parse
-   * @return  Parsed string
-   * @deprecated use {@link ColorLoadable#parseString(String, String)}
-   */
-  @Deprecated(forRemoval = true)
-  public static int parseColor(@Nullable String color) {
-    if (color == null || color.isEmpty()) {
-      return -1;
-    }
-    return ColorLoadable.ALPHA.parseString(color, "[unknown]");
   }
 
 

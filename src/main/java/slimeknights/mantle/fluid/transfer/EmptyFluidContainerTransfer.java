@@ -9,7 +9,6 @@ import com.google.gson.JsonSerializationContext;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -18,8 +17,8 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;
 import org.apache.commons.lang3.function.TriFunction;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.loadable.common.FluidStackLoadable;
 import slimeknights.mantle.recipe.helper.ItemOutput;
-import slimeknights.mantle.recipe.helper.RecipeHelper;
 import slimeknights.mantle.util.JsonHelper;
 
 import java.lang.reflect.Type;
@@ -73,7 +72,7 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer {
     json.addProperty("type", ID.toString());
     json.add("input", input.toJson());
     json.add("filled", filled.serialize(false));
-    json.add("fluid", RecipeHelper.serializeFluidStack(fluid));
+    json.add("fluid", FluidStackLoadable.REQUIRED_STACK_NBT.serialize(fluid));
     return json;
   }
 
@@ -89,7 +88,7 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer {
       JsonObject json = element.getAsJsonObject();
       Ingredient input = Ingredient.fromJson(JsonHelper.getElement(json, "input"));
       ItemOutput filled = ItemOutput.Loadable.REQUIRED_ITEM.getIfPresent(json, "filled");
-      FluidStack fluid = RecipeHelper.deserializeFluidStack(GsonHelper.getAsJsonObject(json, "fluid"));
+      FluidStack fluid = FluidStackLoadable.REQUIRED_STACK_NBT.getIfPresent(json, "fluid");
       return factory.apply(input, filled, fluid);
     }
   }

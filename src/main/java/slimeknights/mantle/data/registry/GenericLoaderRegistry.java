@@ -110,18 +110,6 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements Loadable<T>
     return loaders.decode(buffer).fromNetwork(buffer);
   }
 
-  /** @deprecated use {@link #decode(FriendlyByteBuf)} */
-  @Deprecated(forRemoval = true)
-  public void toNetwork(T src, FriendlyByteBuf buffer) {
-    encode(buffer, src);
-  }
-
-  /** @deprecated use {@link #decode(FriendlyByteBuf)} */
-  @Deprecated(forRemoval = true)
-  public T fromNetwork(FriendlyByteBuf buffer) {
-    return decode(buffer);
-  }
-
   /** Creates a field that loads this object directly into the parent JSON object, will conflict if the parent already has a type */
   public <P> LoadableField<T,P> directField(Function<P,T> getter) {
     return new DirectRegistryField<>(this, getter);
