@@ -8,6 +8,7 @@
 
 plugins {
     id 'eclipse'
+    id 'idea'
     id 'maven-publish'
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
     id 'org.parchmentmc.librarian.forgegradle' version '1.+'
@@ -87,6 +88,9 @@ sourceSets {
 
 minecraft {
     mappings channel: 'parchment', version: "${parchment_version}-${minecraft_version}"
+
+    enableIdeaPrepareRuns = true
+    copyIdeResources = true
 
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
