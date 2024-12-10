@@ -177,11 +177,30 @@ public class BookScreen extends Screen {
         renderPageBackground(graphics, true);
       }
 
+      // add page numbers at bottom
+      if (this.book.appearance.drawPageNumbers) {
+        if (renderLeft) {
+          String pNum = this.page * 2 + "";
+          matrixStack.pushPose();
+          drawerTransform(matrixStack, false);
+          graphics.drawString(font, pNum, (PAGE_WIDTH - fontRenderer.width(pNum)) / 2f, PAGE_HEIGHT - 10, 0xFFAAAAAA, false);
+          matrixStack.popPose();
+        }
+        if (renderRight) {
+          String pNum = this.page * 2 + 1 + "";
+          matrixStack.pushPose();
+          drawerTransform(matrixStack, true);
+          graphics.drawString(font, pNum, (PAGE_WIDTH - fontRenderer.width(pNum)) / 2f, PAGE_HEIGHT - 10, 0xFFAAAAAA, false);
+          matrixStack.popPose();
+        }
+      }
+
       int leftMX = this.getMouseX(false);
       int rightMX = this.getMouseX(true);
       int mY = this.getMouseY();
 
       // TODO: can we draw the left all at once then the right all at once to reduce number of matrix operations?
+      // we did that in 1.16.5 - causes tooltips of left to draw under elements on right
       for (ILayerRenderFunction layer : LAYERS) {
         if(renderLeft) {
           matrixStack.pushPose();

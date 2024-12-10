@@ -27,6 +27,7 @@ public class ResourceColorManager implements ISafeManagerReloadListener {
   /** Modifier file to load, has merging behavior but forge prevents multiple mods from loading the same file */
   private static final String COLORS_PATH = "mantle/colors.json";
   /** Modifier file to load, has merging behavior but forge prevents multiple mods from loading the same file */
+  @Deprecated(forRemoval = true) // TODO 1.20: remove this
   private static final String FALLBACK_PATH = "tinkering/colors.json";
   /** Default color so the getter can be nonnull */
   public static final TextColor WHITE = TextColor.fromRgb(-1);

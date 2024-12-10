@@ -37,7 +37,7 @@ import slimeknights.mantle.command.MantleCommand;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-/** A command for different book */
+/** A command for different book operations, currently open and export_images */
 public class BookCommand {
   private static final String BOOK_NOT_FOUND = "command.mantle.book_test.not_found";
 
@@ -71,7 +71,10 @@ public class BookCommand {
 
     BookData bookData = BookLoader.getBook(book);
     if(bookData != null) {
-      bookData.openGui(Component.literal("Book"), "", null, null);
+      // Delay execution to ensure chat window is closed
+      Minecraft.getInstance().tell(() ->
+        bookData.openGui(Component.literal("Book"), "", null, null)
+      );
     } else {
       bookNotFound(book);
       return 1;
@@ -207,7 +210,7 @@ public class BookCommand {
   }
 
   /**
-   * Duplicate of Screenshot#takeScreenshot, but with transparency
+   * Duplicate of {@link net.minecraft.client.Screenshot#takeScreenshot}, but with transparency
    */
   private static NativeImage takeScreenshot(RenderTarget pFramebuffer) {
     int i = pFramebuffer.width;

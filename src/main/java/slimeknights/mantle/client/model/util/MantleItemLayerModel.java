@@ -490,7 +490,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
   /**
    * Class holding details about a single layer in the model
    */
-  private record LayerData(int color, int luminosity, boolean noTint, @Nullable ResourceLocation renderType) {
+  public record LayerData(int color, int luminosity, boolean noTint, @Nullable ResourceLocation renderType) {
     private static final LayerData DEFAULT = new LayerData(-1, 0, false, null);
 
     /** Gets the render type for this layer from the context, falling back to the passed type if not requested */
@@ -507,11 +507,25 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
     public static LayerData fromJson(JsonObject json) {
       int color = ColorLoadable.ALPHA.getOrDefault(json, "color", -1);
       // TODO: rename this field?
-      int luminosity = GsonHelper.getAsInt(json, "luminosity");
+      int luminosity = GsonHelper.getAsInt(json, "luminosity", 0);
       boolean noTint = GsonHelper.getAsBoolean(json, "no_tint", false);
       //noinspection ConstantConditions  Null is fine as its just a default
       ResourceLocation renderType = JsonHelper.getResourceLocation(json, "render_type", null);
       return new LayerData(color, luminosity, noTint, renderType);
+    }
+
+    /** Serializes this data to JSON */
+    public JsonObject toJson() {
+      JsonObject json = new JsonObject();
+      if (color != -1) {
+        json.add("color", ColorLoadable.ALPHA.serialize(color));
+      }
+      json.addProperty("luminosity", luminosity);
+      json.addProperty("no_tint", noTint);
+      if (renderType != null) {
+        json.addProperty("render_type", renderType.toString());
+      }
+      return json;
     }
   }
 

@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
@@ -90,7 +89,7 @@ public class ShapedFallbackRecipe extends ShapedRecipe {
     @Override
     public ShapedFallbackRecipe fromJson(ResourceLocation id, JsonObject json) {
       ShapedRecipe base = super.fromJson(id, json);
-      List<ResourceLocation> alternatives = JsonHelper.parseList(json, "alternatives", (element, name) -> new ResourceLocation(GsonHelper.convertToString(element, name)));
+      List<ResourceLocation> alternatives = JsonHelper.parseList(json, "alternatives", JsonHelper::convertToResourceLocation);
       return new ShapedFallbackRecipe(base, alternatives);
     }
 

@@ -260,7 +260,9 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
    * @param elements   Elements to bake
    * @param transform  Model transform
    * @return Baked model
+   * @deprecated use {@link #bakeWithElements(IGeometryBakingContext, List, ModelState)} for finer element control.
    */
+  @Deprecated(forRemoval = true)
   public static BakedModel bakeDynamic(IGeometryBakingContext owner, List<BlockElement> elements, ModelState transform) {
     return bakeModel(owner, elements, Material::sprite, transform, ItemOverrides.EMPTY, BAKE_LOCATION);
   }
@@ -271,13 +273,23 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
   }
 
   /**
+   * Same as {@link #bakeDynamic(IGeometryBakingContext, ModelState)} but allows swapping the element list. Makes colored block model easier to work with.
+   * @param owner         Model configuration
+   * @param transform     Transform to apply
+   * @return  Baked model
+   */
+  public BakedModel bakeWithElements(IGeometryBakingContext owner, List<BlockElement> elements, ModelState transform) {
+    return bakeDynamic(owner, elements, transform);
+  }
+
+  /**
    * Same as {@link #bake(IGeometryBakingContext, ModelBaker, Function, ModelState, ItemOverrides, ResourceLocation)}, but passes in sensible defaults for values unneeded in dynamic models
    * @param owner         Model configuration
    * @param transform     Transform to apply
    * @return  Baked model
    */
   public BakedModel bakeDynamic(IGeometryBakingContext owner, ModelState transform) {
-    return bakeDynamic(owner, this.getElements(), transform);
+    return bakeWithElements(owner, this.getElements(), transform);
   }
 
 

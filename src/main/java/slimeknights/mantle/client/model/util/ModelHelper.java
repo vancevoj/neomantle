@@ -144,6 +144,20 @@ public class ModelHelper {
     return arrayToObject(json, name, 3, arr -> new Vector3f(arr[0], arr[1], arr[2]));
   }
 
+  /** Converts the given vector to JSON, matching format for {@link #arrayToVector(JsonObject, String)} */
+  public static JsonArray vectorToJson(Vector3f vector) {
+    JsonArray array = new JsonArray();
+    array.add(vector.x());
+    array.add(vector.y());
+    array.add(vector.z());
+    return array;
+  }
+
+  /** Validates the given rotation is in 90 degree increments */
+  public static boolean checkRotation(float rotation) {
+    return rotation >= 0 && rotation % 90 == 0 && rotation <= 270;
+  }
+
   /**
    * Gets a rotation from JSON
    * @param json  JSON parent
@@ -151,7 +165,7 @@ public class ModelHelper {
    */
   public static int getRotation(JsonObject json, String key) {
     int i = GsonHelper.getAsInt(json, key, 0);
-    if (i >= 0 && i % 90 == 0 && i / 90 <= 3) {
+    if (checkRotation(i)) {
       return i;
     } else {
       throw new JsonParseException("Invalid '" + key + "' " + i + " found, only 0/90/180/270 allowed");

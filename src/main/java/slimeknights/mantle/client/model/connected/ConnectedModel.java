@@ -325,7 +325,7 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
       }
 
       // bake the model
-      return SimpleBlockModel.bakeDynamic(owner, elements, transforms);
+      return parent.model.bakeWithElements(owner, elements, transforms);
     }
 
     /**
