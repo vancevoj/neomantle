@@ -5,6 +5,8 @@ import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -38,6 +40,24 @@ import slimeknights.mantle.fluid.transfer.IFluidContainerTransfer.TransferResult
 public class FluidTransferHelper {
   private static final String KEY_FILLED = Mantle.makeDescriptionId("block", "tank.filled");
   private static final String KEY_DRAINED = Mantle.makeDescriptionId("block", "tank.drained");
+
+  /** Gets the empty sound for a fluid */
+  public static SoundEvent getEmptySound(FluidStack fluid) {
+    SoundEvent sound = fluid.getFluid().getAttributes().getEmptySound(fluid);
+    if (sound == null) {
+      return SoundEvents.BUCKET_EMPTY;
+    }
+    return sound;
+  }
+
+  /** Gets the fill sound for a fluid */
+  public static SoundEvent getFillSound(FluidStack fluid) {
+    SoundEvent sound = fluid.getFluid().getAttributes().getFillSound(fluid);
+    if (sound == null) {
+      return SoundEvents.BUCKET_FILL;
+    }
+    return sound;
+  }
 
   /**
    * Attempts to transfer fluid
@@ -109,14 +129,14 @@ public class FluidTransferHelper {
   }
 
   /** Plays the sound from filling a TE */
-  private static void playEmptySound(Level world, BlockPos pos, Player player, FluidStack transferred) {
-    world.playSound(null, pos, transferred.getFluid().getAttributes().getEmptySound(transferred), SoundSource.BLOCKS, 1.0F, 1.0F);
+  public static void playEmptySound(Level world, BlockPos pos, Player player, FluidStack transferred) {
+    world.playSound(null, pos, getEmptySound(transferred), SoundSource.BLOCKS, 1.0F, 1.0F);
     player.displayClientMessage(new TranslatableComponent(KEY_FILLED, transferred.getAmount(), transferred.getDisplayName()), true);
   }
 
   /** Plays the sound from draining a TE */
-  private static void playFillSound(Level world, BlockPos pos, Player player, FluidStack transferred) {
-    world.playSound(null, pos, transferred.getFluid().getAttributes().getFillSound(transferred), SoundSource.BLOCKS, 1.0F, 1.0F);
+  public static void playFillSound(Level world, BlockPos pos, Player player, FluidStack transferred) {
+    world.playSound(null, pos, getFillSound(transferred), SoundSource.BLOCKS, 1.0F, 1.0F);
     player.displayClientMessage(new TranslatableComponent(KEY_DRAINED, transferred.getAmount(), transferred.getDisplayName()), true);
   }
 
