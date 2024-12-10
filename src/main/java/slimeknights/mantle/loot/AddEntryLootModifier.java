@@ -4,26 +4,23 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.Deserializers;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
-import net.minecraft.world.level.storage.loot.Deserializers;
-import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraftforge.common.data.GlobalLootModifierProvider;
 import net.minecraftforge.common.loot.GlobalLootModifierSerializer;
 import net.minecraftforge.common.loot.LootModifier;
-import slimeknights.mantle.Mantle;
 import slimeknights.mantle.loot.builder.AbstractLootModifierBuilder;
-import slimeknights.mantle.loot.condition.EmptyModifierLootCondition;
 import slimeknights.mantle.loot.condition.ILootModifierCondition;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -82,6 +79,8 @@ public class AddEntryLootModifier extends LootModifier {
       // loot modifier conditions
       ILootModifierCondition[] modifierConditions;
       if (object.has("post_conditions")) {
+        modifierConditions = GSON.fromJson(GsonHelper.getAsJsonArray(object, "post_conditions"), ILootModifierCondition[].class);
+      } else if (object.has("modifier_conditions")) {
         modifierConditions = GSON.fromJson(GsonHelper.getAsJsonArray(object, "modifier_conditions"), ILootModifierCondition[].class);
       } else {
         modifierConditions = new ILootModifierCondition[0];
@@ -101,7 +100,7 @@ public class AddEntryLootModifier extends LootModifier {
 		public JsonObject write(AddEntryLootModifier instance) {
 			JsonObject object = makeConditions(instance.conditions);
       if (instance.modifierConditions.length > 0) {
-        object.add("modifier_conditions", GSON.toJsonTree(instance.modifierConditions, ILootModifierCondition[].class));
+        object.add("post_conditions", GSON.toJsonTree(instance.modifierConditions, ILootModifierCondition[].class));
       }
 			object.add("entry", GSON.toJsonTree(instance.entry, LootPoolEntryContainer.class));
       if (instance.functions.length > 0) {
