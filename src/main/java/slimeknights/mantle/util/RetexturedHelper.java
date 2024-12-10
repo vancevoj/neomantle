@@ -36,7 +36,10 @@ public final class RetexturedHelper {
    */
   public static Block getBlock(String name) {
     if (!name.isEmpty()) {
-      return Registry.BLOCK.get(new ResourceLocation(name));
+      ResourceLocation location = ResourceLocation.tryParse(name);
+      if (location != null) {
+        return Registry.BLOCK.get(location);
+      }
     }
     return Blocks.AIR;
   }
