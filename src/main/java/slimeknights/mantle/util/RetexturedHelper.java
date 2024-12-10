@@ -37,9 +37,12 @@ public final class RetexturedHelper {
    */
   public static Block getBlock(String name) {
     if (!name.isEmpty()) {
-      Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(name));
-      if (block != null) {
-        return block;
+      ResourceLocation location = ResourceLocation.tryParse(name);
+      if (location != null) {
+        Block block = ForgeRegistries.BLOCKS.getValue(location);
+        if (block != null) {
+          return block;
+        }
       }
     }
     return Blocks.AIR;
