@@ -12,6 +12,7 @@ import slimeknights.mantle.data.loadable.Loadable;
 import java.util.Collection;
 
 /** Shared base class for a loadable of a collection of elements */
+@SuppressWarnings("unused") // API
 @RequiredArgsConstructor
 public abstract class CollectionLoadable<T,C extends Collection<T>,B extends ImmutableCollection.Builder<T>> implements Loadable<C> {
   /** Special size representing compact where empty is allowed */
@@ -31,18 +32,16 @@ public abstract class CollectionLoadable<T,C extends Collection<T>,B extends Imm
 
   /** Gets the minimum size for the list */
   private int getMinSize() {
-    if (minSize == COMPACT_OR_EMPTY) {
-      return 0;
-    }
     if (minSize == COMPACT) {
       return 1;
     }
-    return minSize;
+    // all sizes -2 and below are treated same as COMPACT_OR_EMPTY.
+    return Math.max(minSize, 0);
   }
 
   @Override
   public C convert(JsonElement element, String key) {
-    if (minSize < 0 && element.isJsonPrimitive()) {
+    if (minSize < 0 && !element.isJsonArray()) {
       B builder = makeBuilder();
       builder.add(base.convert(element, key));
       return build(builder);
@@ -62,7 +61,12 @@ public abstract class CollectionLoadable<T,C extends Collection<T>,B extends Imm
   public JsonElement serialize(C collection) {
     // if we support compact, serialize compact
     if (minSize < 0 && collection.size() == 1) {
-      return base.serialize(collection.iterator().next());
+      JsonElement element = base.serialize(collection.iterator().next());
+      // only return if its not an array; arrays means a conflict with deserializing
+      // there is a small waste of work here in the case of array but you shouldn't be using compact with array serializing elements anyway
+      if (!element.isJsonArray()) {
+        return element;
+      }
     }
     if (collection.size() < getMinSize()) {
       throw new RuntimeException("Collection must have at least " + getMinSize() + " elements");
