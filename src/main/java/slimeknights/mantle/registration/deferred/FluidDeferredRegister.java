@@ -145,7 +145,7 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
 
     /** Creates the default block from the given material and light level */
     public Builder block(MapColor color, int lightLevel) {
-      return block(sup -> new LiquidBlock(sup, BlockBehaviour.Properties.of().mapColor(color).replaceable().noCollission().randomTicks().strength(100.0F).lightLevel(state -> lightLevel).pushReaction(PushReaction.DESTROY).noLootTable().liquid().sound(SoundType.EMPTY)));
+      return block(sup -> new LiquidBlock(sup, createProperties(color, lightLevel)));
     }
 
 
@@ -204,5 +204,10 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
       // return the final nice object
       return new FlowingFluidObject<>(resource(name), tagName, type, still, flowing, this.block);
     }
+  }
+
+  /** Creates properties for a fluid */
+  public static BlockBehaviour.Properties createProperties(MapColor color, int lightLevel) {
+    return BlockBehaviour.Properties.of().mapColor(color).replaceable().noCollission().randomTicks().strength(100.0F).lightLevel(state -> lightLevel).pushReaction(PushReaction.DESTROY).noLootTable().liquid().sound(SoundType.EMPTY);
   }
 }
