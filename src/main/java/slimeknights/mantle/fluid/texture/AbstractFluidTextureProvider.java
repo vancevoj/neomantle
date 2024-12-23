@@ -1,7 +1,7 @@
 package slimeknights.mantle.fluid.texture;
 
 import net.minecraft.data.CachedOutput;
-import net.minecraft.data.DataGenerator;
+import net.minecraft.data.PackOutput;
 import net.minecraft.data.PackOutput.Target;
 import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -30,8 +30,8 @@ public abstract class AbstractFluidTextureProvider extends GenericDataProvider {
   @Nullable
   private final String modId;
 
-  public AbstractFluidTextureProvider(DataGenerator generator, @Nullable String modId) {
-    super(generator, Target.RESOURCE_PACK, FluidTextureManager.FOLDER, JsonHelper.DEFAULT_GSON);
+  public AbstractFluidTextureProvider(PackOutput packOutput, @Nullable String modId) {
+    super(packOutput, Target.RESOURCE_PACK, FluidTextureManager.FOLDER, JsonHelper.DEFAULT_GSON);
     this.modId = modId;
   }
 

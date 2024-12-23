@@ -3,7 +3,7 @@ package slimeknights.mantle.fluid.transfer;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import net.minecraft.data.CachedOutput;
-import net.minecraft.data.DataGenerator;
+import net.minecraft.data.PackOutput;
 import net.minecraft.data.PackOutput.Target;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -27,8 +27,8 @@ public abstract class AbstractFluidContainerTransferProvider extends GenericData
   private final Map<ResourceLocation,TransferJson> allTransfers = new HashMap<>();
   private final String modId;
 
-  public AbstractFluidContainerTransferProvider(DataGenerator generator, String modId) {
-    super(generator, Target.DATA_PACK, FluidContainerTransferManager.FOLDER, FluidContainerTransferManager.GSON);
+  public AbstractFluidContainerTransferProvider(PackOutput packOutput, String modId) {
+    super(packOutput, Target.DATA_PACK, FluidContainerTransferManager.FOLDER, FluidContainerTransferManager.GSON);
     this.modId = modId;
   }
 
