@@ -1,7 +1,6 @@
 package slimeknights.mantle.registration.deferred;
 
 import net.minecraft.core.registries.Registries;
-import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DoubleHighBlockItem;
 import net.minecraft.world.item.Item;
@@ -279,7 +278,7 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
    * @param item      Function to get an item from the block
    * @return  EnumObject mapping between different block types
    */
-  public <T extends Enum<T> & StringRepresentable, B extends Block> EnumObject<T,B> registerEnum(
+  public <T extends Enum<T>, B extends Block> EnumObject<T,B> registerEnum(
       T[] values, String name, Function<T,? extends B> mapper, Function<? super B, ? extends BlockItem> item) {
     return registerEnum(values, name, (fullName, value) -> register(fullName, () -> mapper.apply(value), item));
   }
@@ -292,7 +291,7 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
    * @param item      Function to get an item from the block
    * @return  EnumObject mapping between different block types
    */
-  public <T extends Enum<T> & StringRepresentable, B extends Block> EnumObject<T,B> registerEnum(
+  public <T extends Enum<T>, B extends Block> EnumObject<T,B> registerEnum(
       String name, T[] values, Function<T,? extends B> mapper, Function<? super B, ? extends BlockItem> item) {
     return registerEnum(name, values, (fullName, value) -> register(fullName, () -> mapper.apply(value), item));
   }
@@ -306,7 +305,7 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
    * @param <B>  Type of block
    * @return  Enum object
    */
-  public <T extends Enum<T> & StringRepresentable, B extends Block> EnumObject<T, B> registerEnumNoItem(T[] values, String name, Function<T, ? extends B> mapper) {
+  public <T extends Enum<T>, B extends Block> EnumObject<T, B> registerEnumNoItem(T[] values, String name, Function<T, ? extends B> mapper) {
     return registerEnum(values, name, (fullName, value) -> registerNoItem(fullName, () -> mapper.apply(value)));
   }
 
