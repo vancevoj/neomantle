@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -87,8 +88,13 @@ public abstract class GenericDataProvider implements DataProvider {
   }
 
   /** Combines a stream of completable futures into a single completable future */
-  protected CompletableFuture<?> allOf(Stream<CompletableFuture<?>> stream) {
+  public static CompletableFuture<?> allOf(Stream<CompletableFuture<?>> stream) {
     return CompletableFuture.allOf(stream.toArray(CompletableFuture[]::new));
+  }
+
+  /** Combines a list of completable futures into a single completable future */
+  public static CompletableFuture<?> allOf(Collection<CompletableFuture<?>> tasks) {
+    return CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new));
   }
 
   /** Recreation of {@link DataProvider#saveStable(CachedOutput, JsonElement, Path)} that allows swapping tke key comparator */
