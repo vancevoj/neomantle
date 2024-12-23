@@ -1,10 +1,11 @@
 package slimeknights.mantle.data.predicate.damage;
 
 import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageType;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.predicate.IJsonPredicate;
-import slimeknights.mantle.data.predicate.PredicateRegistry;
 import slimeknights.mantle.data.predicate.TagPredicateRegistry;
 import slimeknights.mantle.data.registry.GenericLoaderRegistry.IGenericLoader;
 
@@ -20,8 +21,12 @@ public interface DamageSourcePredicate extends IJsonPredicate<DamageSource> {
   /** Predicate that matches all sources */
   DamageSourcePredicate ANY = simple(source -> true);
   /** Loader for item predicates */
-  PredicateRegistry<DamageSource> LOADER = new TagPredicateRegistry<>("Damage Source Predicate", ANY, Loadables.DAMAGE_TYPE_TAG, (tag, source) -> source.is(tag));
+  TagPredicateRegistry<DamageType, DamageSource> LOADER = new TagPredicateRegistry<>("Damage Source Predicate", ANY, Loadables.DAMAGE_TYPE_TAG, (tag, source) -> source.is(tag));
 
+  /** Damage that is caused by an entity using another entity */
+  DamageSourcePredicate IS_INDIRECT = simple(DamageSource::isIndirect);
+  /** Damage that is caused by an entity */
+  DamageSourcePredicate HAS_ENTITY = simple(source -> source.getEntity() != null);
   /** Damage that protection works against */
   DamageSourcePredicate CAN_PROTECT = simple(source -> !source.is(DamageTypeTags.BYPASSES_ENCHANTMENTS) && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY));
 
@@ -47,6 +52,11 @@ public interface DamageSourcePredicate extends IJsonPredicate<DamageSource> {
 
 
   /* Helper methods */
+
+  /** Creates a new predicate for a tag match */
+  static IJsonPredicate<DamageSource> tag(TagKey<DamageType> tag) {
+    return LOADER.tag(tag);
+  }
 
   /** Creates an and predicate */
   @SafeVarargs
