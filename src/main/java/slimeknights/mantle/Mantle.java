@@ -169,7 +169,6 @@ public class Mantle {
         // fields
         DamageSourcePredicate.LOADER.register(getResource("entity"), EntityDamageSourcePredicate.LOADER);
         DamageSourcePredicate.LOADER.register(getResource("damage_type"), DamageTypePredicate.LOADER);
-        DamageSourcePredicate.LOADER.register(getResource("can_protect"), DamageSourcePredicate.CAN_PROTECT.getLoader());
         DamageSourcePredicate.LOADER.register(getResource("message"), SourceMessagePredicate.LOADER);
         DamageSourcePredicate.LOADER.register(getResource("attacker"), SourceAttackerPredicate.LOADER);
       }
