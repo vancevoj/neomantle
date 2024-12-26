@@ -48,12 +48,11 @@ public class FluidTextureManager extends SimpleJsonResourceReloadListener {
     IForgeRegistry<FluidType> fluidTypeRegistry = ForgeRegistries.FLUID_TYPES.get();
 
     for (Map.Entry<ResourceLocation,JsonElement> entry : jsons.entrySet()) {
-      ResourceLocation fullPath = entry.getKey();
-      ResourceLocation id = JsonHelper.localize(fullPath, FOLDER, ".json");
+      ResourceLocation id = entry.getKey();
       // first step is to find the matching fluid type, if there is none ignore the file
       FluidType type = fluidTypeRegistry.getValue(id);
       if (type == null || !id.equals(fluidTypeRegistry.getKey(type))) {
-        Mantle.logger.debug("Ignoring fluid texture {} from {} as no fluid type exists with that name", id, fullPath);
+        Mantle.logger.debug("Ignoring fluid texture {} as no fluid type exists with that name", id);
       } else {
         // parse it if valid
         map.put(type, FluidTexture.deserialize(GsonHelper.convertToJsonObject(entry.getValue(), "fluid_texture")));

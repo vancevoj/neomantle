@@ -298,7 +298,7 @@ public class JsonHelper {
    * @return  Localized location
    */
   public static ResourceLocation localize(ResourceLocation location, String folder, String extension) {
-    return new ResourceLocation(location.getNamespace(), localize(location.getPath(), folder, extension));
+    return location.withPath(localize(location.getPath(), folder, extension));
   }
 
 
