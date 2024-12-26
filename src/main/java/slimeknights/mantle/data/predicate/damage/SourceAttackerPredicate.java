@@ -19,6 +19,14 @@ public record SourceAttackerPredicate(IJsonPredicate<LivingEntity> attacker, Whi
     new EnumLoadable<>(WhichEntity.class).defaultField("which", WhichEntity.CAUSING, true, SourceAttackerPredicate::which),
     SourceAttackerPredicate::new);
 
+  public static SourceAttackerPredicate causing(IJsonPredicate<LivingEntity> attacker) {
+    return new SourceAttackerPredicate(attacker, WhichEntity.CAUSING);
+  }
+
+  public static SourceAttackerPredicate direct(IJsonPredicate<LivingEntity> attacker) {
+    return new SourceAttackerPredicate(attacker, WhichEntity.DIRECT);
+  }
+
   @Override
   public boolean matches(DamageSource source) {
     Entity entity = which.get(source);
