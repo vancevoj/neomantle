@@ -76,6 +76,9 @@ public class Loadables {
   public static final StringLoadable<TagKey<BlockEntityType<?>>> BLOCK_ENTITY_TYPE_TAG = tagKey(Registries.BLOCK_ENTITY_TYPE);
   public static final StringLoadable<TagKey<DamageType>> DAMAGE_TYPE_TAG = tagKey(Registries.DAMAGE_TYPE);
 
+  /* Resource keys */
+  public static final StringLoadable<ResourceKey<DamageType>> DAMAGE_TYPE_KEY = resourceKey(Registries.DAMAGE_TYPE);
+
   /* Loot tables */
   /** Loadable for a loot entry instance */
   public static final Loadable<LootPoolEntryContainer> LOOT_ENTRY = new GsonLoadable<>(LootModifierManager.GSON_INSTANCE, LootPoolEntryContainer.class);
@@ -86,6 +89,11 @@ public class Loadables {
   /** Creates a tag key loadable */
   public static <T> StringLoadable<TagKey<T>> tagKey(ResourceKey<? extends Registry<T>> registry) {
     return RESOURCE_LOCATION.flatXmap(key -> TagKey.create(registry, key), TagKey::location);
+  }
+
+  /** Creates a resource key loadable */
+  public static <T> StringLoadable<ResourceKey<T>> resourceKey(ResourceKey<? extends Registry<T>> registry) {
+    return RESOURCE_LOCATION.flatXmap(key -> ResourceKey.create(registry, key), ResourceKey::location);
   }
 
   /** Maps a loadable to a variant that disallows a particular value */
