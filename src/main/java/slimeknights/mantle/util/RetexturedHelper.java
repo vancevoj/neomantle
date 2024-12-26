@@ -3,13 +3,14 @@ package slimeknights.mantle.util;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.Holder;
-import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTab.TabVisibility;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
@@ -187,16 +188,25 @@ public final class RetexturedHelper {
   }
 
   /**
-   * Adds all blocks from the block tag to the specified block for fillItemGroup
-   * @param block             Dynamic texture item instance
-   * @param tag               Tag for texturing
-   * @param list              List of texture blocks
-   * @param showAllVariants   If true, shows all variants. If false, shows just the first
+   * Adds all blocks from the block tag to the specified block for creative tabs
+   * @param block              Dynamic texture item instance
+   * @param tag                Tag for texturing
+   * @param tab                Builder to add to the tab
+   * @param firstVisibility    Visibility for the first item added
+   * @param variantVisibility  Visibility used for variants after the first. If null, variants after the first are skipped entirely
+   * @return true if any variants were added, false otherwise
    */
-  public static void addTagVariants(ItemLike block, TagKey<Item> tag, NonNullList<ItemStack> list, boolean showAllVariants) {
+  @SuppressWarnings("deprecation")
+  public static boolean addTagVariants(CreativeModeTab.Output tab, ItemLike block, TagKey<Item> tag, TabVisibility firstVisibility, @Nullable TabVisibility variantVisibility) {
     boolean added = false;
+
     // using item tags as that is what will be present in the recipe
     for (Holder<Item> candidate : BuiltInRegistries.ITEM.getTagOrEmpty(tag)) {
+      // stop the loop if the visiblity is null
+      TabVisibility visibility = added ? variantVisibility : firstVisibility;
+      if (visibility == null) {
+        break;
+      }
       if (!candidate.isBound()) {
         continue;
       }
@@ -210,14 +220,8 @@ public final class RetexturedHelper {
         continue;
       }
       added = true;
-      list.add(RetexturedHelper.setTexture(new ItemStack(block), blockItem.getBlock()));
-      if (!showAllVariants) {
-        return;
-      }
+      tab.accept(RetexturedHelper.setTexture(new ItemStack(block), blockItem.getBlock()), visibility);
     }
-    // if we never got one, just add the textureless one
-    if (!added) {
-      list.add(new ItemStack(block));
-    }
+    return added;
   }
 }
