@@ -5,12 +5,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.GsonHelper;
-import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.listener.IEarlySafeManagerReloadListener;
 import slimeknights.mantle.util.JsonHelper;
 
 import javax.annotation.Nullable;
@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /** Manager for handling fluid textures */
-public class FluidTextureManager extends SimpleJsonResourceReloadListener {
+public class FluidTextureManager implements IEarlySafeManagerReloadListener {
   /** Folder containing the logic */
   public static final String FOLDER = "mantle/fluid_texture";
 
@@ -30,9 +30,8 @@ public class FluidTextureManager extends SimpleJsonResourceReloadListener {
   /** Fallback texture instance */
   private static final FluidTexture FALLBACK = new FluidTexture(new ResourceLocation("block/water_still"), new ResourceLocation("block/water_flow"), null, null, -1);
 
-  private FluidTextureManager() {
-    super(JsonHelper.DEFAULT_GSON, FOLDER);
-  }
+  private FluidTextureManager() {}
+
 
   /**
    * Initializes this manager, registering it with the resource manager
@@ -42,10 +41,16 @@ public class FluidTextureManager extends SimpleJsonResourceReloadListener {
   }
 
   @Override
-  protected void apply(Map<ResourceLocation,JsonElement> jsons, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
+  public void onReloadSafe(ResourceManager resourceManager) {
     long time = System.nanoTime();
+    // fetch JSONs
+    Map<ResourceLocation,JsonElement> jsons = new HashMap<>();
+    SimpleJsonResourceReloadListener.scanDirectory(resourceManager, FOLDER, JsonHelper.DEFAULT_GSON, jsons);
+
+    // start building fluid type map
     Map<FluidType, FluidTexture> map = new HashMap<>();
     IForgeRegistry<FluidType> fluidTypeRegistry = ForgeRegistries.FLUID_TYPES.get();
+
 
     for (Map.Entry<ResourceLocation,JsonElement> entry : jsons.entrySet()) {
       ResourceLocation id = entry.getKey();
