@@ -4,11 +4,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.world.level.block.Block;
 import org.joml.Vector3f;
 import slimeknights.mantle.client.model.util.ModelHelper;
-import slimeknights.mantle.data.datamap.RegistryDataMapLoader;
+import slimeknights.mantle.data.datamap.BlockStateDataMapLoader;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.common.Vector3fLoadable;
@@ -20,7 +18,6 @@ import javax.annotation.Nullable;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /** Class representing a cube of fluid, which appears in many model types. */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
@@ -41,9 +38,7 @@ public class FluidCuboid {
   /** Loader for a list of size 1 */
   public static final Loadable<List<FluidCuboid>> LIST_LOADABLE = LOADABLE.list(CollectionLoadable.COMPACT);
   /** Data loader to fetch a list of fluid cuboids from JSON */
-  public static final RegistryDataMapLoader<Block,List<FluidCuboid>> REGISTRY = new RegistryDataMapLoader<>(
-    "Block entity fluids", "mantle/model/block_fluids", BuiltInRegistries.BLOCK,
-    RecordLoadable.create(LIST_LOADABLE.requiredField("fluids", Function.identity()), Function.identity()));
+  public static final BlockStateDataMapLoader<List<FluidCuboid>> REGISTRY = new BlockStateDataMapLoader<>("Block entity fluids", "mantle/model/block_fluids", LIST_LOADABLE);
 
   /** Fluid start, scaled for block models */
   @Getter

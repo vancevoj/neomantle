@@ -55,8 +55,6 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
     Map<R,D> dataMap = new HashMap<>();
     // map of location to data to prevent needing to parse the same element twice, saves memory
     Map<ResourceLocation,D> locationMap = new HashMap<>();
-    // stack to prevent circular dependencies
-    List<ResourceLocation> loadingStack = new ArrayList<>();
 
     // we only care about registry entry JSONs, so load by iterating the registry and seeing which ones have a JSON in the list
     // any in the list that are not in the registry may be used in parenting but won't be used directly.
@@ -70,20 +68,8 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
           if (json.keySet().isEmpty()) {
             continue;
           }
-          // process any parents to get the final JSON to parse
-          JsonFile resolved = processParents(jsons, loadingStack, location, json);
-          // clear the loading stack to prepare for the next parsing
-          loadingStack.clear();
-
-          // if we already parsed this element, use it. Otherwise parse and cache it
-          D parsed = locationMap.get(resolved.location);
-          if (parsed == null) {
-            parsed = dataLoader.deserialize(resolved.json);
-            locationMap.put(resolved.location, parsed);
-          }
-
-          // store the result into the final datamap
-          dataMap.put(entry.getValue(), parsed);
+          // parse the data
+          dataMap.put(entry.getValue(), parseData(name, jsons, location, json, locationMap, dataLoader));
         } catch (Exception e) {
           Mantle.logger.error("Failed to parse {} data for {}", name, location, e);
         }
@@ -97,12 +83,28 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
   /** Record paring a location to a return JSON object */
   private record JsonFile(ResourceLocation location, JsonObject json) {}
 
+  /** Parses the given entry into the relevant structures */
+  public static <D> D parseData(String name, Map<ResourceLocation,JsonElement> jsons, ResourceLocation location, JsonObject json, Map<ResourceLocation,D> locationMap, RecordLoadable<D> dataLoader) {
+    // process any parents to get the final JSON to parse
+    JsonFile resolved = processParents(name, jsons, new ArrayList<>(), location, json);
+
+    // if we already parsed this element, use it. Otherwise parse and cache it
+    D parsed = locationMap.get(resolved.location);
+    if (parsed == null) {
+      parsed = dataLoader.deserialize(resolved.json);
+      locationMap.put(resolved.location, parsed);
+    }
+    return parsed;
+  }
+
   /** Fetchs the parent from the JSON map for the given location */
-  private JsonObject fetchParent(Map<ResourceLocation,JsonElement> jsons, ResourceLocation parentLocation, ResourceLocation location, List<ResourceLocation> loadingStack) {
+  public static JsonObject fetchParent(String name, Map<ResourceLocation,JsonElement> jsons, ResourceLocation parentLocation, ResourceLocation location, @Nullable List<ResourceLocation> loadingStack) {
     // first, ensure no circular dependency
-    loadingStack.add(location);
-    if (loadingStack.contains(parentLocation)) {
-      throw new JsonSyntaxException("Caught circular dependency trying to resolve " + name + " parent for " + location + ", ignoring parent. Full stack " + loadingStack);
+    if (loadingStack != null) {
+      loadingStack.add(location);
+      if (loadingStack.contains(parentLocation)) {
+        throw new JsonSyntaxException("Caught circular dependency trying to resolve " + name + " parent for " + location + ", ignoring parent. Full stack " + loadingStack);
+      }
     }
     // next, check that the parent exists
     JsonElement element = jsons.get(parentLocation);
@@ -121,11 +123,11 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
    * @param json          JSON object being parsed. May be modified to include data from the parent.
    * @return Pair of the location of the resolved parent and its JSON data.
    */
-  private JsonFile processParents(Map<ResourceLocation,JsonElement> jsons, List<ResourceLocation> loadingStack, ResourceLocation location, JsonObject json) {
+  private static JsonFile processParents(String name, Map<ResourceLocation,JsonElement> jsons, List<ResourceLocation> loadingStack, ResourceLocation location, JsonObject json) {
     // process the parent until we no longer have one
     while (json.has("parent")) {
       ResourceLocation parentLocation = JsonHelper.getResourceLocation(json, "parent");
-      JsonObject parentJson = fetchParent(jsons, parentLocation, location, loadingStack);
+      JsonObject parentJson = fetchParent(name, jsons, parentLocation, location, loadingStack);
 
       // if the parent is the only key, treat this as a redirect, don't mutate the JSON, may have to resolve the parent again
       if (json.keySet().size() == 1) {
@@ -133,7 +135,7 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
         location = parentLocation;
       } else {
         // we have a parent but more than 1 key, means it's not an exact copy of the parent. Copy all data from the parent to the current element after resolving it
-        parentJson = processParents(jsons, loadingStack, parentLocation, parentJson).json;
+        parentJson = processParents(name, jsons, loadingStack, parentLocation, parentJson).json;
 
         // copy all keys from the parent to the current element
         for (Entry<String,JsonElement> entry : parentJson.entrySet()) {
@@ -153,12 +155,12 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
 
   /** Fetches a value from the registry, returning null if missing */
   @Nullable
-  public D getData(R object) {
+  public D get(R object) {
     return dataMap.get(object);
   }
 
   /** Fetches a value from the registry, returning the default value if missing */
-  public D getData(R object, D defaultValue) {
+  public D get(R object, D defaultValue) {
     return dataMap.getOrDefault(object, defaultValue);
   }
 }

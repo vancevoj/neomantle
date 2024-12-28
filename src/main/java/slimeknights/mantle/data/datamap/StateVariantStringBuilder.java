@@ -29,7 +29,7 @@ public class StateVariantStringBuilder {
   }
 
   /** Sets a property in the builder */
-  public <T extends Comparable<T>> StateVariantStringBuilder set(Property<T> prop, T value) {
+  public <T extends Comparable<T>> StateVariantStringBuilder when(Property<T> prop, T value) {
     // property must be valid
     if (!properties.contains(prop)) {
       throw new IllegalArgumentException("Property " + prop + " is not valid for " + BuiltInRegistries.BLOCK.getKey(owner));

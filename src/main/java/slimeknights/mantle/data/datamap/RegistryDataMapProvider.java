@@ -1,6 +1,5 @@
 package slimeknights.mantle.data.datamap;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.Registry;
 import net.minecraft.data.CachedOutput;
@@ -21,7 +20,7 @@ public abstract class RegistryDataMapProvider<R,D> extends GenericDataProvider {
   private final Registry<R> registry;
   private final RecordLoadable<D> dataLoader;
   private final String modId;
-  private final Map<ResourceLocation,Supplier<JsonElement>> entries = new HashMap<>();
+  private final Map<ResourceLocation,Supplier<JsonObject>> entries = new HashMap<>();
 
   public RegistryDataMapProvider(PackOutput output, Target type, Registry<R> registry, RecordLoadable<D> dataLoader, String folder, String modId) {
     super(output, type, folder);
@@ -65,26 +64,11 @@ public abstract class RegistryDataMapProvider<R,D> extends GenericDataProvider {
   /* Basic supplier methods */
 
   /** Adds an entry to the provider */
-  protected void entry(ResourceLocation key, Supplier<JsonElement> json) {
-    Supplier<JsonElement> original = entries.putIfAbsent(key, json);
+  protected void entry(ResourceLocation key, Supplier<JsonObject> json) {
+    Supplier<JsonObject> original = entries.putIfAbsent(key, json);
     if (original != null) {
       throw new IllegalArgumentException("Duplicate entry at " + key + ", original " + original + ", new value " + json);
     }
-  }
-
-  /** Adds an entry to the provider */
-  protected void entry(String key, Supplier<JsonElement> json) {
-    entry(key(key), json);
-  }
-
-  /** Adds an entry to the provider */
-  protected void entry(R key, Supplier<JsonElement> json) {
-    entry(key(key), json);
-  }
-
-  /** Adds an entry to the provider */
-  protected void entry(Supplier<? extends R> key, Supplier<JsonElement> json) {
-    entry(key(key), json);
   }
 
 
@@ -153,10 +137,12 @@ public abstract class RegistryDataMapProvider<R,D> extends GenericDataProvider {
   }
 
   /** Result that serializes a piece of data */
-  private record DataEntry<D>(RecordLoadable<D> loadable, D data) implements Supplier<JsonElement> {
+  private record DataEntry<D>(RecordLoadable<D> loadable, D data) implements Supplier<JsonObject> {
     @Override
-    public JsonElement get() {
-      return loadable.serialize(data);
+    public JsonObject get() {
+      JsonObject json = new JsonObject();
+      loadable.serialize(data, json);
+      return json;
     }
 
     @Override

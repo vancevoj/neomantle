@@ -2,6 +2,7 @@ package slimeknights.mantle.data.datamap;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import lombok.Getter;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
@@ -24,7 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * Generic JSON serializer which reads data from a block state style file for a mapping from block state to data
+ * Generic JSON serializer which reads data from a block state style file for a mapping from block state to data.
  * @param <T>  Type of data
  */
 public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener {
@@ -57,6 +58,8 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
     Map<BlockState,T> dataMap = new HashMap<>();
     // temporary map to ensure we don't store partial value list
     Map<BlockState,T> localMap = new HashMap<>();
+    // map of parsed data from entries fetching other data
+    Map<ResourceLocation,T> locationMap = new HashMap<>();
 
     Loadable<T> dataLoader = prepareLoader(jsons);
 
@@ -77,11 +80,30 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
 
           // for each variant, add in data values to the map
           for (Entry<String, JsonElement> variant : variants.entrySet()) {
-            // parse fluid
-            T data = dataLoader.convert(variant.getValue(), variant.getKey());
+            JsonElement variantElement = variant.getValue();
+            String key = variant.getKey();
+            // if its a string, treat it as a location to another JSON
+            T data;
+            if (variantElement.isJsonPrimitive()) {
+              ResourceLocation parent = JsonHelper.convertToResourceLocation(variantElement, key);
+              data = locationMap.get(parent);
+              if (data == null) {
+                JsonElement parentElement = jsons.get(parent);
+                if (parentElement == null) {
+                  throw new JsonSyntaxException("Missing parent at " + parent + " for " + name + ", used in " + location);
+                }
+                data = dataLoader.convert(parentElement, parent.toString());
+                locationMap.put(parent, data);
+              }
+            } else {
+              // otherwise parse the object directly
+              data = dataLoader.convert(variantElement, key);
+            }
+            // upload the value into the map
+            T effectivelyFinal = data;
             validStates.stream()
                        .filter(StateVariantStringBuilder.predicate(container, variant.getKey()))
-                       .forEach(state -> localMap.put(state, data));
+                       .forEach(state -> localMap.put(state, effectivelyFinal));
           }
           // add all entries to the final map
           dataMap.putAll(localMap);

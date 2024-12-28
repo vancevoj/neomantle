@@ -13,7 +13,6 @@ import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import org.joml.Vector3f;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.datamap.BlockStateDataMapLoader;
-import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.primitive.BooleanLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -65,15 +64,6 @@ public record FaucetFluid(List<FluidCuboid> side, List<FluidCuboid> center, bool
       return center;
     }
     return side;
-  }
-
-  /**
-   * Creates a new fluid from JSON, without defaulting for sections. Used for parsing the default
-   * @param json Fluid to create
-   * @return New fluid
-   */
-  public static FaucetFluid parseDefault(JsonObject json) {
-    return LOADABLE.deserialize(json);
   }
 
   /**
@@ -131,7 +121,7 @@ public record FaucetFluid(List<FluidCuboid> side, List<FluidCuboid> center, bool
     }
 
     @Override
-    protected Loadable<FaucetFluid> prepareLoader(Map<ResourceLocation,JsonElement> jsons) {
+    protected RecordLoadable<FaucetFluid> prepareLoader(Map<ResourceLocation,JsonElement> jsons) {
       JsonElement json = jsons.get(DEFAULT_NAME);
       defaultInstance = EMPTY;
       if (json == null) {
