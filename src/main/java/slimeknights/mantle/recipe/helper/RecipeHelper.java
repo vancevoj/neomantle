@@ -2,6 +2,7 @@ package slimeknights.mantle.recipe.helper;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.crafting.Recipe;
@@ -76,12 +77,13 @@ public class RecipeHelper {
 
   /**
    * Gets a list of all recipes from the manager, expanding multi recipes. Intended for use in recipe display such as JEI
+   * @param <C>  Return type
+   * @param access   Registry access instance
    * @param recipes  Stream of recipes
    * @param clazz    Preferred recipe class type
-   * @param <C>  Return type
    * @return  List of flattened recipes from the manager
    */
-  public static <C> List<C> getJEIRecipes(Stream<? extends Recipe<?>> recipes, Class<C> clazz) {
+  public static <C> List<C> getJEIRecipes(RegistryAccess access, Stream<? extends Recipe<?>> recipes, Class<C> clazz) {
     return recipes
         .sorted((r1, r2) -> {
           // if one is multi, and the other not, the multi recipe is larger
@@ -95,7 +97,7 @@ public class RecipeHelper {
         .flatMap((recipe) -> {
           // if its a multi recipe, extract child recipes and stream those
           if (recipe instanceof IMultiRecipe<?>) {
-            return ((IMultiRecipe<?>)recipe).getRecipes().stream();
+            return ((IMultiRecipe<?>)recipe).getRecipes(access).stream();
           }
           return Stream.of(recipe);
         })
@@ -106,13 +108,14 @@ public class RecipeHelper {
 
   /**
    * Gets a list of all recipes from the manager, expanding multi recipes. Intended for use in recipe display such as JEI
+   * @param <C>  Return type
+   * @param access   Registry access instance
    * @param manager  Recipe manager
    * @param type     Recipe type
    * @param clazz    Preferred recipe class type
-   * @param <C>  Return type
    * @return  List of flattened recipes from the manager
    */
-  public static <I extends Container, T extends Recipe<I>, C> List<C> getJEIRecipes(RecipeManager manager, RecipeType<T> type, Class<C> clazz) {
-    return getJEIRecipes(manager.byType(type).values().stream(), clazz);
+  public static <I extends Container, T extends Recipe<I>, C> List<C> getJEIRecipes(RegistryAccess access, RecipeManager manager, RecipeType<T> type, Class<C> clazz) {
+    return getJEIRecipes(access, manager.byType(type).values().stream(), clazz);
   }
 }
