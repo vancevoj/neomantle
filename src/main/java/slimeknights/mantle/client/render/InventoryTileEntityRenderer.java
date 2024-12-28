@@ -7,14 +7,10 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.world.Container;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import slimeknights.mantle.client.model.inventory.InventoryModel;
-import slimeknights.mantle.client.model.inventory.ModelItem;
-import slimeknights.mantle.client.model.util.ModelHelper;
 
 import java.util.List;
 
 public class InventoryTileEntityRenderer<T extends BlockEntity & Container> implements BlockEntityRenderer<T> {
-
   public InventoryTileEntityRenderer(BlockEntityRendererProvider.Context context) {}
 
   @Override
@@ -23,15 +19,14 @@ public class InventoryTileEntityRenderer<T extends BlockEntity & Container> impl
 
     // first, find the model for item display locations
     BlockState state = inventory.getBlockState();
-    InventoryModel.Baked model = ModelHelper.getBakedModel(state, InventoryModel.Baked.class);
-    if (model != null) {
+    List<RenderItem> renderItems = RenderItem.REGISTRY.getData(state.getBlock(), List.of());
+    if (!renderItems.isEmpty()) {
       // if the block is rotatable, rotate item display
       boolean isRotated = RenderingHelper.applyRotation(matrices, state);
 
       // render items
-      List<ModelItem> modelItems = model.getItems();
-      for (int i = 0; i < modelItems.size(); i++) {
-        RenderingHelper.renderItem(matrices, buffer, inventory.getItem(i), modelItems.get(i), light);
+      for (int i = 0; i < renderItems.size(); i++) {
+        RenderingHelper.renderItem(matrices, buffer, inventory.getItem(i), renderItems.get(i), light);
       }
 
       // pop back rotation
@@ -39,5 +34,10 @@ public class InventoryTileEntityRenderer<T extends BlockEntity & Container> impl
         matrices.popPose();
       }
     }
+  }
+
+  @Override
+  public boolean shouldRenderOffScreen(T tile) {
+    return !tile.isEmpty();
   }
 }

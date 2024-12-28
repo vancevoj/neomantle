@@ -1,6 +1,7 @@
 package slimeknights.mantle.data.loadable;
 
 import net.minecraft.ResourceLocationException;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -25,8 +26,12 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.minecraftforge.common.ToolAction;
 import net.minecraftforge.common.loot.LootModifierManager;
+import slimeknights.mantle.client.model.util.ModelHelper;
 import slimeknights.mantle.data.loadable.common.GsonLoadable;
 import slimeknights.mantle.data.loadable.common.RegistryLoadable;
+import slimeknights.mantle.data.loadable.primitive.EnumLoadable;
+import slimeknights.mantle.data.loadable.primitive.IntLoadable;
+import slimeknights.mantle.data.loadable.primitive.IntLoadable.IntNetwork;
 import slimeknights.mantle.data.loadable.primitive.ResourceLocationLoadable;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
 
@@ -82,6 +87,17 @@ public class Loadables {
   /* Loot tables */
   /** Loadable for a loot entry instance */
   public static final Loadable<LootPoolEntryContainer> LOOT_ENTRY = new GsonLoadable<>(LootModifierManager.GSON_INSTANCE, LootPoolEntryContainer.class);
+
+  /** Loadable for a rotation value, from 0 to 270 */
+  public static final Loadable<Integer> ROTATION = new IntLoadable(0, 270, IntNetwork.SHORT).validate((value, error) -> {
+    if (!ModelHelper.checkRotation(value)) {
+      throw error.create("Rotation must be 0/90/180/270");
+    }
+    return value;
+  });
+
+  /** Loadable for vanilla direction values */
+  public static final EnumLoadable<Direction> DIRECTION = new EnumLoadable<>(Direction.class);
 
 
   /* Helpers */

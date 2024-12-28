@@ -13,8 +13,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidType;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import slimeknights.mantle.client.model.fluid.FluidCuboid;
-import slimeknights.mantle.client.model.fluid.FluidCuboid.FluidFace;
+import slimeknights.mantle.client.render.FluidCuboid.FluidFace;
 
 import java.util.List;
 

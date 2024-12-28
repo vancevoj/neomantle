@@ -32,11 +32,11 @@ import slimeknights.mantle.client.model.FallbackModelLoader;
 import slimeknights.mantle.client.model.NBTKeyModel;
 import slimeknights.mantle.client.model.RetexturedModel;
 import slimeknights.mantle.client.model.connected.ConnectedModel;
-import slimeknights.mantle.client.model.fluid.FluidsModel;
-import slimeknights.mantle.client.model.inventory.InventoryModel;
 import slimeknights.mantle.client.model.util.ColoredBlockModel;
 import slimeknights.mantle.client.model.util.MantleItemLayerModel;
 import slimeknights.mantle.client.model.util.ModelHelper;
+import slimeknights.mantle.client.render.FluidCuboid;
+import slimeknights.mantle.client.render.RenderItem;
 import slimeknights.mantle.command.client.MantleClientCommand;
 import slimeknights.mantle.fluid.texture.FluidTextureManager;
 import slimeknights.mantle.fluid.tooltip.FluidTooltipHandler;
@@ -67,6 +67,8 @@ public class ClientEvents {
     ResourceColorManager.init(event);
     FluidTooltipHandler.init(event);
     FluidTextureManager.init(event);
+    event.registerReloadListener(FluidCuboid.REGISTRY);
+    event.registerReloadListener(RenderItem.REGISTRY);
   }
 
   @SubscribeEvent
@@ -88,10 +90,6 @@ public class ClientEvents {
     // NBT dynamic models - require specific data defined in the block/item to use
     event.register("nbt_key", NBTKeyModel.LOADER);
     event.register("retextured", RetexturedModel.LOADER);
-
-    // data models - contain information for other parts in rendering rather than rendering directly
-    event.register("inventory", InventoryModel.LOADER);
-    event.register("fluids", FluidsModel.LOADER);
   }
 
   @SubscribeEvent

@@ -8,18 +8,12 @@ import lombok.NoArgsConstructor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.client.resources.model.MultiPartBakedModel;
-import net.minecraft.client.resources.model.WeightedBakedModel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.util.GsonHelper;
-import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3f;
 
-import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -32,58 +26,6 @@ public class ModelHelper {
   private static final Map<Block,ResourceLocation> TEXTURE_NAME_CACHE = new ConcurrentHashMap<>();
   /** Listener instance to clear cache */
   public static final ResourceManagerReloadListener LISTENER = manager -> TEXTURE_NAME_CACHE.clear();
-
-  /* Baked models */
-
-  /**
-   * Gets the model for the given block
-   * @param state  Block state
-   * @param clazz  Class type to cast result into
-   * @param <T>    Class type
-   * @return  Block model, or null if its missing or the wrong class type
-   */
-  @Nullable
-  public static <T extends BakedModel> T getBakedModel(BlockState state, Class<T> clazz) {
-    Minecraft minecraft = Minecraft.getInstance();
-    //noinspection ConstantConditions  null during run data
-    if (minecraft == null) {
-      return null;
-    }
-    BakedModel baked = minecraft.getModelManager().getBlockModelShaper().getBlockModel(state);
-    // map multipart and weighted random into the first variant
-    if (baked instanceof MultiPartBakedModel) {
-      baked = ((MultiPartBakedModel)baked).selectors.get(0).getRight();
-    }
-    if (baked instanceof WeightedBakedModel) {
-      baked = ((WeightedBakedModel) baked).wrapped;
-    }
-    // final model should match the desired type
-    if (clazz.isInstance(baked)) {
-      return clazz.cast(baked);
-    }
-    return null;
-  }
-
-  /**
-   * Gets the model for the given item
-   * @param item   Item provider
-   * @param clazz  Class type to cast result into
-   * @param <T>    Class type
-   * @return  Item model, or null if its missing or the wrong class type
-   */
-  @Nullable
-  public static <T extends BakedModel> T getBakedModel(ItemLike item, Class<T> clazz) {
-    Minecraft minecraft = Minecraft.getInstance();
-    //noinspection ConstantConditions  null during run data
-    if (minecraft == null) {
-      return null;
-    }
-    BakedModel baked = minecraft.getItemRenderer().getItemModelShaper().getItemModel(item.asItem());
-    if (clazz.isInstance(baked)) {
-      return clazz.cast(baked);
-    }
-    return null;
-  }
 
   /**
    * Gets the texture name for a block from the model manager
