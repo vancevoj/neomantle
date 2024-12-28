@@ -158,5 +158,10 @@ public abstract class RegistryDataMapProvider<R,D> extends GenericDataProvider {
     public JsonElement get() {
       return loadable.serialize(data);
     }
+
+    @Override
+    public String toString() {
+      return data.toString();
+    }
   }
 }
