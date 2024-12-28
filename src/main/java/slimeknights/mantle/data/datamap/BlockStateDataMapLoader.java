@@ -3,7 +3,6 @@ package slimeknights.mantle.data.datamap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
-import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -49,6 +48,7 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
     return dataLoader;
   }
 
+
   @SuppressWarnings("deprecation")  // no its not
   @Override
   protected void apply(Map<ResourceLocation,JsonElement> jsons, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
@@ -80,7 +80,7 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
             // parse fluid
             T data = dataLoader.convert(variant.getValue(), variant.getKey());
             validStates.stream()
-                       .filter(ModelBakery.predicate(container, variant.getKey()))
+                       .filter(StateVariantStringBuilder.predicate(container, variant.getKey()))
                        .forEach(state -> localMap.put(state, data));
           }
           // add all entries to the final map
