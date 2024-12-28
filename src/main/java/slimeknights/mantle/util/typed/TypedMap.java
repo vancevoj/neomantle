@@ -1,5 +1,7 @@
 package slimeknights.mantle.util.typed;
 
+import org.jetbrains.annotations.Contract;
+
 import javax.annotation.Nullable;
 import java.util.Set;
 
@@ -17,6 +19,7 @@ public interface TypedMap {
   boolean containsKey(Key<?> key);
 
   /** Gets the of the type of key from the map, or the default value if missing */
+  @Contract("_,!null->!null")
   @Nullable
   <R, K extends R> R getOrDefault(Key<K> key, @Nullable R defaultValue);
 
