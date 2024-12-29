@@ -7,9 +7,9 @@ import net.minecraft.world.level.block.state.BlockBehaviour.BlockStateBase;
 import net.minecraft.world.level.block.state.BlockState;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
+import slimeknights.mantle.data.loadable.record.SingletonLoader;
 import slimeknights.mantle.data.predicate.IJsonPredicate;
 import slimeknights.mantle.data.predicate.RegistryPredicateRegistry;
-import slimeknights.mantle.data.registry.GenericLoaderRegistry.SingletonLoader;
 
 import java.util.List;
 import java.util.function.Predicate;

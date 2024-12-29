@@ -12,7 +12,7 @@ import slimeknights.mantle.data.predicate.TagPredicateRegistry;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static slimeknights.mantle.data.registry.GenericLoaderRegistry.SingletonLoader.singleton;
+import static slimeknights.mantle.data.loadable.record.SingletonLoader.singleton;
 
 /**
  * Predicate testing for damage sources
