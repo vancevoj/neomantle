@@ -3,7 +3,6 @@ package slimeknights.mantle.data.predicate.entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobType;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
-import slimeknights.mantle.data.registry.GenericLoaderRegistry.IGenericLoader;
 import slimeknights.mantle.data.registry.NamedComponentRegistry;
 
 /** Predicate matching a specific mob type */
@@ -22,7 +21,7 @@ public record MobTypePredicate(MobType type) implements LivingEntityPredicate {
   }
 
   @Override
-  public IGenericLoader<? extends LivingEntityPredicate> getLoader() {
+  public RecordLoadable<? extends LivingEntityPredicate> getLoader() {
     return LOADER;
   }
 }

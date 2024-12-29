@@ -16,7 +16,6 @@ import com.mojang.datafixers.util.Function6;
 import com.mojang.datafixers.util.Function7;
 import com.mojang.datafixers.util.Function8;
 import com.mojang.datafixers.util.Function9;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.ContextStreamable;
 import slimeknights.mantle.data.loadable.ErrorFactory;
@@ -26,7 +25,6 @@ import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.field.RecordField;
 import slimeknights.mantle.data.loadable.mapping.CompactLoadable;
 import slimeknights.mantle.data.loadable.mapping.MappedLoadable;
-import slimeknights.mantle.data.registry.GenericLoaderRegistry.IGenericLoader;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.function.BiFunction;
@@ -39,7 +37,7 @@ import java.util.function.Predicate;
  * @param <T>  Type being loaded
  */
 @SuppressWarnings("unused")  // API
-public interface RecordLoadable<T> extends Loadable<T>, IGenericLoader<T>, ContextStreamable<T> {
+public interface RecordLoadable<T> extends Loadable<T>, ContextStreamable<T> {
   /* Deserializing */
 
   /**
@@ -52,8 +50,7 @@ public interface RecordLoadable<T> extends Loadable<T>, IGenericLoader<T>, Conte
    */
   T deserialize(JsonObject json, TypedMap context);
 
-  /** Contextless implementation of {@link #deserialize(JsonObject, TypedMap)} for {@link IGenericLoader}. */
-  @Override
+  /** Contextless implementation of {@link #deserialize(JsonObject, TypedMap)}. */
   default T deserialize(JsonObject json) {
     return deserialize(json, TypedMap.empty());
   }
@@ -66,7 +63,7 @@ public interface RecordLoadable<T> extends Loadable<T>, IGenericLoader<T>, Conte
 
   /* Serializing */
 
-  @Override
+  /** Writes this object to json */
   void serialize(T object, JsonObject json);
 
   @Override
@@ -76,22 +73,6 @@ public interface RecordLoadable<T> extends Loadable<T>, IGenericLoader<T>, Conte
     return json;
   }
 
-
-  /* IGenericLoader methods */
-
-  /** @deprecated use {@link #decode(FriendlyByteBuf)} */
-  @Deprecated(forRemoval = true)
-  @Override
-  default T fromNetwork(FriendlyByteBuf buffer) {
-    return decode(buffer);
-  }
-
-  /** @deprecated use {@link #encode(FriendlyByteBuf, Object)} */
-  @Deprecated(forRemoval = true)
-  @Override
-  default void toNetwork(T object, FriendlyByteBuf buffer) {
-    encode(buffer, object);
-  }
 
   /* Fields */
 

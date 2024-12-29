@@ -9,9 +9,11 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.data.gson.GenericRegisteredSerializer;
-import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.field.DirectField;
 import slimeknights.mantle.data.loadable.field.LoadableField;
+import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.data.registry.GenericLoaderRegistry.IHaveLoader;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.function.Function;
 
@@ -22,7 +24,7 @@ import java.util.function.Function;
  * @see DefaultingLoaderRegistry
  */
 @SuppressWarnings("unused")  // API
-public class GenericLoaderRegistry<T extends IHaveLoader> implements Loadable<T> {
+public class GenericLoaderRegistry<T extends IHaveLoader> implements RecordLoadable<T> {
   /** Empty object instance for compact deserialization */
   protected static final JsonObject EMPTY_OBJECT = new JsonObject();
 
@@ -30,7 +32,7 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements Loadable<T>
   @Getter
   private final String name;
   /** Map of all serializers for implementations */
-  protected final NamedComponentRegistry<IGenericLoader<? extends T>> loaders;
+  protected final NamedComponentRegistry<RecordLoadable<? extends T>> loaders;
   /** If true, single key serializations will not use a JSON object to serialize, ideal for loaders with many singletons */
   protected final boolean compact;
 
@@ -41,7 +43,7 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements Loadable<T>
   }
 
   /** Registers a deserializer by name */
-  public void register(ResourceLocation name, IGenericLoader<? extends T> loader) {
+  public void register(ResourceLocation name, RecordLoadable<? extends T> loader) {
     loaders.register(name, loader);
   }
 
@@ -61,6 +63,11 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements Loadable<T>
     throw new JsonSyntaxException("Invalid " + name + " JSON at " + key + ", must be a JSON object" + (compact ? " or a string" : ""));
   }
 
+  @Override
+  public T deserialize(JsonObject json, TypedMap context) {
+    return loaders.getIfPresent(json, "type").deserialize(json, context);
+  }
+
   /**
    * Deserializes the object from JSON
    * @param element  JSON element
@@ -72,47 +79,54 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements Loadable<T>
 
   /** Serializes the object to json, fighting generics */
   @SuppressWarnings("unchecked")
-  private <L extends IHaveLoader> JsonElement serialize(IGenericLoader<L> loader, T src) {
-    JsonObject json = new JsonObject();
-    JsonElement type = new JsonPrimitive(loaders.getKey((IGenericLoader<? extends T>)loader).toString());
+  private <L> void serialize(RecordLoadable<L> loader, T src, JsonObject json) {
+    JsonElement type = new JsonPrimitive(loaders.getKey((RecordLoadable<? extends T>)loader).toString());
     json.add("type", type);
     loader.serialize((L)src, json);
     if (json.get("type") != type) {
       throw new IllegalStateException(name + " serializer " + type.getAsString() + " modified the type key, this is not allowed as it breaks deserialization");
     }
+  }
+
+  @Override
+  public JsonElement serialize(T src) {
+    JsonObject json = new JsonObject();
+    serialize(src.getLoader(), src, json);
     // nothing to serialize? use type directly
     if (compact && json.entrySet().size() == 1) {
-      return type;
+      return json.get("type");
     }
     return json;
   }
 
   @Override
-  public JsonElement serialize(T src) {
-    return serialize(src.getLoader(), src);
+  public void serialize(T object, JsonObject json) {
+    serialize(object.getLoader(), object, json);
   }
 
   /** Writes the object to the network, fighting generics */
   @SuppressWarnings("unchecked")
-  protected  <L extends IHaveLoader> void toNetwork(IGenericLoader<L> loader, T src, FriendlyByteBuf buffer) {
-    loader.toNetwork((L)src, buffer);
+  protected  <L> void encode(RecordLoadable<L> loader, FriendlyByteBuf buffer, T src) {
+    loader.encode(buffer, (L)src);
   }
 
   @SuppressWarnings("unchecked")  // the cast is safe here as its just doing a map lookup, shouldn't cause harm if it fails. Besides, the loader has to extend T to work
   @Override
   public void encode(FriendlyByteBuf buffer, T src) {
-    loaders.encode(buffer, (IGenericLoader<? extends T>)src.getLoader());
-    toNetwork(src.getLoader(), src, buffer);
+    RecordLoadable<? extends IHaveLoader> loader = src.getLoader();
+    loaders.encode(buffer, (RecordLoadable<? extends T>)loader);
+    encode(loader, buffer, src);
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer) {
-    return loaders.decode(buffer).fromNetwork(buffer);
+  public T decode(FriendlyByteBuf buffer, TypedMap context) {
+    return loaders.decode(buffer).decode(buffer);
   }
 
   /** Creates a field that loads this object directly into the parent JSON object, will conflict if the parent already has a type */
+  @Override
   public <P> LoadableField<T,P> directField(Function<P,T> getter) {
-    return new DirectRegistryField<>(this, getter);
+    return new DirectField<>(this, getter);
   }
 
   /** Creates a field that loads this object directly into the parent JSON object by mapping the type key */
@@ -125,52 +139,27 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements Loadable<T>
     return getClass().getName() + "('" + name + "')";
   }
 
-  /** @deprecated use {@link slimeknights.mantle.data.loadable.record.RecordLoadable}. Will fully replace it in 1.20. */
-  @Deprecated
-  public interface IGenericLoader<T> {
-    /** Deserializes the object from json */
-    T deserialize(JsonObject json);
-
-    /** Reads the object from the packet buffer */
-    T fromNetwork(FriendlyByteBuf buffer);
-
-    /** Writes this object to json */
-    void serialize(T object, JsonObject json);
-
-    /** Writes this object to the packet buffer */
-    void toNetwork(T object, FriendlyByteBuf buffer);
-  }
-
   /**
    * Interface for an object with a loader.
-   * TODO 1.20: replace with {@link slimeknights.mantle.data.loadable.IAmLoadable.Record}
    */
   public interface IHaveLoader {
-    /**
-     * Gets the loader for the object.
-     * If you wish to suppress the deprecation warning, change the return type to {@link slimeknights.mantle.data.loadable.record.RecordLoadable}.
-     */
-    IGenericLoader<? extends IHaveLoader> getLoader();
+    /** Gets the loader for the object. */
+    RecordLoadable<? extends IHaveLoader> getLoader();
   }
 
   /** Loader instance for an object with only a single implementation */
   @RequiredArgsConstructor
-  public static class SingletonLoader<T> implements IGenericLoader<T> {
+  public static class SingletonLoader<T> implements RecordLoadable<T> {
     @Getter
     private final T instance;
 
     /** Helper for creating a loader using an anonymous class */
-    public SingletonLoader(Function<IGenericLoader<T>,T> creator) {
+    public SingletonLoader(Function<RecordLoadable<T>,T> creator) {
       this.instance = creator.apply(this);
     }
 
     @Override
-    public T deserialize(JsonObject json) {
-      return instance;
-    }
-
-    @Override
-    public T fromNetwork(FriendlyByteBuf buffer) {
+    public T deserialize(JsonObject json, TypedMap context) {
       return instance;
     }
 
@@ -178,10 +167,15 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements Loadable<T>
     public void serialize(T object, JsonObject json) {}
 
     @Override
-    public void toNetwork(T object, FriendlyByteBuf buffer) {}
+    public T decode(FriendlyByteBuf buffer, TypedMap context) {
+      return instance;
+    }
+
+    @Override
+    public void encode(FriendlyByteBuf buffer, T value) {}
 
     /** Helper to create a singleton object as an anonymous class */
-    public static <T> T singleton(Function<IGenericLoader<T>,T> instance) {
+    public static <T> T singleton(Function<RecordLoadable<T>,T> instance) {
       return new SingletonLoader<>(instance).getInstance();
     }
   }

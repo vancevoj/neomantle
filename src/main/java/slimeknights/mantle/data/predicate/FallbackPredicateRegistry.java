@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.JsonHelper;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.function.Function;
 
@@ -40,25 +41,32 @@ public class FallbackPredicateRegistry<T,F> extends PredicateRegistry<T> {
       return getDefault();
     }
     // identify type key, and the object we will load from
-    JsonObject object;
-    ResourceLocation type;
     if (element.isJsonObject()) {
-      object = element.getAsJsonObject();
-      type = JsonHelper.getResourceLocation(object, "type");
+      return deserialize(element.getAsJsonObject());
     } else if (compact && element.isJsonPrimitive()) {
-      EMPTY_OBJECT.entrySet().clear();
-      object = EMPTY_OBJECT;
-      type = JsonHelper.convertToResourceLocation(element, "type");
+      ResourceLocation type = JsonHelper.convertToResourceLocation(element, "type");
+      //  see if we have a primary loader, if so parse that
+      RecordLoadable<? extends IJsonPredicate<T>> loader = loaders.getValue(type);
+      if (loader != null) {
+        EMPTY_OBJECT.entrySet().clear();
+        return loader.deserialize(EMPTY_OBJECT);
+      }
+      return new FallbackPredicate(this.fallback.convert(element, key));
     } else {
       throw new JsonSyntaxException("Invalid " + getName() + " JSON at " + key + ", must be a JSON object" + (compact ? " or a string" : ""));
     }
+  }
+
+  @Override
+  public IJsonPredicate<T> deserialize(JsonObject json, TypedMap context) {
+    ResourceLocation type = JsonHelper.getResourceLocation(json, "type");
     //  see if we have a primary loader, if so parse that
-    IGenericLoader<? extends IJsonPredicate<T>> loader = loaders.getValue(type);
+    RecordLoadable<? extends IJsonPredicate<T>> loader = loaders.getValue(type);
     if (loader != null) {
-      return loader.deserialize(object);
+      return loader.deserialize(json);
     }
     // primary loader failed, try a fallback loader
-    return new FallbackPredicate(this.fallback.convert(element, key));
+    return new FallbackPredicate(this.fallback.deserialize(json, context));
   }
 
   @SuppressWarnings("unchecked")
@@ -69,6 +77,16 @@ public class FallbackPredicateRegistry<T,F> extends PredicateRegistry<T> {
       return this.fallback.serialize(((NestedPredicate<F>)src).predicate());
     }
     return super.serialize(src);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void serialize(IJsonPredicate<T> src, JsonObject json) {
+    if (src instanceof NestedPredicate<?>) {
+      this.fallback.serialize(((NestedPredicate<F>)src).predicate(), json);
+    } else {
+      super.serialize(src, json);
+    }
   }
 
   /** Helper interface to make the cast work */
@@ -97,7 +115,7 @@ public class FallbackPredicateRegistry<T,F> extends PredicateRegistry<T> {
     }
 
     @Override
-    public IGenericLoader<? extends IJsonPredicate<T>> getLoader() {
+    public RecordLoadable<? extends IJsonPredicate<T>> getLoader() {
       return fallbackLoader;
     }
   }

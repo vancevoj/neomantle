@@ -47,7 +47,7 @@ public class TagPredicateRegistry<R,T> extends PredicateRegistry<T> {
     }
 
     @Override
-    public IGenericLoader<? extends IJsonPredicate<T>> getLoader() {
+    public RecordLoadable<? extends IJsonPredicate<T>> getLoader() {
       return tagLoader;
     }
   }

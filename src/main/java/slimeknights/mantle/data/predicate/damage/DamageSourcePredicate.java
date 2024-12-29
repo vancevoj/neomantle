@@ -5,9 +5,9 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
 import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.data.predicate.IJsonPredicate;
 import slimeknights.mantle.data.predicate.TagPredicateRegistry;
-import slimeknights.mantle.data.registry.GenericLoaderRegistry.IGenericLoader;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -44,7 +44,7 @@ public interface DamageSourcePredicate extends IJsonPredicate<DamageSource> {
       }
 
       @Override
-      public IGenericLoader<? extends DamageSourcePredicate> getLoader() {
+      public RecordLoadable<? extends DamageSourcePredicate> getLoader() {
         return loader;
       }
     });

@@ -6,9 +6,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour.BlockStateBase;
 import net.minecraft.world.level.block.state.BlockState;
 import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.data.predicate.IJsonPredicate;
 import slimeknights.mantle.data.predicate.RegistryPredicateRegistry;
-import slimeknights.mantle.data.registry.GenericLoaderRegistry.IGenericLoader;
 import slimeknights.mantle.data.registry.GenericLoaderRegistry.SingletonLoader;
 
 import java.util.List;
@@ -44,7 +44,7 @@ public interface BlockPredicate extends IJsonPredicate<BlockState> {
       }
 
       @Override
-      public IGenericLoader<? extends BlockPredicate> getLoader() {
+      public RecordLoadable<? extends BlockPredicate> getLoader() {
         return loader;
       }
     });

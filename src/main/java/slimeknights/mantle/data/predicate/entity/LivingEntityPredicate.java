@@ -6,9 +6,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.data.predicate.IJsonPredicate;
 import slimeknights.mantle.data.predicate.RegistryPredicateRegistry;
-import slimeknights.mantle.data.registry.GenericLoaderRegistry.IGenericLoader;
 import slimeknights.mantle.data.registry.GenericLoaderRegistry.SingletonLoader;
 
 import java.util.List;
@@ -60,7 +60,7 @@ public interface LivingEntityPredicate extends IJsonPredicate<LivingEntity> {
       }
 
       @Override
-      public IGenericLoader<? extends LivingEntityPredicate> getLoader() {
+      public RecordLoadable<? extends LivingEntityPredicate> getLoader() {
         return loader;
       }
     });

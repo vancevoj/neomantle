@@ -1,6 +1,6 @@
 package slimeknights.mantle.data.predicate;
 
-import slimeknights.mantle.data.registry.GenericLoaderRegistry.IGenericLoader;
+import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.data.registry.GenericLoaderRegistry.IHaveLoader;
 
 /** Generic interface for predicate based JSON loaders */
@@ -12,5 +12,5 @@ public interface IJsonPredicate<I> extends IHaveLoader {
   IJsonPredicate<I> inverted();
 
   @Override
-  IGenericLoader<? extends IJsonPredicate<I>> getLoader();
+  RecordLoadable<? extends IJsonPredicate<I>> getLoader();
 }

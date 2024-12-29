@@ -52,7 +52,7 @@ public class RegistryPredicateRegistry<R,T> extends TagPredicateRegistry<R,T> {
     }
 
     @Override
-    public IGenericLoader<? extends IJsonPredicate<T>> getLoader() {
+    public RecordLoadable<? extends IJsonPredicate<T>> getLoader() {
       return setLoader;
     }
   }

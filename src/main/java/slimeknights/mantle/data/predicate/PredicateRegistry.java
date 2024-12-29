@@ -75,7 +75,7 @@ public class PredicateRegistry<T> extends DefaultingLoaderRegistry<IJsonPredicat
     }
 
     @Override
-    public IGenericLoader<? extends IJsonPredicate<T>> getLoader() {
+    public RecordLoadable<? extends IJsonPredicate<T>> getLoader() {
       return invertedLoader;
     }
 
@@ -106,7 +106,7 @@ public class PredicateRegistry<T> extends DefaultingLoaderRegistry<IJsonPredicat
     }
 
     @Override
-    public IGenericLoader<? extends IJsonPredicate<T>> getLoader() {
+    public RecordLoadable<? extends IJsonPredicate<T>> getLoader() {
       return andLoader;
     }
   }
@@ -132,7 +132,7 @@ public class PredicateRegistry<T> extends DefaultingLoaderRegistry<IJsonPredicat
     }
 
     @Override
-    public IGenericLoader<? extends IJsonPredicate<T>> getLoader() {
+    public RecordLoadable<? extends IJsonPredicate<T>> getLoader() {
       return orLoader;
     }
   }

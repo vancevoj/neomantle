@@ -7,7 +7,9 @@ import com.google.gson.JsonSerializationContext;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.field.DefaultingField;
 import slimeknights.mantle.data.loadable.field.LoadableField;
+import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.data.registry.GenericLoaderRegistry.IHaveLoader;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.lang.reflect.Type;
 import java.util.function.Function;
@@ -68,17 +70,18 @@ public class DefaultingLoaderRegistry<T extends IHaveLoader> extends GenericLoad
       loaders.encodeOptional(buffer, null);
       return;
     }
-    loaders.encodeOptional(buffer, (IGenericLoader<? extends T>)src.getLoader());
-    toNetwork(src.getLoader(), src, buffer);
+    RecordLoadable<? extends IHaveLoader> loader = src.getLoader();
+    loaders.encodeOptional(buffer, (RecordLoadable<? extends T>)loader);
+    encode(loader, buffer, src);
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer) {
-    IGenericLoader<? extends T> loader = loaders.decodeOptional(buffer);
+  public T decode(FriendlyByteBuf buffer, TypedMap context) {
+    RecordLoadable<? extends T> loader = loaders.decodeOptional(buffer);
     if (loader == null) {
       return defaultInstance;
     }
-    return loader.fromNetwork(buffer);
+    return loader.decode(buffer);
   }
 
 

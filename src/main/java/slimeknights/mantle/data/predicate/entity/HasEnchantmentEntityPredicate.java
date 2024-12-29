@@ -5,7 +5,6 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
-import slimeknights.mantle.data.registry.GenericLoaderRegistry.IGenericLoader;
 
 /**
  * Predicate that checks if the given entity has the given enchantment on any of their equipment
@@ -19,7 +18,7 @@ public record HasEnchantmentEntityPredicate(Enchantment enchantment) implements 
   }
 
   @Override
-  public IGenericLoader<? extends LivingEntityPredicate> getLoader() {
+  public RecordLoadable<HasEnchantmentEntityPredicate> getLoader() {
     return LOADER;
   }
 }
