@@ -9,8 +9,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.CreativeModeTab.TabVisibility;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
@@ -25,6 +23,7 @@ import net.minecraftforge.client.model.data.ModelProperty;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 /**
  * This utility contains helpers to handle the NBT for retexturable blocks
@@ -191,22 +190,15 @@ public final class RetexturedHelper {
    * Adds all blocks from the block tag to the specified block for creative tabs
    * @param block              Dynamic texture item instance
    * @param tag                Tag for texturing
-   * @param tab                Builder to add to the tab
-   * @param firstVisibility    Visibility for the first item added
-   * @param variantVisibility  Visibility used for variants after the first. If null, variants after the first are skipped entirely
+   * @param tab                Consumer accepting items for the tab. If it returns true the iteration stops.
    * @return true if any variants were added, false otherwise
    */
   @SuppressWarnings("deprecation")
-  public static boolean addTagVariants(CreativeModeTab.Output tab, ItemLike block, TagKey<Item> tag, TabVisibility firstVisibility, @Nullable TabVisibility variantVisibility) {
+  public static boolean addTagVariants(Predicate<ItemStack> tab, ItemLike block, TagKey<Item> tag) {
     boolean added = false;
 
     // using item tags as that is what will be present in the recipe
     for (Holder<Item> candidate : BuiltInRegistries.ITEM.getTagOrEmpty(tag)) {
-      // stop the loop if the visiblity is null
-      TabVisibility visibility = added ? variantVisibility : firstVisibility;
-      if (visibility == null) {
-        break;
-      }
       if (!candidate.isBound()) {
         continue;
       }
@@ -220,7 +212,9 @@ public final class RetexturedHelper {
         continue;
       }
       added = true;
-      tab.accept(RetexturedHelper.setTexture(new ItemStack(block), blockItem.getBlock()), visibility);
+      if (tab.test(RetexturedHelper.setTexture(new ItemStack(block), blockItem.getBlock()))) {
+        break;
+      }
     }
     return added;
   }
