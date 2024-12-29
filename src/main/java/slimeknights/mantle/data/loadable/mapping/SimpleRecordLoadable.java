@@ -11,12 +11,12 @@ import javax.annotation.Nullable;
 
 /**
  * Implements a record loadable with a single key.
- * @param key           Key used in object form
  * @param loadable      Loadable for parsing
- * @param compact       If true, serializes using the loadable instead of in object form.
+ * @param key           Key used in object form
  * @param defaultValue  If non-null, will be used as the value if the object is empty.
+ * @param compact       If true, serializes using the loadable instead of in object form.
  */
-public record SimpleRecordLoadable<T>(String key, Loadable<T> loadable, boolean compact, @Nullable T defaultValue) implements RecordLoadable<T> {
+public record SimpleRecordLoadable<T>(Loadable<T> loadable, String key, @Nullable T defaultValue, boolean compact) implements RecordLoadable<T> {
   @Override
   public T convert(JsonElement element, String key) {
     if (!element.isJsonObject()) {
