@@ -209,7 +209,7 @@ public abstract class FluidIngredient implements IAmLoadable {
     private final int amount;
 
     @Override
-    public Loadable<?> loadable() {
+    public Loadable<FluidMatch> loadable() {
       return FLUID_MATCH;
     }
 
@@ -238,7 +238,7 @@ public abstract class FluidIngredient implements IAmLoadable {
     private final int amount;
 
     @Override
-    public Loadable<?> loadable() {
+    public Loadable<TagMatch> loadable() {
       return TAG_MATCH;
     }
 
@@ -268,7 +268,7 @@ public abstract class FluidIngredient implements IAmLoadable {
     private final List<FluidIngredient> ingredients;
 
     @Override
-    public Loadable<?> loadable() {
+    public Loadable<Compound> loadable() {
       return COMPOUND;
     }
 

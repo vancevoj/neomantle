@@ -158,7 +158,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
     private final Set<EntityType<?>> types;
 
     @Override
-    public Loadable<?> loadable() {
+    public Loadable<? extends EntityIngredient> loadable() {
       return types.size() == 1 ? ENTRY_MATCH : SET_MATCH;
     }
 
@@ -180,7 +180,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
     private Set<EntityType<?>> types;
 
     @Override
-    public Loadable<?> loadable() {
+    public Loadable<TagMatch> loadable() {
       return TAG_MATCH;
     }
 
@@ -205,7 +205,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
     private Set<EntityType<?>> allTypes;
 
     @Override
-    public Loadable<?> loadable() {
+    public Loadable<Compound> loadable() {
       return COMPOUND;
     }
 

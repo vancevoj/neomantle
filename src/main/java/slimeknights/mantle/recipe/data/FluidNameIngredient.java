@@ -24,7 +24,7 @@ public class FluidNameIngredient extends FluidIngredient {
   private final int amount;
 
   @Override
-  public Loadable<?> loadable() {
+  public Loadable<FluidNameIngredient> loadable() {
     return LOADABLE;
   }
 
