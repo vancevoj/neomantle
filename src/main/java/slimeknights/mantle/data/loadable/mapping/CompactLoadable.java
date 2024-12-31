@@ -44,11 +44,11 @@ public class CompactLoadable<T> implements Loadable<T> {
   }
 
   @Override
-  public T convert(JsonElement element, String key) {
+  public T convert(JsonElement element, String key, TypedMap context) {
     if (!element.isJsonObject()) {
-      return compact.convert(element, key);
+      return compact.convert(element, key, context);
     }
-    return loadable.convert(element, key);
+    return loadable.convert(element, key, context);
   }
 
   @Override
@@ -63,8 +63,8 @@ public class CompactLoadable<T> implements Loadable<T> {
   /* Networking */
 
   @Override
-  public T decode(FriendlyByteBuf buffer) {
-    return loadable.decode(buffer);
+  public T decode(FriendlyByteBuf buffer, TypedMap context) {
+    return loadable.decode(buffer, context);
   }
 
   @Override

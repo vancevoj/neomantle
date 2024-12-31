@@ -3,6 +3,7 @@ package slimeknights.mantle.data.loadable.field;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -14,13 +15,13 @@ import java.util.function.Function;
  */
 public record TryDirectField<T,P>(Loadable<T> loadable, String key, Function<P,T> getter, String... conflicts) implements AlwaysPresentLoadableField<T,P> {
   @Override
-  public T get(JsonObject json) {
+  public T get(JsonObject json, TypedMap context) {
     // if we have the nested key, read from that
     if (json.has(key)) {
-      return loadable.convert(json.get(key), key);
+      return loadable.convert(json.get(key), key, context);
     }
     // try reading from the current object, assumes the loadable supports JSON objects
-    return loadable.convert(json, key);
+    return loadable.convert(json, key, context);
   }
 
   /** Checks if the JSON has any conflicting keys */

@@ -4,6 +4,7 @@ import com.google.gson.JsonSyntaxException;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.mapping.EnumMapLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Locale;
 import java.util.Map;
@@ -30,7 +31,7 @@ public record EnumLoadable<E extends Enum<E>>(Class<E> enumClass, E[] allowedVal
   }
 
   @Override
-  public E decode(FriendlyByteBuf buffer) {
+  public E decode(FriendlyByteBuf buffer, TypedMap context) {
     return buffer.readEnum(enumClass);
   }
 

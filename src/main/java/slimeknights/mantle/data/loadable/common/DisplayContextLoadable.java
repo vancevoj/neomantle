@@ -9,6 +9,7 @@ import net.minecraftforge.registries.IForgeRegistry;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.mapping.EnumMapLoadable;
 import slimeknights.mantle.data.loadable.primitive.ResourceLocationLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Map;
 
@@ -39,7 +40,7 @@ public enum DisplayContextLoadable implements ResourceLocationLoadable<ItemDispl
   }
 
   @Override
-  public ItemDisplayContext decode(FriendlyByteBuf buffer) {
+  public ItemDisplayContext decode(FriendlyByteBuf buffer, TypedMap context) {
     return buffer.readRegistryIdUnsafe(ForgeRegistries.DISPLAY_CONTEXTS.get());
   }
 

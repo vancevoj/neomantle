@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.item.crafting.Ingredient;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 /** Loadable for ingredients, handling Forge ingredients */
 public enum IngredientLoadable implements Loadable<Ingredient> {
@@ -11,7 +12,7 @@ public enum IngredientLoadable implements Loadable<Ingredient> {
   DISALLOW_EMPTY;
 
   @Override
-  public Ingredient convert(JsonElement element, String key) {
+  public Ingredient convert(JsonElement element, String key, TypedMap context) {
     return Ingredient.fromJson(element, this == ALLOW_EMPTY);
   }
 
@@ -24,7 +25,7 @@ public enum IngredientLoadable implements Loadable<Ingredient> {
   }
 
   @Override
-  public Ingredient decode(FriendlyByteBuf buffer) {
+  public Ingredient decode(FriendlyByteBuf buffer, TypedMap context) {
     return Ingredient.fromNetwork(buffer);
   }
 

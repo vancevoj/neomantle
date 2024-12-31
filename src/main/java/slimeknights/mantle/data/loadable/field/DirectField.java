@@ -14,11 +14,6 @@ import java.util.function.Function;
  */
 public record DirectField<T,P>(RecordLoadable<T> loadable, Function<P,T> getter) implements AlwaysPresentLoadableField<T,P> {
   @Override
-  public T get(JsonObject json) {
-    return loadable.deserialize(json);
-  }
-
-  @Override
   public T get(JsonObject json, TypedMap context) {
     return loadable.deserialize(json, context);
   }

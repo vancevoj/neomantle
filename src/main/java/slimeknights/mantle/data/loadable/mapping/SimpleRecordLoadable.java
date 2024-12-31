@@ -18,19 +18,19 @@ import javax.annotation.Nullable;
  */
 public record SimpleRecordLoadable<T>(Loadable<T> loadable, String key, @Nullable T defaultValue, boolean compact) implements RecordLoadable<T> {
   @Override
-  public T convert(JsonElement element, String key) {
+  public T convert(JsonElement element, String key, TypedMap context) {
     if (!element.isJsonObject()) {
-      return loadable.convert(element, key);
+      return loadable.convert(element, key, context);
     }
-    return RecordLoadable.super.convert(element, key);
+    return RecordLoadable.super.convert(element, key, context);
   }
 
   @Override
   public T deserialize(JsonObject json, TypedMap context) {
     if (defaultValue != null) {
-      return loadable.getOrDefault(json, key, defaultValue);
+      return loadable.getOrDefault(json, key, defaultValue, context);
     } else {
-      return loadable.getIfPresent(json, key);
+      return loadable.getIfPresent(json, key, context);
     }
   }
 
@@ -54,6 +54,6 @@ public record SimpleRecordLoadable<T>(Loadable<T> loadable, String key, @Nullabl
 
   @Override
   public T decode(FriendlyByteBuf buffer, TypedMap context) {
-    return loadable.decode(buffer);
+    return loadable.decode(buffer, context);
   }
 }

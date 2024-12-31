@@ -3,6 +3,7 @@ package slimeknights.mantle.data.loadable.primitive;
 import com.google.gson.JsonElement;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.util.typed.TypedMap;
 
 /**
  * Helper for the common case of making a string loadable that uses resource locations.
@@ -28,8 +29,8 @@ public interface ResourceLocationLoadable<T> extends StringLoadable<T> {
   }
 
   @Override
-  default T convert(JsonElement element, String key) {
-    return fromKey(Loadables.RESOURCE_LOCATION.convert(element, key), key);
+  default T convert(JsonElement element, String key, TypedMap context) {
+    return fromKey(Loadables.RESOURCE_LOCATION.convert(element, key, context), key);
   }
 
   /**

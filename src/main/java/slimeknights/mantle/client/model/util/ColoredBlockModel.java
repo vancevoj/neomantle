@@ -163,7 +163,7 @@ public class ColoredBlockModel extends SimpleBlockModel {
      * Parses the color data from JSON
      */
     public static ColorData fromJson(JsonObject json) {
-      int color = ColorLoadable.ALPHA.getOrDefault(json, "color", -1);
+      int color = ColorLoadable.ALPHA.getOrWhite(json, "color");
       int luminosity = GsonHelper.getAsInt(json, "luminosity", -1);
       Boolean uvlock = null;
       if (json.has("uvlock")) {

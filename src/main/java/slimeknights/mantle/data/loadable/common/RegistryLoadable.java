@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.data.loadable.primitive.ResourceLocationLoadable;
 import slimeknights.mantle.util.RegistryHelper;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Objects;
 
@@ -44,7 +45,7 @@ public record RegistryLoadable<T>(Registry<T> registry, ResourceLocation registr
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer) {
+  public T decode(FriendlyByteBuf buffer, TypedMap context) {
     int id = buffer.readVarInt();
     T value = registry.byId(id);
     if (value == null) {

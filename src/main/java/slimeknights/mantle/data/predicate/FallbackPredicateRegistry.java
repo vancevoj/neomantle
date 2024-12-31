@@ -36,22 +36,22 @@ public class FallbackPredicateRegistry<T,F> extends PredicateRegistry<T> {
   }
 
   @Override
-  public IJsonPredicate<T> convert(JsonElement element, String key) {
+  public IJsonPredicate<T> convert(JsonElement element, String key, TypedMap context) {
     if (element.isJsonNull()) {
       return getDefault();
     }
     // identify type key, and the object we will load from
     if (element.isJsonObject()) {
-      return deserialize(element.getAsJsonObject());
+      return deserialize(element.getAsJsonObject(), context);
     } else if (compact && element.isJsonPrimitive()) {
       ResourceLocation type = JsonHelper.convertToResourceLocation(element, "type");
       //  see if we have a primary loader, if so parse that
       RecordLoadable<? extends IJsonPredicate<T>> loader = loaders.getValue(type);
       if (loader != null) {
         EMPTY_OBJECT.entrySet().clear();
-        return loader.deserialize(EMPTY_OBJECT);
+        return loader.deserialize(EMPTY_OBJECT, context);
       }
-      return new FallbackPredicate(this.fallback.convert(element, key));
+      return new FallbackPredicate(this.fallback.convert(element, key, context));
     } else {
       throw new JsonSyntaxException("Invalid " + getName() + " JSON at " + key + ", must be a JSON object" + (compact ? " or a string" : ""));
     }
@@ -63,7 +63,7 @@ public class FallbackPredicateRegistry<T,F> extends PredicateRegistry<T> {
     //  see if we have a primary loader, if so parse that
     RecordLoadable<? extends IJsonPredicate<T>> loader = loaders.getValue(type);
     if (loader != null) {
-      return loader.deserialize(json);
+      return loader.deserialize(json, context);
     }
     // primary loader failed, try a fallback loader
     return new FallbackPredicate(this.fallback.deserialize(json, context));

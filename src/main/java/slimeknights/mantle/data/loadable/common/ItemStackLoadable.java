@@ -123,11 +123,11 @@ public class ItemStackLoadable {
     /* Compact JSON */
 
     @Override
-    public ItemStack convert(JsonElement element, String key) {
+    public ItemStack convert(JsonElement element, String key, TypedMap context) {
       if (element.isJsonPrimitive()) {
-        return OPTIONAL_ITEM.convert(element, key);
+        return OPTIONAL_ITEM.convert(element, key, context);
       }
-      return RecordLoadable.super.convert(element, key);
+      return RecordLoadable.super.convert(element, key, context);
     }
 
     @Override

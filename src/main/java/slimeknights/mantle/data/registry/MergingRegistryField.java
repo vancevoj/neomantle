@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.field.AlwaysPresentLoadableField;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -47,10 +48,10 @@ public record MergingRegistryField<T,P>(RecordLoadable<T> loadable, String typeK
   }
 
   @Override
-  public T get(JsonObject json) {
+  public T get(JsonObject json, TypedMap context) {
     // replace our type with the nested type, then run the nested loader
     mapType(json, typeKey);
-    return loadable.deserialize(json);
+    return loadable.deserialize(json, context);
   }
 
   @Override

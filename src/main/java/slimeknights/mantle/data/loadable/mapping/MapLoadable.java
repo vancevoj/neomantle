@@ -8,6 +8,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,7 +36,7 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
   }
 
   @Override
-  public Map<K,V> convert(JsonElement element, String key) {
+  public Map<K,V> convert(JsonElement element, String key, TypedMap context) {
     JsonObject json = GsonHelper.convertToJsonObject(element, key);
     if (json.size() < minSize) {
       throw new JsonSyntaxException(key + " must have at least " + minSize + " elements");
@@ -46,7 +47,7 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
       String entryKey = entry.getKey();
       builder.put(
         keyLoadable.parseString(entryKey, mapKey),
-        valueLoadable.convert(entry.getValue(), entryKey));
+        valueLoadable.convert(entry.getValue(), entryKey, context));
     }
     return builder.build();
   }
@@ -66,13 +67,13 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
   }
 
   @Override
-  public Map<K,V> decode(FriendlyByteBuf buffer) {
+  public Map<K,V> decode(FriendlyByteBuf buffer, TypedMap context) {
     int size = buffer.readVarInt();
     ImmutableMap.Builder<K,V> builder = ImmutableMap.builder();
     for (int i = 0; i < size; i++) {
       builder.put(
-        keyLoadable.decode(buffer),
-        valueLoadable.decode(buffer));
+        keyLoadable.decode(buffer, context),
+        valueLoadable.decode(buffer, context));
     }
     return builder.build();
   }

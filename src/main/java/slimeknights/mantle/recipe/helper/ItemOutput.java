@@ -16,6 +16,7 @@ import slimeknights.mantle.data.loadable.common.ItemStackLoadable;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.IntLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -224,23 +225,23 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
     }
 
     @Override
-    public ItemOutput convert(JsonElement element, String key) {
+    public ItemOutput convert(JsonElement element, String key, TypedMap context) {
       // if it's a primitive, parse it directly with the stack logic
       // that handles single items and ensures both count and non-empty
       if (element.isJsonPrimitive()) {
-        return fromStack(stack.convert(element, key));
+        return fromStack(stack.convert(element, key, context));
       }
       JsonObject json = GsonHelper.convertToJsonObject(element, key);
       if (json.has("tag")) {
-        TagKey<Item> tag = Loadables.ITEM_TAG.getIfPresent(json, "tag");
+        TagKey<Item> tag = Loadables.ITEM_TAG.getIfPresent(json, "tag", context);
         int count = 1;
         // 0 count field means we load count from JSON
         if (readCount) {
-          count = IntLoadable.FROM_ONE.getOrDefault(json, "count", 1);
+          count = IntLoadable.FROM_ONE.getOrDefault(json, "count", 1, context);
         }
         return fromTag(tag, count);
       }
-      return fromStack(stack.deserialize(json));
+      return fromStack(stack.deserialize(json, context));
     }
 
     @Override
@@ -252,8 +253,8 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
     }
 
     @Override
-    public ItemOutput decode(FriendlyByteBuf buffer) {
-      return fromStack(stack.decode(buffer));
+    public ItemOutput decode(FriendlyByteBuf buffer, TypedMap context) {
+      return fromStack(stack.decode(buffer, context));
     }
 
     @Override

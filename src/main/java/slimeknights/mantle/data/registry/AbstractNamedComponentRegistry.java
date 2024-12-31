@@ -7,6 +7,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.ResourceLocationLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -73,7 +74,7 @@ public abstract class AbstractNamedComponentRegistry<T> implements ResourceLocat
 
   /** Parse the value from JSON */
   @Override
-  public T decode(FriendlyByteBuf buffer) {
+  public T decode(FriendlyByteBuf buffer, TypedMap context) {
     return decodeInternal(buffer.readResourceLocation());
   }
 
@@ -100,8 +101,8 @@ public abstract class AbstractNamedComponentRegistry<T> implements ResourceLocat
   private record NullableField<T,P>(AbstractNamedComponentRegistry<T> registry, String key, Function<P,T> getter) implements LoadableField<T,P> {
     @Nullable
     @Override
-    public T get(JsonObject json) {
-      return registry.getOrDefault(json, key, null);
+    public T get(JsonObject json, TypedMap context) {
+      return registry.getOrDefault(json, key, null, context);
     }
 
     @Override
@@ -114,7 +115,7 @@ public abstract class AbstractNamedComponentRegistry<T> implements ResourceLocat
 
     @Nullable
     @Override
-    public T decode(FriendlyByteBuf buffer) {
+    public T decode(FriendlyByteBuf buffer, TypedMap context) {
       return registry.decodeOptional(buffer);
     }
 

@@ -42,8 +42,8 @@ public class MappedLoadable<F,T> implements Loadable<T> {
   }
 
   @Override
-  public T convert(JsonElement element, String key) {
-    return from.apply(base.convert(element, key), ErrorFactory.JSON_SYNTAX_ERROR);
+  public T convert(JsonElement element, String key, TypedMap context) {
+    return from.apply(base.convert(element, key, context), ErrorFactory.JSON_SYNTAX_ERROR);
   }
 
   @Override
@@ -52,8 +52,8 @@ public class MappedLoadable<F,T> implements Loadable<T> {
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer) {
-    return from.apply(base.decode(buffer), ErrorFactory.DECODER_EXCEPTION);
+  public T decode(FriendlyByteBuf buffer, TypedMap context) {
+    return from.apply(base.decode(buffer, context), ErrorFactory.DECODER_EXCEPTION);
   }
 
   @Override

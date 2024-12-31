@@ -6,6 +6,7 @@ import com.google.gson.JsonSyntaxException;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.field.LoadableField;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Locale;
 import java.util.function.Function;
@@ -15,7 +16,7 @@ public enum BooleanLoadable implements StringLoadable<Boolean> {
   INSTANCE;
 
   @Override
-  public Boolean convert(JsonElement element, String key) {
+  public Boolean convert(JsonElement element, String key, TypedMap context) {
     return GsonHelper.convertToBoolean(element, key);
   }
 
@@ -25,7 +26,7 @@ public enum BooleanLoadable implements StringLoadable<Boolean> {
   }
 
   @Override
-  public Boolean decode(FriendlyByteBuf buffer) {
+  public Boolean decode(FriendlyByteBuf buffer, TypedMap context) {
     return buffer.readBoolean();
   }
 

@@ -7,6 +7,7 @@ import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.mapping.MapLoadable;
 import slimeknights.mantle.data.loadable.mapping.MappedLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -35,7 +36,7 @@ public interface StringLoadable<T> extends Loadable<T> {
   T parseString(String value, String key);
 
   @Override
-  default T convert(JsonElement element, String key) {
+  default T convert(JsonElement element, String key, TypedMap context) {
     return parseString(GsonHelper.convertToString(element, key), key);
   }
 

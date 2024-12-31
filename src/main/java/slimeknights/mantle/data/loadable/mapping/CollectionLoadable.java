@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Collection;
 
@@ -40,10 +41,10 @@ public abstract class CollectionLoadable<T,C extends Collection<T>,B extends Imm
   }
 
   @Override
-  public C convert(JsonElement element, String key) {
+  public C convert(JsonElement element, String key, TypedMap context) {
     if (minSize < 0 && !element.isJsonArray()) {
       B builder = makeBuilder();
-      builder.add(base.convert(element, key));
+      builder.add(base.convert(element, key, context));
       return build(builder);
     }
     JsonArray array = GsonHelper.convertToJsonArray(element, key);
@@ -52,7 +53,7 @@ public abstract class CollectionLoadable<T,C extends Collection<T>,B extends Imm
     }
     B builder = makeBuilder();
     for (int i = 0; i < array.size(); i++) {
-      builder.add(base.convert(array.get(i), key + '[' + i + ']'));
+      builder.add(base.convert(array.get(i), key + '[' + i + ']', context));
     }
     return build(builder);
   }
@@ -79,11 +80,11 @@ public abstract class CollectionLoadable<T,C extends Collection<T>,B extends Imm
   }
 
   @Override
-  public C decode(FriendlyByteBuf buffer) {
+  public C decode(FriendlyByteBuf buffer, TypedMap context) {
     B builder = makeBuilder();
     int max = buffer.readVarInt();
     for (int i = 0; i < max; i++) {
-      builder.add(base.decode(buffer));
+      builder.add(base.decode(buffer, context));
     }
     return build(builder);
   }

@@ -15,7 +15,7 @@ public enum Vector3fLoadable implements RecordLoadable<Vector3f> {
   INSTANCE;
 
   @Override
-  public Vector3f convert(JsonElement element, String key) {
+  public Vector3f convert(JsonElement element, String key, TypedMap context) {
     if (element.isJsonArray()) {
       JsonArray array = element.getAsJsonArray();
       if (array.size() != 3) {
@@ -27,7 +27,7 @@ public enum Vector3fLoadable implements RecordLoadable<Vector3f> {
         GsonHelper.convertToFloat(array.get(2), key + "[2]")
       );
     }
-    return deserialize(GsonHelper.convertToJsonObject(element, key));
+    return deserialize(GsonHelper.convertToJsonObject(element, key), context);
   }
 
   @Override

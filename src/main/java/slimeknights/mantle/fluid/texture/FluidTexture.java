@@ -43,7 +43,7 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
     if (json.has("camera")) {
       camera = LocationExtender.INSTANCE.wrap(JsonHelper.getResourceLocation(json, "camera"), "textures/", ".png");
     }
-    int color = ColorLoadable.ALPHA.getOrDefault(json, "color", -1);
+    int color = ColorLoadable.ALPHA.getOrWhite(json, "color");
     return new FluidTexture(still, flowing, overlay, camera, color);
   }
 

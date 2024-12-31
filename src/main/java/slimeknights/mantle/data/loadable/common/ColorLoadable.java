@@ -1,9 +1,11 @@
 package slimeknights.mantle.data.loadable.common;
 
+import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 /** Loadable to fetch colors from JSON */
 @RequiredArgsConstructor
@@ -55,12 +57,17 @@ public enum ColorLoadable implements StringLoadable<Integer> {
   };
 
   @Override
-  public Integer decode(FriendlyByteBuf buffer) {
+  public Integer decode(FriendlyByteBuf buffer, TypedMap context) {
     return buffer.readInt();
   }
 
   @Override
   public void encode(FriendlyByteBuf buffer, Integer color) {
     buffer.writeInt(color);
+  }
+
+  /** Fetches the color from the parent, defaulting to white if missing */
+  public int getOrWhite(JsonObject parent, String key) {
+    return getOrDefault(parent, key, -1);
   }
 }

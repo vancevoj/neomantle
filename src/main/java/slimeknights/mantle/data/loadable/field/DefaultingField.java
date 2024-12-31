@@ -2,6 +2,7 @@ package slimeknights.mantle.data.loadable.field;
 
 import com.google.gson.JsonObject;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.function.Function;
 
@@ -12,8 +13,8 @@ import java.util.function.Function;
  */
 public record DefaultingField<T,P>(Loadable<T> loadable, String key, T defaultValue, boolean serializeDefault, Function<P,T> getter) implements AlwaysPresentLoadableField<T,P> {
   @Override
-  public T get(JsonObject json) {
-    return loadable.getOrDefault(json, key, defaultValue);
+  public T get(JsonObject json, TypedMap context) {
+    return loadable.getOrDefault(json, key, defaultValue, context);
   }
 
   @Override

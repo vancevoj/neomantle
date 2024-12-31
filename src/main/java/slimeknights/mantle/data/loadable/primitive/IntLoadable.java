@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 /**
  * Loadable for an integer.
@@ -57,7 +58,7 @@ public class IntLoadable implements Loadable<Integer> {
   }
 
   @Override
-  public Integer convert(JsonElement element, String key) {
+  public Integer convert(JsonElement element, String key, TypedMap context) {
     return validate(GsonHelper.convertToInt(element, key), key);
   }
 
@@ -70,7 +71,7 @@ public class IntLoadable implements Loadable<Integer> {
   /* Networking */
 
   @Override
-  public Integer decode(FriendlyByteBuf buffer) {
+  public Integer decode(FriendlyByteBuf buffer, TypedMap context) {
     return network.fromNetwork(buffer);
   }
 
@@ -166,7 +167,7 @@ public class IntLoadable implements Loadable<Integer> {
     }
 
     @Override
-    public Integer convert(JsonElement element, String key) {
+    public Integer convert(JsonElement element, String key, TypedMap context) {
       return parseString(GsonHelper.convertToString(element, key), key);
     }
 

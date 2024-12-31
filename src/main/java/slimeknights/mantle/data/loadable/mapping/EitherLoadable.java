@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import io.netty.handler.codec.DecoderException;
 import net.minecraft.network.FriendlyByteBuf;
-import slimeknights.mantle.data.loadable.ContextStreamable;
 import slimeknights.mantle.data.loadable.IAmLoadable;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.Streamable;
@@ -80,7 +79,7 @@ public class EitherLoadable {
     }
 
     /** Builds the loadable with custom network logic */
-    public Loadable<T> build(Streamable<T> network) {
+    public Loadable<T> build(Loadable<T> network) {
       return new Typing<>(List.of(network), getKeys(), array, primitive);
     }
 
@@ -88,7 +87,7 @@ public class EitherLoadable {
     @SuppressWarnings("unchecked")
     public Loadable<T> build() {
       List<KeyOption<T>> keys = getKeys();
-      ImmutableList.Builder<Streamable<T>> builder = ImmutableList.builder();
+      ImmutableList.Builder<Loadable<T>> builder = ImmutableList.builder();
       keys.forEach(key -> builder.add((Loadable<T>)key.loadable));
       if (array != null) {
         builder.add((Loadable<T>)array);
@@ -123,7 +122,7 @@ public class EitherLoadable {
     }
 
     /** Builds the loadable with custom network logic */
-    public RecordLoadable<T> build(ContextStreamable<T> network) {
+    public RecordLoadable<T> build(Loadable<T> network) {
       return new Record<>(List.of(network), getKeys());
     }
 
@@ -131,16 +130,16 @@ public class EitherLoadable {
     @SuppressWarnings("unchecked")  // its safe with how we use it
     public RecordLoadable<T> build() {
       List<KeyOption<T>> keys = getKeys();
-      List<ContextStreamable<T>> network = keys.stream().<ContextStreamable<T>>map(option -> (RecordLoadable<T>)option.loadable).toList();
+      List<Loadable<T>> network = keys.stream().<Loadable<T>>map(option -> (RecordLoadable<T>)option.loadable).toList();
       return new Record<>(network, keys);
     }
   }
 
 
   /** Common logic between the two implementations */
-  private interface EitherImpl<T extends IAmLoadable,L extends Streamable<T>> extends Loadable<T> {
+  private interface EitherImpl<T extends IAmLoadable> extends Loadable<T> {
     /* Fields */
-    List<L> network();
+    List<? extends Streamable<T>> network();
     List<KeyOption<T>> keys();
     @Nullable
     default Loadable<? extends T> array() {
@@ -180,8 +179,8 @@ public class EitherLoadable {
     }
 
     /** Gets the loadable instance from the buffer */
-    default L loadableFromNetwork(FriendlyByteBuf buffer) {
-      List<L> networks = network();
+    default Streamable<T> loadableFromNetwork(FriendlyByteBuf buffer) {
+      List<? extends Streamable<T>> networks = network();
       // size 1 means we have a fixed network logic, use that
       int size = networks.size();
       if (size == 1) {
@@ -197,7 +196,7 @@ public class EitherLoadable {
 
     @Override
     default void encode(FriendlyByteBuf buffer, T object) {
-      List<L> networks = network();
+      List<? extends Streamable<T>> networks = network();
       // size 1 means we have a fixed network logic, use that
       if (networks.size() == 1) {
         networks.get(0).encode(buffer, object);
@@ -205,7 +204,7 @@ public class EitherLoadable {
         // we need to be able to recover which loadable was used on deserialization, so use the index in our list
         Loadable<?> objectLoadable = object.loadable();
         for (int i = 0; i < networks.size(); i++) {
-          L network = networks.get(i);
+          Streamable<T> network = networks.get(i);
           // indexof would do deep comparison, but reference comparison is way more efficient here
           if (network == objectLoadable) {
             buffer.writeVarInt(i);
@@ -219,14 +218,14 @@ public class EitherLoadable {
   }
 
   /** Loadable supporting list and array */
-  private record Typing<T extends IAmLoadable>(List<Streamable<T>> network, List<KeyOption<T>> keys, @Nullable Loadable<? extends T> array, @Nullable Loadable<? extends T> primitive) implements EitherImpl<T,Streamable<T>> {
+  private record Typing<T extends IAmLoadable>(List<Loadable<T>> network, List<KeyOption<T>> keys, @Nullable Loadable<? extends T> array, @Nullable Loadable<? extends T> primitive) implements EitherImpl<T> {
     @Override
-    public T convert(JsonElement element, String key) {
+    public T convert(JsonElement element, String key, TypedMap context) {
       if (array != null && element.isJsonArray()) {
-        return array.convert(element, key);
+        return array.convert(element, key, context);
       }
       if (primitive != null && element.isJsonPrimitive()) {
-        return primitive.convert(element, key);
+        return primitive.convert(element, key, context);
       }
       if (!keys.isEmpty()) {
         return deserializeObject(element, TypedMap.empty(), key);
@@ -242,13 +241,13 @@ public class EitherLoadable {
     }
 
     @Override
-    public T decode(FriendlyByteBuf buffer) {
-      return loadableFromNetwork(buffer).decode(buffer);
+    public T decode(FriendlyByteBuf buffer, TypedMap context) {
+      return loadableFromNetwork(buffer).decode(buffer, context);
     }
   }
 
   /** Loadable only supporting record */
-  private record Record<T extends IAmLoadable.Record>(List<ContextStreamable<T>> network, List<KeyOption<T>> keys) implements RecordLoadable<T>, EitherImpl<T,ContextStreamable<T>> {
+  private record Record<T extends IAmLoadable.Record>(List<Loadable<T>> network, List<KeyOption<T>> keys) implements RecordLoadable<T>, EitherImpl<T> {
     @Override
     public T deserialize(JsonObject json, TypedMap context) {
       return deserializeObject(json, context, "[root]");

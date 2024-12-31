@@ -6,6 +6,7 @@ import com.google.gson.JsonSyntaxException;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 /**
  * Loadable for a float
@@ -44,12 +45,12 @@ public record FloatLoadable(float min, float max) implements Loadable<Float> {
   }
 
   @Override
-  public Float convert(JsonElement element, String key) {
+  public Float convert(JsonElement element, String key, TypedMap context) {
     return validate(GsonHelper.convertToFloat(element, key), key);
   }
 
   @Override
-  public Float decode(FriendlyByteBuf buffer) {
+  public Float decode(FriendlyByteBuf buffer, TypedMap context) {
     return buffer.readFloat();
   }
 

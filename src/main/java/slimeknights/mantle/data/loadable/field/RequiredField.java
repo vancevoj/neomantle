@@ -3,6 +3,7 @@ package slimeknights.mantle.data.loadable.field;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.function.Function;
 
@@ -14,8 +15,8 @@ import java.util.function.Function;
  */
 public record RequiredField<T,P>(Loadable<T> loadable, String key, boolean serializeNull, Function<P,T> getter) implements AlwaysPresentLoadableField<T,P> {
   @Override
-  public T get(JsonObject json) {
-    return loadable.getIfPresent(json, key);
+  public T get(JsonObject json, TypedMap context) {
+    return loadable.getIfPresent(json, key, context);
   }
 
   @Override

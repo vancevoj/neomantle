@@ -2,6 +2,7 @@ package slimeknights.mantle.data.loadable.field;
 
 import com.google.gson.JsonObject;
 import net.minecraft.network.FriendlyByteBuf;
+import slimeknights.mantle.util.typed.TypedMap;
 
 /** Record field that always returns the same value, used mainly to pass a different object in JSON vs buffer parsing */
 public record ConstantField<T>(T fromJson, T fromBuffer) implements LoadableField<T,Object> {
@@ -10,12 +11,12 @@ public record ConstantField<T>(T fromJson, T fromBuffer) implements LoadableFiel
   }
 
   @Override
-  public T get(JsonObject json) {
+  public T get(JsonObject json, TypedMap context) {
     return fromJson;
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer) {
+  public T decode(FriendlyByteBuf buffer, TypedMap context) {
     return fromBuffer;
   }
 

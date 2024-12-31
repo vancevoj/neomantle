@@ -1,16 +1,25 @@
 package slimeknights.mantle.data.loadable;
 
 import net.minecraft.network.FriendlyByteBuf;
+import org.jetbrains.annotations.ApiStatus.NonExtendable;
+import slimeknights.mantle.util.typed.TypedMap;
 
-/** This is a temporary interface intended to be replaced by Mojang's {@code StreamCodec} in the future. It means loadables will automatically work as stream codecs with minimal extra effort. */
+/** This interface partially implements Mojang's future {@code StreamCodec} for the sake of ensuring all {@link Loadable} are automatically compatible with stream codecs. */
 public interface Streamable<T> {
   /**
-   * Reads the object from the packet buffer
+   * Decodes this loadable from the network
    * @param buffer  Buffer instance
-   * @return  Instance read from network
-   * @throws io.netty.handler.codec.DecoderException  If unable to decode a value from network
+   * @param context Additional parsing context, used notably by recipe serializers to store the ID and serializer.
+   * @return  Parsed object
+   * @throws io.netty.handler.codec.DecoderException  If unable to decode
    */
-  T decode(FriendlyByteBuf buffer);
+  T decode(FriendlyByteBuf buffer, TypedMap context);
+
+  /** Same as {@link #decode(FriendlyByteBuf, TypedMap)} but passes {@link TypedMap#EMPTY} for context. */
+  @NonExtendable
+  default T decode(FriendlyByteBuf buffer) {
+    return decode(buffer, TypedMap.EMPTY);
+  }
 
   /**
    * Writes this object to the packet buffer

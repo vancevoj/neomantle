@@ -8,6 +8,7 @@ import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.primitive.EnumLoadable;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -30,7 +31,7 @@ public class EnumMapLoadable<K extends Enum<K>,V> extends MapLoadable<K,V> {
   }
 
   @Override
-  public Map<K,V> convert(JsonElement element, String key) {
+  public Map<K,V> convert(JsonElement element, String key, TypedMap context) {
     JsonObject json = GsonHelper.convertToJsonObject(element, key);
     if (json.size() < minSize) {
       throw new JsonSyntaxException(key + " must have at least " + minSize + " elements");
@@ -41,19 +42,19 @@ public class EnumMapLoadable<K extends Enum<K>,V> extends MapLoadable<K,V> {
       String entryKey = entry.getKey();
       map.put(
         keyLoadable.parseString(entryKey, mapKey),
-        valueLoadable.convert(entry.getValue(), entryKey));
+        valueLoadable.convert(entry.getValue(), entryKey, context));
     }
     return map;
   }
 
   @Override
-  public Map<K,V> decode(FriendlyByteBuf buffer) {
+  public Map<K,V> decode(FriendlyByteBuf buffer, TypedMap context) {
     int size = buffer.readVarInt();
     Map<K,V> map = new EnumMap<>(enumClass);
     for (int i = 0; i < size; i++) {
       map.put(
-        keyLoadable.decode(buffer),
-        valueLoadable.decode(buffer));
+        keyLoadable.decode(buffer, context),
+        valueLoadable.decode(buffer, context));
     }
     return map;
   }

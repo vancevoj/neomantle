@@ -9,6 +9,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 /** Implementation of a loadable using a codec. Note this will be inefficient when reading from and writing to the network */
 public record CodecLoadable<T>(DynamicOps<Tag> ops, Codec<T> codec) implements Loadable<T> {
@@ -17,7 +18,7 @@ public record CodecLoadable<T>(DynamicOps<Tag> ops, Codec<T> codec) implements L
   }
 
   @Override
-  public T convert(JsonElement element, String key) {
+  public T convert(JsonElement element, String key, TypedMap context) {
     return codec.parse(JsonOps.INSTANCE, element).getOrThrow(false, ErrorFactory.JSON_SYNTAX_ERROR);
   }
 
@@ -27,7 +28,7 @@ public record CodecLoadable<T>(DynamicOps<Tag> ops, Codec<T> codec) implements L
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer) {
+  public T decode(FriendlyByteBuf buffer, TypedMap context) {
     return buffer.readWithCodec(ops, codec);
   }
 

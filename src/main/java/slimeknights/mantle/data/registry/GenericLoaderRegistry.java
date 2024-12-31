@@ -47,16 +47,16 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements RecordLoada
   }
 
   @Override
-  public T convert(JsonElement element, String key) {
+  public T convert(JsonElement element, String key, TypedMap context) {
     // first try object
     if (element.isJsonObject()) {
       JsonObject object = element.getAsJsonObject();
-      return loaders.getIfPresent(object, "type").deserialize(object);
+      return loaders.getIfPresent(object, "type", context).deserialize(object, context);
     }
     // try primitive if allowed
     if (compact && element.isJsonPrimitive()) {
       EMPTY_OBJECT.entrySet().clear();
-      return loaders.convert(element, "type").deserialize(EMPTY_OBJECT);
+      return loaders.convert(element, "type", context).deserialize(EMPTY_OBJECT, context);
     }
     // neither? failed to parse
     throw new JsonSyntaxException("Invalid " + name + " JSON at " + key + ", must be a JSON object" + (compact ? " or a string" : ""));
@@ -64,16 +64,7 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements RecordLoada
 
   @Override
   public T deserialize(JsonObject json, TypedMap context) {
-    return loaders.getIfPresent(json, "type").deserialize(json, context);
-  }
-
-  /**
-   * Deserializes the object from JSON
-   * @param element  JSON element
-   * @return  Deserialized object
-   */
-  public T deserialize(JsonElement element) {
-    return convert(element, "[unknown]");
+    return loaders.getIfPresent(json, "type", context).deserialize(json, context);
   }
 
   /** Serializes the object to json, fighting generics */
@@ -119,7 +110,7 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements RecordLoada
 
   @Override
   public T decode(FriendlyByteBuf buffer, TypedMap context) {
-    return loaders.decode(buffer).decode(buffer);
+    return loaders.decode(buffer, context).decode(buffer, context);
   }
 
   /** Creates a field that loads this object directly into the parent JSON object, will conflict if the parent already has a type */

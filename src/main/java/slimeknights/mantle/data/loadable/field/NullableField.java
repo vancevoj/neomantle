@@ -3,6 +3,7 @@ package slimeknights.mantle.data.loadable.field;
 import com.google.gson.JsonObject;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.function.Function;
 
@@ -13,8 +14,8 @@ import java.util.function.Function;
  */
 public record NullableField<T,P>(Loadable<T> loadable, String key, Function<P,T> getter) implements LoadableField<T,P> {
   @Override
-  public T get(JsonObject json) {
-    return loadable.getOrDefault(json, key, null);
+  public T get(JsonObject json, TypedMap context) {
+    return loadable.getOrDefault(json, key, null, context);
   }
 
   @Override
@@ -26,9 +27,9 @@ public record NullableField<T,P>(Loadable<T> loadable, String key, Function<P,T>
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer) {
+  public T decode(FriendlyByteBuf buffer, TypedMap context) {
     if (buffer.readBoolean()) {
-      return loadable.decode(buffer);
+      return loadable.decode(buffer, context);
     }
     return null;
   }

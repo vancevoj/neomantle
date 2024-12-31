@@ -37,12 +37,12 @@ public enum BlockStateLoadable implements RecordLoadable<BlockState> {
   };
 
   @Override
-  public BlockState convert(JsonElement element, String key) {
+  public BlockState convert(JsonElement element, String key, TypedMap context) {
     // primitive means parse the block with default properties
     if (element.isJsonPrimitive()) {
-      return Loadables.BLOCK.convert(element, key).defaultBlockState();
+      return Loadables.BLOCK.convert(element, key, context).defaultBlockState();
     }
-    return RecordLoadable.super.convert(element, key);
+    return RecordLoadable.super.convert(element, key, context);
   }
 
   /**
@@ -64,7 +64,7 @@ public enum BlockStateLoadable implements RecordLoadable<BlockState> {
 
   @Override
   public BlockState deserialize(JsonObject json, TypedMap context) {
-    Block block = Loadables.BLOCK.getIfPresent(json, "block");
+    Block block = Loadables.BLOCK.getIfPresent(json, "block", context);
     BlockState state = block.defaultBlockState();
     if (json.has("properties")) {
       StateDefinition<Block,BlockState> definition = block.getStateDefinition();

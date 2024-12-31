@@ -31,7 +31,7 @@ public enum NBTLoadable implements RecordLoadable<CompoundTag> {
   }
 
   @Override
-  public CompoundTag convert(JsonElement element, String key) {
+  public CompoundTag convert(JsonElement element, String key, TypedMap context) {
     if (this == ALLOW_STRING && !element.isJsonObject()) {
       try {
         return TagParser.parseTag(JsonHelper.DEFAULT_GSON.toJson(element));
@@ -39,7 +39,7 @@ public enum NBTLoadable implements RecordLoadable<CompoundTag> {
         throw new JsonSyntaxException("Invalid NBT Entry: ", e);
       }
     }
-    return RecordLoadable.super.convert(element, key);
+    return RecordLoadable.super.convert(element, key, context);
   }
 
   @Override
@@ -76,8 +76,8 @@ public enum NBTLoadable implements RecordLoadable<CompoundTag> {
   private record NullableNBTField<P>(Loadable<CompoundTag> loadable, String key, Function<P,CompoundTag> getter) implements LoadableField<CompoundTag,P> {
     @Nullable
     @Override
-    public CompoundTag get(JsonObject json) {
-      return loadable.getOrDefault(json, key, null);
+    public CompoundTag get(JsonObject json, TypedMap context) {
+      return loadable.getOrDefault(json, key, null, context);
     }
 
     @Override
@@ -90,7 +90,7 @@ public enum NBTLoadable implements RecordLoadable<CompoundTag> {
 
     @Nullable
     @Override
-    public CompoundTag decode(FriendlyByteBuf buffer) {
+    public CompoundTag decode(FriendlyByteBuf buffer, TypedMap context) {
       return buffer.readNbt();
     }
 

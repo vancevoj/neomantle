@@ -17,7 +17,6 @@ import com.mojang.datafixers.util.Function7;
 import com.mojang.datafixers.util.Function8;
 import com.mojang.datafixers.util.Function9;
 import net.minecraft.util.GsonHelper;
-import slimeknights.mantle.data.loadable.ContextStreamable;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.field.DirectField;
@@ -37,27 +36,26 @@ import java.util.function.Predicate;
  * @param <T>  Type being loaded
  */
 @SuppressWarnings("unused")  // API
-public interface RecordLoadable<T> extends Loadable<T>, ContextStreamable<T> {
+public interface RecordLoadable<T> extends Loadable<T> {
   /* Deserializing */
 
   /**
    * Deserializes the object from json.
    * @param json     JSON object
    * @param context  Additional parsing context, used notably by recipe serializers to store the ID and serializer.
-   *                 Will be {@link TypedMap#EMPTY} in nested usages unless {@link DirectField} is used.
    * @return  Parsed loadable value
    * @throws com.google.gson.JsonSyntaxException  If unable to read from JSON
    */
   T deserialize(JsonObject json, TypedMap context);
 
-  /** Contextless implementation of {@link #deserialize(JsonObject, TypedMap)}. */
+  /** Same as {@link #deserialize(JsonObject, TypedMap)} but uses {@link TypedMap#EMPTY} as the context. */
   default T deserialize(JsonObject json) {
     return deserialize(json, TypedMap.empty());
   }
 
   @Override
-  default T convert(JsonElement element, String key) {
-    return deserialize(GsonHelper.convertToJsonObject(element, key));
+  default T convert(JsonElement element, String key, TypedMap context) {
+    return deserialize(GsonHelper.convertToJsonObject(element, key), context);
   }
 
 

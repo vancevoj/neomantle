@@ -35,11 +35,11 @@ public class DefaultingLoaderRegistry<T extends IHaveLoader> extends GenericLoad
   /* Default in JSON */
 
   @Override
-  public T convert(JsonElement element, String key) {
+  public T convert(JsonElement element, String key, TypedMap context) {
     if (element.isJsonNull()) {
       return defaultInstance;
     }
-    return super.convert(element, key);
+    return super.convert(element, key, context);
   }
 
   @Override
@@ -56,8 +56,13 @@ public class DefaultingLoaderRegistry<T extends IHaveLoader> extends GenericLoad
    * @param key     Field to get
    * @return  Value or default.
    */
+  public T getOrDefault(JsonObject parent, String key, TypedMap context) {
+    return super.getOrDefault(parent, key, defaultInstance, context);
+  }
+
+  /** Same as {@link #getOrDefault(JsonObject, String, TypedMap)} but uses {@link TypedMap#EMPTY} as the context. */
   public T getOrDefault(JsonObject parent, String key) {
-    return super.getOrDefault(parent, key, defaultInstance);
+    return getOrDefault(parent, key, TypedMap.EMPTY);
   }
 
 
@@ -81,7 +86,7 @@ public class DefaultingLoaderRegistry<T extends IHaveLoader> extends GenericLoad
     if (loader == null) {
       return defaultInstance;
     }
-    return loader.decode(buffer);
+    return loader.decode(buffer, context);
   }
 
 
