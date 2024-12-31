@@ -2,6 +2,7 @@ package slimeknights.mantle.data;
 
 import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DynamicOps;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
@@ -17,12 +18,12 @@ public class MantleCodecs {
   /** Codec for ingredients, handling forge ingredient types */
   public static final Codec<Ingredient> INGREDIENT = new JsonCodec<>() {
     @Override
-    public Ingredient deserialize(JsonElement element) {
+    public Ingredient deserialize(JsonElement element, DynamicOps<?> ops) {
       return Ingredient.fromJson(element);
     }
 
     @Override
-    public JsonElement serialize(Ingredient ingredient) {
+    public JsonElement serialize(Ingredient ingredient, DynamicOps<?> ops) {
       return ingredient.toJson();
     }
 
