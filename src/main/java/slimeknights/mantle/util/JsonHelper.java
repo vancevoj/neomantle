@@ -304,52 +304,32 @@ public class JsonHelper {
 
   /* Block States */
 
-  /**
-   * Converts the given JSON element into a block state
-   * @param element  Element to convert
-   * @param key      Element key
-   * @return  Block state
-   * @throws JsonSyntaxException  if a property does not parse or the element is the wrong type
-   */
+  /** @deprecated use {@link BlockStateLoadable} with {@link slimeknights.mantle.data.loadable.Loadable#convert(JsonElement, String)} */
+  @Deprecated(forRemoval = true)
   public static BlockState convertToBlockState(JsonElement element, String key) {
     return BlockStateLoadable.DIFFERENCE.convert(element, key);
   }
 
-  /**
-   * Converts the given JSON element into a block state
-   * @param parent   Parent containing the block state
-   * @param key      Element key
-   * @return  Block state
-   * @throws JsonSyntaxException  if a property does not parse or the element is missing or the wrong type
-   */
+  /** @deprecated use {@link BlockStateLoadable#DIFFERENCE} with {@link slimeknights.mantle.data.loadable.Loadable#getIfPresent(JsonObject, String)} */
+  @Deprecated(forRemoval = true)
   public static BlockState getAsBlockState(JsonObject parent, String key) {
     return BlockStateLoadable.DIFFERENCE.getIfPresent(parent, key);
   }
 
-  /**
-   * Converts the given JSON object into a block state
-   * @param json  Json object containing "block" and "properties"
-   * @return  Block state
-   * @throws JsonSyntaxException  if any property name or property value is invalid
-   */
+  /** @deprecated use {@link BlockStateLoadable#DIFFERENCE} with {@link slimeknights.mantle.data.loadable.record.RecordLoadable#deserialize(JsonObject)} */
+  @Deprecated(forRemoval = true)
   public static BlockState convertToBlockState(JsonObject json) {
     return BlockStateLoadable.DIFFERENCE.deserialize(json);
   }
 
-  /**
-   * Serializes the given block state to JSON, essentially writes all values that differ from the state.
-   * @param state  State
-   * @return  JsonPrimitive of the block name if it matches the default state, JsonObject otherwise
-   */
+  /** @deprecated use {@link BlockStateLoadable#DIFFERENCE} with {@link slimeknights.mantle.data.loadable.Loadable#serialize(Object)}*/
+  @Deprecated(forRemoval = true)
   public static JsonElement serializeBlockState(BlockState state) {
     return BlockStateLoadable.DIFFERENCE.serialize(state);
   }
 
-  /**
-   * Serializes the given block state to JSON, essentially writes all values that differ from the state
-   * @param state  State
-   * @return  JsonObject containing properties that differ from the default state
-   */
+  /** @deprecated use {@link BlockStateLoadable#DIFFERENCE} with {@link slimeknights.mantle.data.loadable.record.RecordLoadable#serialize(Object, JsonObject)} */
+  @Deprecated(forRemoval = true)
   public static JsonObject serializeBlockState(BlockState state, JsonObject json) {
     BlockStateLoadable.DIFFERENCE.serialize(state, json);
     return json;

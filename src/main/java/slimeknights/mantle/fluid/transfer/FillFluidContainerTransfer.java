@@ -88,7 +88,7 @@ public class FillFluidContainerTransfer implements IFluidContainerTransfer {
       JsonObject json = element.getAsJsonObject();
       Ingredient input = Ingredient.fromJson(JsonHelper.getElement(json, "input"));
       ItemOutput filled = ItemOutput.Loadable.REQUIRED_ITEM.getIfPresent(json, "filled");
-      FluidIngredient fluid = FluidIngredient.deserialize(json, "fluid");
+      FluidIngredient fluid = FluidIngredient.LOADABLE.getIfPresent(json, "fluid");
       return factory.apply(input, filled, fluid);
     }
   }

@@ -170,30 +170,26 @@ public abstract class FluidIngredient implements IAmLoadable {
     return LOADABLE.serialize(this);
   }
 
-  /** Gets the fluid ingredient from the parent and deserializes it */
+  /** @deprecated use {@link #LOADABLE} with {@link Loadable#getIfPresent(JsonObject, String)} */
+  @Deprecated(forRemoval = true)
   public static FluidIngredient deserialize(JsonObject parent, String key) {
     return LOADABLE.getIfPresent(parent, key);
   }
 
   /** @deprecated use {@link #LOADABLE} with {@link Loadable#convert(JsonElement, String)} */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   public static FluidIngredient deserialize(JsonElement element, String key) {
     return LOADABLE.convert(element, key);
   }
 
-  /**
-   * Writes the ingredient into the packet buffer
-   * @param buffer Packet buffer instance
-   */
+  /** @deprecated use {@link #LOADABLE} with {@link Loadable#encode(FriendlyByteBuf, Object)} */
+  @Deprecated(forRemoval = true)
   public void write(FriendlyByteBuf buffer) {
     NETWORK.encode(buffer, this);
   }
 
-  /**
-   * Reads a fluid ingredient from the packet buffer
-   * @param buffer  Buffer instance
-   * @return  Fluid ingredient instance
-   */
+  /** @deprecated use {@link #LOADABLE} with {@link Loadable#decode(FriendlyByteBuf)}*/
+  @Deprecated(forRemoval = true)
   public static FluidIngredient read(FriendlyByteBuf buffer) {
     return NETWORK.decode(buffer);
   }

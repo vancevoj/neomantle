@@ -124,38 +124,28 @@ public class SizedIngredient implements Predicate<ItemStack> {
     return matchingStacks;
   }
 
-  /**
-   * Writes this ingredient to the packet buffer
-   * @param buffer  Buffer instance
-   */
+  /** use {@link #LOADABLE} with {@link slimeknights.mantle.data.loadable.Loadable#encode(FriendlyByteBuf, Object)} */
+  @Deprecated(forRemoval = true)
   public void write(FriendlyByteBuf buffer) {
     LOADABLE.encode(buffer, this);
   }
 
-  /**
-   * Writes this sized ingredient to a JSON object
-   * @return  JsonObject of sized ingredient
-   */
+  /** @deprecated use {@link #LOADABLE} with {@link slimeknights.mantle.data.loadable.Loadable#serialize(Object)} or {@link RecordLoadable#serialize(Object, JsonObject)} */
+  @Deprecated(forRemoval = true)
   public JsonObject serialize() {
     JsonObject json = new JsonObject();
     LOADABLE.serialize(this, json);
     return json;
   }
 
-  /**
-   * Reads a sized ingredient from the packet buffer
-   * @param buffer  Buffer instance
-   * @return  Sized ingredient
-   */
+  /** @deprecated use {@link #LOADABLE} with {@link slimeknights.mantle.data.loadable.Loadable#decode(FriendlyByteBuf)}  */
+  @Deprecated(forRemoval = true)
   public static SizedIngredient read(FriendlyByteBuf buffer) {
     return LOADABLE.decode(buffer);
   }
 
-  /**
-   * Reads a sized ingredient from JSON
-   * @param json  JSON instance
-   * @return  Sized ingredient
-   */
+  /** @deprecated use {@link #LOADABLE} with {@link RecordLoadable#deserialize(JsonObject)} */
+  @Deprecated(forRemoval = true)
   public static SizedIngredient deserialize(JsonObject json) {
     return LOADABLE.deserialize(json);
   }

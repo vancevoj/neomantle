@@ -150,7 +150,7 @@ public class FluidContainerIngredient extends AbstractIngredient {
 
     @Override
     public FluidContainerIngredient parse(FriendlyByteBuf buffer) {
-      FluidIngredient fluidIngredient = FluidIngredient.read(buffer);
+      FluidIngredient fluidIngredient = FluidIngredient.LOADABLE.decode(buffer);
       Ingredient display = null;
       if (buffer.readBoolean()) {
         display = Ingredient.fromNetwork(buffer);
@@ -160,7 +160,7 @@ public class FluidContainerIngredient extends AbstractIngredient {
 
     @Override
     public void write(FriendlyByteBuf buffer, FluidContainerIngredient ingredient) {
-      ingredient.fluidIngredient.write(buffer);
+      FluidIngredient.LOADABLE.encode(buffer, ingredient.fluidIngredient);
       if (ingredient.display != null) {
         buffer.writeBoolean(true);
         ingredient.display.toNetwork(buffer);

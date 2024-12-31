@@ -102,25 +102,21 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
    */
   public abstract Set<EntityType<?>> getTypes();
 
-  /**
-   * Serializes this ingredient to JSON
-   * @return  Json element of this ingredient
-   */
+  /** @deprecated use {@link #LOADABLE} with {@link Loadable#serialize(Object)} */
+  @Deprecated(forRemoval = true)
   public JsonElement serialize() {
     return LOADABLE.serialize(this);
   }
 
 
-  /** Writes this ingredient to the packet buffer */
+  /** @deprecated use {@link #LOADABLE} with {@link Loadable#encode(FriendlyByteBuf, Object)} */
+  @Deprecated(forRemoval = true)
   public void write(FriendlyByteBuf buffer) {
     SET_MATCH.encode(buffer, this);
   }
 
-  /**
-   * Reads an ingredient from the packet buffer
-   * @param buffer  Buffer instance
-   * @return  Ingredient instance
-   */
+  /** @deprecated use {@link #LOADABLE} with {@link Loadable#decode(FriendlyByteBuf)} */
+  @Deprecated(forRemoval = true)
   public static EntityIngredient read(FriendlyByteBuf buffer) {
     return SET_MATCH.decode(buffer);
   }
