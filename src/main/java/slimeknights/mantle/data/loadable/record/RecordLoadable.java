@@ -50,7 +50,7 @@ public interface RecordLoadable<T> extends Loadable<T> {
 
   /** Same as {@link #deserialize(JsonObject, TypedMap)} but uses {@link TypedMap#EMPTY} as the context. */
   default T deserialize(JsonObject json) {
-    return deserialize(json, TypedMap.empty());
+    return deserialize(json, TypedMap.EMPTY);
   }
 
   @Override

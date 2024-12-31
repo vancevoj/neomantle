@@ -32,7 +32,7 @@ public class TypedMapBuilder {
   public TypedMap build() {
     Map<Key<?>,Object> map = builder.build();
     if (map.isEmpty()) {
-      return TypedMap.empty();
+      return TypedMap.EMPTY;
     }
     return new BackedTypedMap(map);
   }

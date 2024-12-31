@@ -228,7 +228,7 @@ public class EitherLoadable {
         return primitive.convert(element, key, context);
       }
       if (!keys.isEmpty()) {
-        return deserializeObject(element, TypedMap.empty(), key);
+        return deserializeObject(element, context, key);
       }
       // no keys mean both array and primitive are valid, so that is the error
       throw new JsonSyntaxException("JSON at " + key + " must be one of: array, primitive");
