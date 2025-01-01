@@ -6,7 +6,6 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -148,7 +147,7 @@ public class BookCommand {
       target.enableStencil();
 
       try {
-        MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(new BufferBuilder(2048));
+        MultiBufferSource.BufferSource buffer = Minecraft.getInstance().renderBuffers().bufferSource();
         target.bindWrite(true);
 
         GuiGraphics gui = new GuiGraphics(Minecraft.getInstance(), buffer);
