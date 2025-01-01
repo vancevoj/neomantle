@@ -264,5 +264,12 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
                        .pattern("###").pattern("###").pattern(" X ")
                        .unlockedBy("has_planks", RecipeProvider.has(wood))
                        .save(consumer, location(folder + "sign"));
+    ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, wood.getHangingSign(), 6)
+                       .group("hanging_sign")
+                       .define('#', wood.getStrippedLog())
+                       .define('X', Items.CHAIN)
+                       .pattern("X X").pattern("###").pattern("###")
+                       .unlockedBy("has_stripped_logs", RecipeProvider.has(wood.getStrippedLog()))
+                       .save(consumer, location(folder + "hanging_sign"));
   }
 }

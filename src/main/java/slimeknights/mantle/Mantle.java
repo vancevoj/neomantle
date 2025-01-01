@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.MobType;
 import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
@@ -28,6 +29,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import slimeknights.mantle.block.entity.MantleHangingSignBlockEntity;
 import slimeknights.mantle.block.entity.MantleSignBlockEntity;
 import slimeknights.mantle.client.ClientEvents;
 import slimeknights.mantle.command.MantleCommand;
@@ -64,6 +66,7 @@ import slimeknights.mantle.registration.adapter.RegistryAdapter;
 import slimeknights.mantle.util.OffhandCooldownTracker;
 
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Mantle
@@ -173,7 +176,14 @@ public class Mantle {
     }
     else if (key == Registries.BLOCK_ENTITY_TYPE) {
       BlockEntityTypeRegistryAdapter adapter = new BlockEntityTypeRegistryAdapter(Objects.requireNonNull(event.getForgeRegistry()));
-      adapter.register(MantleSignBlockEntity::new, "sign", MantleSignBlockEntity::buildSignBlocks);
+      Set<Block> signs = MantleSignBlockEntity.buildSignBlocks();
+      if (!signs.isEmpty()) {
+        adapter.register(MantleSignBlockEntity::new, signs, "sign");
+      }
+      signs = MantleHangingSignBlockEntity.buildSignBlocks();
+      if (!signs.isEmpty()) {
+        adapter.register(MantleHangingSignBlockEntity::new, signs, "hanging_sign");
+      }
     }
     else if (key == ForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS) {
       MantleLoot.registerGlobalLootModifiers(event);

@@ -3,6 +3,7 @@ package slimeknights.mantle.registration.deferred;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DoubleHighBlockItem;
+import net.minecraft.world.item.HangingSignItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.level.block.Block;
@@ -28,11 +29,15 @@ import net.minecraft.world.level.block.state.properties.WoodType;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.RegistryObject;
+import slimeknights.mantle.block.MantleCeilingHangingSignBlock;
 import slimeknights.mantle.block.MantleStandingSignBlock;
+import slimeknights.mantle.block.MantleWallHangingSignBlock;
 import slimeknights.mantle.block.MantleWallSignBlock;
 import slimeknights.mantle.block.StrippableLogBlock;
+import slimeknights.mantle.block.entity.MantleHangingSignBlockEntity;
 import slimeknights.mantle.block.entity.MantleSignBlockEntity;
 import slimeknights.mantle.item.BurnableBlockItem;
+import slimeknights.mantle.item.BurnableHangingSignItem;
 import slimeknights.mantle.item.BurnableSignItem;
 import slimeknights.mantle.item.BurnableTallBlockItem;
 import slimeknights.mantle.registration.RegistrationHelper;
@@ -223,16 +228,19 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
     Function<Integer, Function<? super Block, ? extends BlockItem>> burnableItem;
     Function<? super Block, ? extends BlockItem> burnableTallItem;
     BiFunction<? super Block, ? super Block, ? extends BlockItem> burnableSignItem;
+    BiFunction<? super Block, ? super Block, ? extends BlockItem> burnableHangingSignItem;
     Item.Properties signProps = new Item.Properties().stacksTo(16);
     if (flammable) {
       burnableItem     = burnTime -> block -> new BurnableBlockItem(block, itemProps, burnTime);
       burnableTallItem = block -> new BurnableTallBlockItem(block, itemProps, 200);
       burnableSignItem = (standing, wall) -> new BurnableSignItem(signProps, standing, wall, 200);
+      burnableHangingSignItem = (standing, wall) -> new BurnableHangingSignItem(signProps, standing, wall, 200);
     } else {
       Function<? super Block, ? extends BlockItem> defaultItemBlock = block -> new BlockItem(block, itemProps);
       burnableItem = burnTime -> defaultItemBlock;
       burnableTallItem = block -> new DoubleHighBlockItem(block, itemProps);
       burnableSignItem = (standing, wall) -> new SignItem(signProps, standing, wall);
+      burnableHangingSignItem = (standing, wall) -> new HangingSignItem(standing, wall, signProps);
     }
 
     // planks
@@ -258,13 +266,21 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
     // signs
     RegistryObject<StandingSignBlock> standingSign = registerNoItem(name + "_sign", () -> new MantleStandingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollission().strength(1.0F), woodType));
     RegistryObject<WallSignBlock> wallSign = registerNoItem(name + "_wall_sign", () -> new MantleWallSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollission().strength(1.0F).lootFrom(standingSign), woodType));
+    RegistryObject<MantleCeilingHangingSignBlock> hangingSign = registerNoItem(name + "_hanging_sign", () -> new MantleCeilingHangingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollission().strength(1.0F), woodType));
+    RegistryObject<MantleWallHangingSignBlock> wallHangingSign = registerNoItem(name + "_wall_hanging_sign", () -> new MantleWallHangingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollission().strength(1.0F).lootFrom(hangingSign), woodType));
     // tell mantle to inject these into the TE
     MantleSignBlockEntity.registerSignBlock(standingSign);
     MantleSignBlockEntity.registerSignBlock(wallSign);
+    MantleHangingSignBlockEntity.registerSignBlock(hangingSign);
+    MantleHangingSignBlockEntity.registerSignBlock(wallHangingSign);
     // sign is included automatically in asItem of the standing sign
     this.itemRegister.register(name + "_sign", () -> burnableSignItem.apply(standingSign.get(), wallSign.get()));
+    this.itemRegister.register(name + "_hanging_sign", () -> burnableHangingSignItem.apply(hangingSign.get(), wallHangingSign.get()));
     // finally, return
-    return new WoodBlockObject(resource(name), woodType, planks, log, strippedLog, wood, strippedWood, fence, fenceGate, door, trapdoor, pressurePlate, button, standingSign, wallSign);
+    return new WoodBlockObject(resource(name), woodType,
+                               planks, log, strippedLog, wood, strippedWood,
+                               fence, fenceGate, door, trapdoor, pressurePlate, button,
+                               standingSign, wallSign, hangingSign, wallHangingSign);
   }
 
 

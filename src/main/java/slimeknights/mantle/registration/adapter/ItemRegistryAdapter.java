@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.DoubleHighBlockItem;
+import net.minecraft.world.item.HangingSignItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Item.Properties;
 import net.minecraft.world.item.SignItem;
@@ -17,6 +18,7 @@ import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraftforge.registries.IForgeRegistry;
 import slimeknights.mantle.item.BlockTooltipItem;
 import slimeknights.mantle.item.BurnableBlockItem;
+import slimeknights.mantle.item.BurnableHangingSignItem;
 import slimeknights.mantle.item.BurnableSignItem;
 import slimeknights.mantle.item.BurnableTallBlockItem;
 import slimeknights.mantle.item.TooltipItem;
@@ -191,14 +193,17 @@ public class ItemRegistryAdapter extends EnumRegistryAdapter<Item> {
     BiFunction<? super Block, Integer, ? extends BlockItem> burnableItem;
     Function<? super Block, ? extends BlockItem> burnableTallItem;
     TriFunction<Item.Properties, ? super Block, ? super Block, ? extends BlockItem> burnableSignItem;
+    TriFunction<Item.Properties, ? super Block, ? super Block, ? extends BlockItem> burnableHangingSignItem;
     if (isBurnable) {
       burnableItem     = (block, burnTime) -> new BurnableBlockItem(block, defaultProps, burnTime);
       burnableTallItem = (block) -> new BurnableTallBlockItem(block, defaultProps, 200);
       burnableSignItem = (props, standing, wall) -> new BurnableSignItem(props, standing, wall, 200);
+      burnableHangingSignItem = (props, standing, wall) -> new BurnableHangingSignItem(props, standing, wall, 200);
     } else {
       burnableItem = (block, burnTime) -> new BlockItem(block, defaultProps);
       burnableTallItem = (block) -> new DoubleHighBlockItem(block, defaultProps);
       burnableSignItem = SignItem::new;
+      burnableHangingSignItem = (props, ceiling, wall) -> new HangingSignItem(ceiling, wall, props);
     }
 
     // planks
@@ -220,6 +225,7 @@ public class ItemRegistryAdapter extends EnumRegistryAdapter<Item> {
     registerBlockItem(burnableItem.apply(object.getButton(), 100));
     // sign
     registerBlockItem(burnableSignItem.apply(new Item.Properties().stacksTo(16), object.getSign(), object.getWallSign()));
+    registerBlockItem(burnableHangingSignItem.apply(new Item.Properties().stacksTo(16), object.getHangingSign(), object.getWallHangingSign()));
   }
 
   /**
