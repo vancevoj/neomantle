@@ -8,6 +8,7 @@ import net.minecraft.client.Options;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.renderer.blockentity.HangingSignRenderer;
 import net.minecraft.client.renderer.blockentity.SignRenderer;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.level.GameType;
@@ -55,9 +56,15 @@ public class ClientEvents {
   public static void onConstruct() {
   }
 
+  @SuppressWarnings("ConstantConditions")
   @SubscribeEvent
   static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
-    event.registerBlockEntityRenderer(MantleRegistrations.SIGN, SignRenderer::new);
+    if (MantleRegistrations.SIGN != null) {
+      event.registerBlockEntityRenderer(MantleRegistrations.SIGN, SignRenderer::new);
+    }
+    if (MantleRegistrations.HANGING_SIGN != null) {
+      event.registerBlockEntityRenderer(MantleRegistrations.HANGING_SIGN, HangingSignRenderer::new);
+    }
   }
 
   @SubscribeEvent

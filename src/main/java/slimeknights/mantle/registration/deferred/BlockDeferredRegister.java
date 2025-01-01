@@ -220,7 +220,6 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
     BlockSetType setType = new BlockSetType(resourceName(name));
     WoodType woodType = new WoodType(resourceName(name), setType);
     BlockSetType.register(setType);
-    WoodType.register(woodType);
     RegistrationHelper.registerWoodType(woodType);
     Item.Properties itemProps = new Item.Properties();
 
