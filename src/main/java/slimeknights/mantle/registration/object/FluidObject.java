@@ -10,6 +10,7 @@ import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.fluids.FluidType;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.recipe.helper.FluidOutput;
 import slimeknights.mantle.recipe.ingredient.FluidIngredient;
 
 import javax.annotation.Nonnull;
@@ -90,5 +91,17 @@ public class FluidObject<F extends Fluid> implements Supplier<F>, ItemLike, IdAw
       return FluidIngredient.of(commonTag, amount);
     }
     return FluidIngredient.of(get(), amount);
+  }
+
+  /**
+   * Creates a recipe result from this object
+   * @param amount     Result amount
+   * @return  Result instance
+   */
+  public FluidOutput result(int amount) {
+    if (commonTag != null) {
+      return FluidOutput.fromTag(commonTag, amount);
+    }
+    return FluidOutput.fromFluid(get(), amount);
   }
 }

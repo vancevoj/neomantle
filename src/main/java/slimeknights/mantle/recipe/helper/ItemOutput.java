@@ -3,7 +3,9 @@ package slimeknights.mantle.recipe.helper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.Codec;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.GsonHelper;
@@ -13,11 +15,13 @@ import net.minecraft.world.level.ItemLike;
 import slimeknights.mantle.data.loadable.LoadableCodec;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.common.ItemStackLoadable;
+import slimeknights.mantle.data.loadable.common.NBTLoadable;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.IntLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
+import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -40,6 +44,22 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
    */
   @Override
   public abstract ItemStack get();
+
+  /**
+   * Gets a copy of the result stack
+   * @return  Item output
+   */
+  public final ItemStack copy() {
+    return get().copy();
+  }
+
+  /** Gets the size of the output without resolving the stack */
+  public abstract int getCount();
+
+  /** Checks if the contents are empty without resolving the stack */
+  public boolean isEmpty() {
+    return getCount() <= 0;
+  }
 
   /**
    * Writes this output to JSON
@@ -83,10 +103,21 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
    * Creates a new output for the given tag
    * @param tag   Tag
    * @param count Stack count
+   * @param nbt   Stack NBT
+   * @return Output
+   */
+  public static ItemOutput fromTag(TagKey<Item> tag, int count, @Nullable CompoundTag nbt) {
+    return new OfTagPreference(tag, count, nbt);
+  }
+
+  /**
+   * Creates a new output for the given tag
+   * @param tag   Tag
+   * @param count Stack count
    * @return Output
    */
   public static ItemOutput fromTag(TagKey<Item> tag, int count) {
-    return new OfTagPreference(tag, count);
+    return fromTag(tag, count, null);
   }
 
   /**
@@ -119,6 +150,7 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
   @RequiredArgsConstructor
   private static class OfItem extends ItemOutput {
     private final Item item;
+    @Getter
     private final int count;
     private ItemStack cachedStack;
 
@@ -155,6 +187,11 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
     }
 
     @Override
+    public int getCount() {
+      return stack.getCount();
+    }
+
+    @Override
     public JsonElement serialize(boolean writeCount) {
       if (writeCount) {
         return ItemStackLoadable.OPTIONAL_STACK_NBT.serialize(stack);
@@ -167,7 +204,10 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
   @RequiredArgsConstructor
   private static class OfTagPreference extends ItemOutput {
     private final TagKey<Item> tag;
+    @Getter
     private final int count;
+    @Nullable
+    private final CompoundTag nbt;
     private ItemStack cachedResult = null;
 
     @Override
@@ -176,13 +216,16 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
       // this object should only exist in recipes so no need to invalidate the cache
       if (cachedResult == null) {
         // if the preference is empty, do not cache it.
-        // This should only happen if someone scans recipes before tag are computed in which case we cache the wrong resolt.
+        // This should only happen if someone scans recipes before tag are computed in which case we cache the wrong result.
         // We protect against empty tags in our recipes via conditions.
         Optional<Item> preference = TagPreference.getPreference(tag);
         if (preference.isEmpty()) {
           return ItemStack.EMPTY;
         }
         cachedResult = new ItemStack(preference.orElseThrow(), count);
+        if (nbt != null) {
+          cachedResult.setTag(nbt.copy());
+        }
       }
       return cachedResult;
     }
@@ -190,9 +233,14 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
     @Override
     public JsonElement serialize(boolean writeCount) {
       JsonObject json = new JsonObject();
-      json.addProperty("tag", tag.location().toString());
+      if (!writeCount || count > 0) {
+        json.addProperty("tag", tag.location().toString());
+      }
       if (writeCount) {
         json.addProperty("count", count);
+      }
+      if (count > 0 && nbt != null) {
+        json.add("nbt", NBTLoadable.ALLOW_STRING.serialize(nbt));
       }
       return json;
     }
@@ -246,7 +294,7 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
 
     @Override
     public JsonElement serialize(ItemOutput output) {
-      if (nonEmpty && (output instanceof OfItem || output instanceof OfStack) && output.get().isEmpty()) {
+      if (nonEmpty && output.isEmpty()) {
         throw new IllegalArgumentException("ItemOutput cannot be empty for this recipe");
       }
       return output.serialize(readCount);

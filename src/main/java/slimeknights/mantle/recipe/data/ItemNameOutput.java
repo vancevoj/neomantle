@@ -3,6 +3,7 @@ package slimeknights.mantle.recipe.data;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -18,6 +19,7 @@ import javax.annotation.Nullable;
 @RequiredArgsConstructor(staticName = "fromName")
 public class ItemNameOutput extends ItemOutput {
   private final ResourceLocation name;
+  @Getter
   private final int count;
   @Nullable
   private final CompoundTag nbt;
