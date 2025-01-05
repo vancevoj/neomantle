@@ -12,7 +12,6 @@ import slimeknights.mantle.util.LogicHelper;
 import slimeknights.mantle.util.RegistryHelper;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,8 +28,8 @@ public class TagPreference {
 
   /** Cache from any tag key to its value */
   private static final Map<TagKey<?>, Optional<?>> PREFERENCE_CACHE = new ConcurrentHashMap<>();
-  /** Cache of comparator instances, not concurrent because it's only used inside {@link #getUncachedPreference(TagKey)} which is only used inside the concurrent {@link #PREFERENCE_CACHE}. */
-  private static final Map<ResourceKey<?>, RegistryComparator<?>> COMPARATOR_CACHE = new HashMap<>();
+  /** Cache of comparator instances, concurrent as hash map optimizations means the whole compute if absent method is not entirely synchronized */
+  private static final Map<ResourceKey<?>, RegistryComparator<?>> COMPARATOR_CACHE = new ConcurrentHashMap<>();
 
   /** Registers the listener with the event bus */
   public static void init() {
@@ -51,7 +50,7 @@ public class TagPreference {
     }
     // streams have a lovely function to get the minimum element based on a comparator
     // if the tag is empty, stream is empty so returns empty
-    return RegistryHelper.getTagValueStream(tag).min(getComparator(registry));
+    return RegistryHelper.getTagValueStream(registry, tag).min(getComparator(registry));
   }
 
   /** Don't create a new lambda instance every time we call {@link #getPreference(TagKey)} */
