@@ -9,6 +9,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.fluids.FluidType;
+import slimeknights.mantle.Mantle;
 import slimeknights.mantle.recipe.ingredient.FluidIngredient;
 
 import javax.annotation.Nonnull;
@@ -36,7 +37,7 @@ public class FluidObject<F extends Fluid> implements Supplier<F>, ItemLike, IdAw
   /** Main constructor */
   public FluidObject(ResourceLocation id, @Nullable String tagName, Supplier<? extends FluidType> type, Supplier<? extends F> still) {
     this.id = id;
-    this.commonTag = tagName == null ? null : FluidTags.create(new ResourceLocation("forge", tagName));
+    this.commonTag = tagName == null ? null : FluidTags.create(Mantle.commonResource(tagName));
     this.type = type;
     this.still = still;
   }

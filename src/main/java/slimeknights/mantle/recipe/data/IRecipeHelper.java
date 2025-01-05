@@ -14,6 +14,7 @@ import net.minecraftforge.common.crafting.conditions.NotCondition;
 import net.minecraftforge.common.crafting.conditions.TagEmptyCondition;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.ApiStatus;
+import slimeknights.mantle.Mantle;
 import slimeknights.mantle.registration.object.IdAwareObject;
 import slimeknights.mantle.util.IdExtender.LocationExtender;
 
@@ -172,7 +173,7 @@ public interface IRecipeHelper extends LocationExtender {
    * @return  Condition for tag existing
    */
   default ICondition tagCondition(String name) {
-    return new NotCondition(new TagEmptyCondition("forge", name));
+    return new NotCondition(new TagEmptyCondition(Mantle.COMMON, name));
   }
 
   /**

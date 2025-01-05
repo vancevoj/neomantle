@@ -79,6 +79,8 @@ import java.util.Set;
 public class Mantle {
   public static final String modId = "mantle";
   public static final Logger logger = LogManager.getLogger("Mantle");
+  /** Namespace for common tags, used for easier migration to the future "c" standard */
+  public static final String COMMON = "forge";
 
   /* Instance of this mod, used for grabbing prototype fields */
   public static Mantle instance;
@@ -206,6 +208,15 @@ public class Mantle {
    */
   public static ResourceLocation getResource(String name) {
     return new ResourceLocation(modId, name);
+  }
+
+  /**
+   * Gets a resource location for the common namespace, which is "forge" for 1.20 and "c" for 1.21.
+   * @param name  Name
+   * @return  Resource location instance
+   */
+  public static ResourceLocation commonResource(String name) {
+    return new ResourceLocation(COMMON, name);
   }
 
   /**
