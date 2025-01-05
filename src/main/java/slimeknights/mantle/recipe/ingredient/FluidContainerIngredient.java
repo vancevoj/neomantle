@@ -51,8 +51,8 @@ public class FluidContainerIngredient extends AbstractIngredient {
   }
 
   /** Creates an instance from a fluid ingredient with a display container */
-  public static FluidContainerIngredient fromFluid(FluidObject<?> fluid, boolean forgeTag) {
-    return fromIngredient(fluid.ingredient(FluidType.BUCKET_VOLUME, forgeTag), Ingredient.of(fluid));
+  public static FluidContainerIngredient fromFluid(FluidObject<?> fluid) {
+    return fromIngredient(fluid.ingredient(FluidType.BUCKET_VOLUME), Ingredient.of(fluid));
   }
 
   @Override

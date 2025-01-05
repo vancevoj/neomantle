@@ -28,15 +28,15 @@ public class FluidObject<F extends Fluid> implements Supplier<F>, ItemLike, IdAw
   protected final ResourceLocation id;
 
   /** Tag in the forge namespace, crafting equivalence */
-  @Getter @Nonnull
-  private final TagKey<Fluid> forgeTag;
+  @Getter @Nullable
+  protected final TagKey<Fluid> commonTag;
   private final Supplier<? extends FluidType> type;
   private final Supplier<? extends F> still;
 
   /** Main constructor */
-  public FluidObject(ResourceLocation id, String tagName, Supplier<? extends FluidType> type, Supplier<? extends F> still) {
+  public FluidObject(ResourceLocation id, @Nullable String tagName, Supplier<? extends FluidType> type, Supplier<? extends F> still) {
     this.id = id;
-    this.forgeTag = FluidTags.create(new ResourceLocation("forge", tagName));
+    this.commonTag = tagName == null ? null : FluidTags.create(new ResourceLocation("forge", tagName));
     this.type = type;
     this.still = still;
   }
@@ -82,13 +82,12 @@ public class FluidObject<F extends Fluid> implements Supplier<F>, ItemLike, IdAw
   /**
    * Creates an ingredient from this object
    * @param amount     Ingredient amount
-   * @param commonTag  If true, matches the common tag, if false matches just this object
    * @return  Ingredient instance
    */
-  public FluidIngredient ingredient(int amount, boolean commonTag) {
-    if (commonTag) {
-      return FluidIngredient.of(get(), amount);
+  public FluidIngredient ingredient(int amount) {
+    if (commonTag != null) {
+      return FluidIngredient.of(commonTag, amount);
     }
-    return FluidIngredient.of(getForgeTag(), amount);
+    return FluidIngredient.of(get(), amount);
   }
 }

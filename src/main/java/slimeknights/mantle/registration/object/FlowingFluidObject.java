@@ -29,7 +29,7 @@ public class FlowingFluidObject<F extends FlowingFluid> extends FluidObject<F> {
   private final Supplier<? extends LiquidBlock> block;
 
   /** Main constructor */
-  public FlowingFluidObject(ResourceLocation id, String tagName, Supplier<? extends FluidType> type, Supplier<? extends F> still, Supplier<? extends F> flowing, @Nullable Supplier<? extends LiquidBlock> block) {
+  public FlowingFluidObject(ResourceLocation id, @Nullable String tagName, Supplier<? extends FluidType> type, Supplier<? extends F> still, Supplier<? extends F> flowing, @Nullable Supplier<? extends LiquidBlock> block) {
     super(id, tagName, type, still);
     this.localTag = FluidTags.create(id);
     this.flowing = flowing;
@@ -65,8 +65,16 @@ public class FlowingFluidObject<F extends FlowingFluid> extends FluidObject<F> {
     return block.get();
   }
 
+
+  /* Datagen helpers */
+
+  /** Gets the primary tag used for recipes with this object */
+  public TagKey<Fluid> getTag() {
+    return commonTag != null ? commonTag : localTag;
+  }
+
   @Override
-  public FluidIngredient ingredient(int amount, boolean commonTag) {
-    return FluidIngredient.of(commonTag ? getForgeTag() : getLocalTag(), amount);
+  public FluidIngredient ingredient(int amount) {
+    return FluidIngredient.of(getTag(), amount);
   }
 }

@@ -27,6 +27,7 @@ import slimeknights.mantle.registration.RegistrationHelper;
 import slimeknights.mantle.registration.object.FlowingFluidObject;
 import slimeknights.mantle.registration.object.FluidObject;
 
+import javax.annotation.Nullable;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -86,12 +87,17 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
   public class Builder extends FluidBuilder<Builder> {
     private final String name;
     private final DelayedSupplier<Fluid> stillDelayed = new DelayedSupplier<>();
-    /** Name to use for the tag, defaults to the fluid name */
-    private String tagName;
+    /** Name for the common tag, if unset will only get a local tag */
+    @Nullable
+    private String commonTag = null;
 
     private Builder(String name) {
       this.name = name;
-      this.tagName = name;
+    }
+
+    /** Adds a common tag to the builder */
+    public Builder commonTag() {
+      return this.commonTag(name);
     }
 
     /* Fluid type */
@@ -171,7 +177,7 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
       }
       RegistryObject<F> fluid = registerFluid(name, () -> constructor.apply(this));
       stillDelayed.setSupplier(fluid);
-      return new FluidObject<>(resource(name), tagName, type, fluid);
+      return new FluidObject<>(resource(name), commonTag, type, fluid);
     }
 
     /** Builds a flowing fluid with the default constructors */
@@ -202,7 +208,7 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
       flowingDelayed.setSupplier(flowing);
 
       // return the final nice object
-      return new FlowingFluidObject<>(resource(name), tagName, type, still, flowing, this.block);
+      return new FlowingFluidObject<>(resource(name), commonTag, type, still, flowing, this.block);
     }
   }
 
