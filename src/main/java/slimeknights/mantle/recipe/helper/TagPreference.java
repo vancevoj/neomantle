@@ -1,9 +1,12 @@
 package slimeknights.mantle.recipe.helper;
 
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -29,7 +32,10 @@ public class TagPreference {
   /** Cache from any tag key to its value */
   private static final Map<TagKey<?>, Optional<?>> PREFERENCE_CACHE = new ConcurrentHashMap<>();
   /** Cache of comparator instances, concurrent as hash map optimizations means the whole compute if absent method is not entirely synchronized */
-  private static final Map<ResourceKey<?>, RegistryComparator<?>> COMPARATOR_CACHE = new ConcurrentHashMap<>();
+  private static final Map<ResourceKey<?>, Comparator<?>> COMPARATOR_CACHE = new ConcurrentHashMap<>();
+  static {
+    COMPARATOR_CACHE.put(Registries.FLUID, FluidComparator.INSTANCE);
+  }
 
   /** Registers the listener with the event bus */
   public static void init() {
@@ -84,6 +90,23 @@ public class TagPreference {
       }
       // for stability, fallback to registry name compare
       return idA.compareNamespaced(idB);
+    }
+  }
+
+  /** Special casing comparator to ensure flowing fluids are sorted last after fluid sources. */
+  private enum FluidComparator implements Comparator<Fluid> {
+    INSTANCE;
+
+    /** Base logic after comparing source */
+    private final Comparator<Fluid> preference = new RegistryComparator<>(BuiltInRegistries.FLUID);
+
+    @Override
+    public int compare(Fluid fluid1, Fluid fluid2) {
+      boolean isSource1 = fluid1.isSource(fluid1.defaultFluidState());
+      if (isSource1 != fluid2.isSource(fluid2.defaultFluidState())) {
+        return isSource1 ? -1 : 1;
+      }
+      return preference.compare(fluid1, fluid2);
     }
   }
 }
