@@ -12,10 +12,11 @@ import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.common.crafting.conditions.ICondition;
-import net.minecraftforge.fluids.FluidStack;
 import slimeknights.mantle.data.GenericDataProvider;
+import slimeknights.mantle.recipe.helper.FluidOutput;
 import slimeknights.mantle.recipe.helper.ItemOutput;
 import slimeknights.mantle.recipe.ingredient.FluidIngredient;
+import slimeknights.mantle.registration.object.FluidObject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,15 +50,36 @@ public abstract class AbstractFluidContainerTransferProvider extends GenericData
   }
 
   /** Adds generic fill and empty for a container */
-  protected void addFillEmpty(String prefix, ItemLike item, ItemLike container, Fluid fluid, TagKey<Fluid> tag, int amount, ICondition... conditions) {
-    addTransfer(prefix + "empty",  new EmptyFluidContainerTransfer(Ingredient.of(item), ItemOutput.fromItem(container), new FluidStack(fluid, amount)), conditions);
-    addTransfer(prefix + "fill", new FillFluidContainerTransfer(Ingredient.of(container), ItemOutput.fromItem(item), FluidIngredient.of(tag, amount)), conditions);
+  protected void addFillEmpty(String prefix, ItemLike item, ItemLike container, FluidOutput fill, FluidIngredient drain, boolean nbt, ICondition... conditions) {
+    if (nbt) {
+      addTransfer(prefix + "empty", new EmptyFluidWithNBTTransfer(Ingredient.of(item), ItemOutput.fromItem(container), fill), conditions);
+      addTransfer(prefix + "fill", new FillFluidWithNBTTransfer(Ingredient.of(container), ItemOutput.fromItem(item), drain), conditions);
+    } else {
+      addTransfer(prefix + "empty", new EmptyFluidContainerTransfer(Ingredient.of(item), ItemOutput.fromItem(container), fill), conditions);
+      addTransfer(prefix + "fill", new FillFluidContainerTransfer(Ingredient.of(container), ItemOutput.fromItem(item), drain), conditions);
+    }
   }
 
   /** Adds generic fill and empty for a container */
+  protected void addFillEmpty(String prefix, ItemLike item, ItemLike container, Fluid fluid, TagKey<Fluid> tag, int amount, boolean nbt, ICondition... conditions) {
+    addFillEmpty(prefix, item, container, FluidOutput.fromFluid(fluid, amount), FluidIngredient.of(tag, amount), nbt, conditions);
+  }
+
+  /** Adds generic fill and empty for a container */
+  protected void addFillEmpty(String prefix, ItemLike item, ItemLike container, FluidObject<?> fluid, int amount, boolean nbt, ICondition... conditions) {
+    addFillEmpty(prefix, item, container, fluid.result(amount), fluid.ingredient(amount), nbt, conditions);
+  }
+
+  /** @deprecated use {@link #addFillEmpty(String, ItemLike, ItemLike, Fluid, TagKey, int, boolean, ICondition...)} */
+  @Deprecated(forRemoval = true)
+  protected void addFillEmpty(String prefix, ItemLike item, ItemLike container, Fluid fluid, TagKey<Fluid> tag, int amount, ICondition... conditions) {
+    addFillEmpty(prefix, item, container, fluid, tag, amount, false, conditions);
+  }
+
+  /** @deprecated use {@link #addFillEmpty(String, ItemLike, ItemLike, Fluid, TagKey, int, boolean, ICondition...)} */
+  @Deprecated(forRemoval = true)
   protected void addFillEmptyNBT(String prefix, ItemLike item, ItemLike container, Fluid fluid, TagKey<Fluid> tag, int amount, ICondition... conditions) {
-    addTransfer(prefix + "empty",  new EmptyFluidWithNBTTransfer(Ingredient.of(item), ItemOutput.fromItem(container), new FluidStack(fluid, amount)), conditions);
-    addTransfer(prefix + "fill", new FillFluidWithNBTTransfer(Ingredient.of(container), ItemOutput.fromItem(item), FluidIngredient.of(tag, amount)), conditions);
+    addFillEmpty(prefix, item, container, fluid, tag, amount, true, conditions);
   }
 
   @Override

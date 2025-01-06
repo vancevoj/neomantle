@@ -17,7 +17,7 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;
 import org.apache.commons.lang3.function.TriFunction;
 import slimeknights.mantle.Mantle;
-import slimeknights.mantle.data.loadable.common.FluidStackLoadable;
+import slimeknights.mantle.recipe.helper.FluidOutput;
 import slimeknights.mantle.recipe.helper.ItemOutput;
 import slimeknights.mantle.util.JsonHelper;
 
@@ -31,7 +31,13 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer {
 
   private final Ingredient input;
   private final ItemOutput filled;
-  protected final FluidStack fluid;
+  protected final FluidOutput fluid;
+
+  /** @deprecated use {@link #EmptyFluidContainerTransfer(Ingredient, ItemOutput, FluidOutput)} */
+  @Deprecated(forRemoval = true)
+  public EmptyFluidContainerTransfer(Ingredient input, ItemOutput filled, FluidStack fluid) {
+    this(input, filled, FluidOutput.fromStack(fluid));
+  }
 
   @Override
   public void addRepresentativeItems(Consumer<Item> consumer) {
@@ -47,20 +53,20 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer {
 
   /** Gets the contained fluid in the given stack */
   protected FluidStack getFluid(ItemStack stack) {
-    return fluid;
+    return fluid.get();
   }
 
   @Override
   public TransferResult transfer(ItemStack stack, FluidStack fluid, IFluidHandler handler) {
     FluidStack contained = getFluid(stack);
     int simulated = handler.fill(contained.copy(), FluidAction.SIMULATE);
-    if (simulated == this.fluid.getAmount()) {
+    if (simulated == contained.getAmount()) {
       int actual = handler.fill(contained.copy(), FluidAction.EXECUTE);
       if (actual > 0) {
         if (actual != this.fluid.getAmount()) {
           Mantle.logger.error("Wrong amount filled from {}, expected {}, filled {}", BuiltInRegistries.ITEM.getKey(stack.getItem()), this.fluid.getAmount(), actual);
         }
-        return new TransferResult(filled.get().copy(), contained, false);
+        return new TransferResult(filled.copy(), contained, false);
       }
     }
     return null;
@@ -72,7 +78,7 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer {
     json.addProperty("type", ID.toString());
     json.add("input", input.toJson());
     json.add("filled", filled.serialize(false));
-    json.add("fluid", FluidStackLoadable.REQUIRED_STACK_NBT.serialize(fluid));
+    json.add("fluid", FluidOutput.Loadable.REQUIRED.serialize(fluid));
     return json;
   }
 
@@ -82,13 +88,13 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer {
   /**
    * Generic deserializer
    */
-  public record Deserializer<T extends EmptyFluidContainerTransfer>(TriFunction<Ingredient,ItemOutput,FluidStack,T> factory) implements JsonDeserializer<T> {
+  public record Deserializer<T extends EmptyFluidContainerTransfer>(TriFunction<Ingredient,ItemOutput,FluidOutput,T> factory) implements JsonDeserializer<T> {
     @Override
     public T deserialize(JsonElement element, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
       JsonObject json = element.getAsJsonObject();
       Ingredient input = Ingredient.fromJson(JsonHelper.getElement(json, "input"));
       ItemOutput filled = ItemOutput.Loadable.REQUIRED_ITEM.getIfPresent(json, "filled");
-      FluidStack fluid = FluidStackLoadable.REQUIRED_STACK_NBT.getIfPresent(json, "fluid");
+      FluidOutput fluid = FluidOutput.Loadable.REQUIRED.getIfPresent(json, "fluid");
       return factory.apply(input, filled, fluid);
     }
   }
