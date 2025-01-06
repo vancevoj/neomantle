@@ -23,7 +23,7 @@ public class EdibleItem extends Item {
 
   public EdibleItem(Item.Properties properties) {
     super(properties);
-    Objects.requireNonNull(getFoodProperties(), "Must set food to make an EdibleItem");
+    Objects.requireNonNull(foodProperties, "Must set food to make an EdibleItem");
   }
 
   @Override
