@@ -8,7 +8,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.registries.ForgeRegistries;
 import slimeknights.mantle.data.loadable.common.ColorLoadable;
-import slimeknights.mantle.util.IdExtender.LocationExtender;
 import slimeknights.mantle.util.JsonHelper;
 
 import javax.annotation.Nullable;
@@ -41,7 +40,7 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
     ResourceLocation overlay = JsonHelper.getResourceLocation(json, "overlay", null);
     ResourceLocation camera = null;
     if (json.has("camera")) {
-      camera = LocationExtender.INSTANCE.wrap(JsonHelper.getResourceLocation(json, "camera"), "textures/", ".png");
+      camera = JsonHelper.wrap(JsonHelper.getResourceLocation(json, "camera"), "textures/", ".png");
     }
     int color = ColorLoadable.ALPHA.getOrWhite(json, "color");
     return new FluidTexture(still, flowing, overlay, camera, color);
@@ -71,7 +70,7 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
      * @return  Builder instance
      */
     public Builder wrapId(String prefix, String suffix, boolean overlay, boolean camera) {
-      return textures(LocationExtender.INSTANCE.wrap(Objects.requireNonNull(ForgeRegistries.FLUID_TYPES.get().getKey(fluid)), prefix, suffix), overlay, camera);
+      return textures(JsonHelper.wrap(Objects.requireNonNull(ForgeRegistries.FLUID_TYPES.get().getKey(fluid)), prefix, suffix), overlay, camera);
     }
 
     /**
@@ -82,13 +81,13 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
      * @return  Builder instance
      */
     public Builder textures(ResourceLocation path, boolean overlay, boolean camera) {
-      still(LocationExtender.INSTANCE.suffix(path, "still"));
-      flowing(LocationExtender.INSTANCE.suffix(path, "flowing"));
+      still(path.withSuffix("still"));
+      flowing(path.withSuffix("flowing"));
       if (overlay) {
-        overlay(LocationExtender.INSTANCE.suffix(path, "overlay"));
+        overlay(path.withSuffix("overlay"));
       }
       if (camera) {
-        camera(LocationExtender.INSTANCE.suffix(path, "camera"));
+        camera(path.withSuffix("camera"));
       }
       return this;
     }

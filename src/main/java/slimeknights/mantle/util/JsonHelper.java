@@ -301,6 +301,11 @@ public class JsonHelper {
     return location.withPath(localize(location.getPath(), folder, extension));
   }
 
+  /** Wraps the given resource location in the given prefix and suffix */
+  public static ResourceLocation wrap(ResourceLocation location, String prefix, String suffix) {
+    return location.withPath(prefix + location.getPath() + suffix);
+  }
+
 
   /* Block States */
 

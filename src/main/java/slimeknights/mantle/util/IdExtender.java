@@ -2,7 +2,8 @@ package slimeknights.mantle.util;
 
 import net.minecraft.resources.ResourceLocation;
 
-/** Simple helper methods to extend a resource location, either by prefixing or suffixing values */
+/** @deprecated use new utilities from {@link ResourceLocation} */
+@Deprecated(forRemoval = true)
 public interface IdExtender<T extends ResourceLocation> {
   /** Extender for standard resource locations */
   LocationExtender INSTANCE = new LocationExtender() {};
@@ -10,33 +11,20 @@ public interface IdExtender<T extends ResourceLocation> {
   /** Creates a resource location */
   T location(String namespace, String path);
 
-  /**
-   * Wraps the resource location in the given prefix and suffix
-   * @param location  Location to extend
-   * @param prefix    Path prefix
-   * @param suffix    Path suffix
-   * @return  Location with the given prefix and suffix
-   */
+  /** @deprecated use {@link JsonHelper#wrap(ResourceLocation, String, String)} */
+  @Deprecated(forRemoval = true)
   default T wrap(ResourceLocation location, String prefix, String suffix) {
     return location(location.getNamespace(), prefix + location.getPath() + suffix);
   }
 
-  /**
-   * Prefixes the resource location
-   * @param location  Location to extend
-   * @param prefix    Path prefix
-   * @return  Location with the given prefix
-   */
+  /** @deprecated use {@link ResourceLocation#withPrefix(String)} */
+  @Deprecated(forRemoval = true)
   default T prefix(ResourceLocation location, String prefix) {
     return location(location.getNamespace(), prefix + location.getPath());
   }
 
-  /**
-   * Suffixes the resource location
-   * @param location  Location to extend
-   * @param suffix    Path suffix
-   * @return  Location with the given suffix
-   */
+  /** @deprecated use {@link ResourceLocation#withSuffix(String)} */
+  @Deprecated(forRemoval = true)
   default T suffix(ResourceLocation location, String suffix) {
     return location(location.getNamespace(), location.getPath() + suffix);
   }

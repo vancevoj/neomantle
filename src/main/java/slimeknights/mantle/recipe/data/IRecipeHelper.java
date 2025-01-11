@@ -13,10 +13,8 @@ import net.minecraftforge.common.crafting.conditions.ICondition;
 import net.minecraftforge.common.crafting.conditions.NotCondition;
 import net.minecraftforge.common.crafting.conditions.TagEmptyCondition;
 import net.minecraftforge.registries.RegistryObject;
-import org.jetbrains.annotations.ApiStatus;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.registration.object.IdAwareObject;
-import slimeknights.mantle.util.IdExtender.LocationExtender;
 
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -25,18 +23,11 @@ import java.util.function.Consumer;
  * Interface for common resource location and condition methods
  */
 @SuppressWarnings("unused")
-public interface IRecipeHelper extends LocationExtender {
+public interface IRecipeHelper {
   /* Location helpers */
 
   /** Gets the ID of the mod adding recipes */
   String getModId();
-
-  /** Use {@link #location(String)}, this method just exists to simplify implementation. */
-  @ApiStatus.Internal
-  @Override
-  default ResourceLocation location(String namespace, String path) {
-    return location(path);
-  }
 
   /**
    * Gets a resource location for the mod
@@ -63,7 +54,7 @@ public interface IRecipeHelper extends LocationExtender {
    */
   @SuppressWarnings("deprecation")  // won't be for long
   default ResourceLocation id(ItemLike item) {
-    return location(BuiltInRegistries.ITEM.getKey(item.asItem()).getPath());
+    return id(BuiltInRegistries.ITEM, item.asItem());
   }
 
   /**
@@ -74,6 +65,24 @@ public interface IRecipeHelper extends LocationExtender {
    */
   default <T> ResourceLocation id(Registry<T> registry, T value) {
     return location(Objects.requireNonNull(registry.getKey(value)).getPath());
+  }
+
+
+  /* Location extending with namespace */
+
+  /** Wraps the given path under our ID */
+  default ResourceLocation wrap(ResourceLocation location, String prefix, String suffix) {
+    return location(prefix + location.getPath() + suffix);
+  }
+
+  /** Prefixes the given path under our ID */
+  default ResourceLocation prefix(ResourceLocation location, String prefix) {
+    return location(prefix + location.getPath());
+  }
+
+  /** Suffixes the given path under our ID */
+  default ResourceLocation suffix(ResourceLocation location, String suffix) {
+    return location(location.getPath() + suffix);
   }
 
 
