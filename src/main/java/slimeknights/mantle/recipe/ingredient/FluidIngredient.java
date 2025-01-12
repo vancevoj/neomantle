@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 /**
  * Simple displayable ingredient type for fluids.
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "ClassEscapesDefinedScope"})  // Loadable API is much easier if the methods return the right types
 public abstract class FluidIngredient implements IAmLoadable {
   /** Empty fluid ingredient, matching empty stacks. This ingredient does not parse from JSON, use use defaulting methods if you wish to use it */
   public static final FluidMatch EMPTY = new FluidMatch(Fluids.EMPTY, 0);
@@ -40,8 +40,8 @@ public abstract class FluidIngredient implements IAmLoadable {
   private static EitherLoadable.TypedBuilder<FluidIngredient> loadableBuilder() {
     return EitherLoadable.<FluidIngredient>typed().key("fluid", FLUID_MATCH).key("tag", TAG_MATCH).key("name", NAME_MATCH);
   }
-  /** Loadable for network writing of fluids */
-  private static final Loadable<FluidIngredient> NETWORK = FluidStackLoadable.REQUIRED_STACK.list(0).flatXmap(fluids -> FluidIngredient.of(fluids.stream().map(FluidIngredient::of).toList()), FluidIngredient::getFluids);
+  /** Loadable for network writing of fluids, we use optional stack here for the sake of empty ingredients; thats the only way empty gets in here */
+  private static final Loadable<FluidIngredient> NETWORK = FluidStackLoadable.OPTIONAL_STACK.list(0).flatXmap(fluids -> FluidIngredient.of(fluids.stream().map(FluidIngredient::of).toList()), FluidIngredient::getAllFluids);
   /** Loadable for fluid matches */
   private static final RecordLoadable<FluidMatch> FLUID_MATCH = RecordLoadable.create(Loadables.FLUID.requiredField("fluid", i -> i.fluid), IntLoadable.FROM_ONE.requiredField("amount", i -> i.amount), FluidIngredient::of);
   /** @deprecated Old key for fluid ingredients, remove sometime in 1.20 or 1.21 */
@@ -157,7 +157,7 @@ public abstract class FluidIngredient implements IAmLoadable {
   }
 
   /**
-   * Gets a list of fluid stacks contained in this ingredient for display, may include flowing fluids
+   * Gets a list of fluid stacks contained in this ingredient for networking, may include flowing fluids
    * @return  List of fluid stacks for this ingredient
    */
   protected abstract List<FluidStack> getAllFluids();
@@ -238,6 +238,7 @@ public abstract class FluidIngredient implements IAmLoadable {
       return TAG_MATCH;
     }
 
+    @SuppressWarnings("deprecation")  // its a perfectly reasonable method to use mojang
     @Override
     public boolean test(Fluid fluid) {
       return fluid.is(tag);
@@ -248,6 +249,7 @@ public abstract class FluidIngredient implements IAmLoadable {
       return amount;
     }
 
+    @SuppressWarnings("deprecation")  // let me get tags Forge
     @Override
     public List<FluidStack> getAllFluids() {
       return RegistryHelper.getTagValueStream(BuiltInRegistries.FLUID, tag)
