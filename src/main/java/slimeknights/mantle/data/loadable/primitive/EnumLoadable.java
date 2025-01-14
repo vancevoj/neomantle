@@ -16,7 +16,7 @@ public record EnumLoadable<E extends Enum<E>>(Class<E> enumClass, E[] allowedVal
   }
 
   @Override
-  public E parseString(String name, String key) {
+  public E parseString(String name, String key, TypedMap context) {
     for (E value : allowedValues) {
       if (value.name().toLowerCase(Locale.ROOT).equals(name)) {
         return value;

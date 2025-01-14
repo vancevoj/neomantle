@@ -10,7 +10,7 @@ import slimeknights.mantle.util.typed.TypedMap;
  */
 record MaxLengthStringLoadable(int maxLength) implements StringLoadable<String> {
   @Override
-  public String parseString(String value, String key) {
+  public String parseString(String value, String key, TypedMap context) {
     if (value.length() > maxLength) {
       throw new JsonSyntaxException(key + " may not be longer than " + maxLength);
     }

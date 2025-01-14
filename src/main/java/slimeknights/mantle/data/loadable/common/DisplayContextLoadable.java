@@ -18,7 +18,7 @@ public enum DisplayContextLoadable implements ResourceLocationLoadable<ItemDispl
   INSTANCE;
 
   @Override
-  public ItemDisplayContext fromKey(ResourceLocation name, String key) {
+  public ItemDisplayContext fromKey(ResourceLocation name, String key, TypedMap context) {
     IForgeRegistry<ItemDisplayContext> registry = ForgeRegistries.DISPLAY_CONTEXTS.get();
     if (registry.containsKey(name)) {
       ItemDisplayContext value = registry.getValue(name);

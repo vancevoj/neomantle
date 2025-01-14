@@ -14,7 +14,7 @@ public enum CharacterLoadable implements StringLoadable<Character> {
   public static final CharacterLoadable DEFAULT = INSTANCE;
 
   @Override
-  public Character parseString(String value, String key) {
+  public Character parseString(String value, String key, TypedMap context) {
     if (value.length() == 1) {
       return value.charAt(0);
     }

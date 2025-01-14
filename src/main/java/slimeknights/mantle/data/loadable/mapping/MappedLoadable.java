@@ -94,8 +94,8 @@ public class MappedLoadable<F,T> implements Loadable<T> {
     }
 
     @Override
-    public T parseString(String value, String key) {
-      return from.apply(base.parseString(value, key), ErrorFactory.JSON_SYNTAX_ERROR);
+    public T parseString(String value, String key, TypedMap context) {
+      return from.apply(base.parseString(value, key, context), ErrorFactory.JSON_SYNTAX_ERROR);
     }
 
     @Override

@@ -120,7 +120,7 @@ public class LongLoadable implements Loadable<Long> {
     }
 
     @Override
-    public Long parseString(String value, String key) {
+    public Long parseString(String value, String key, TypedMap context) {
       try {
         return validate(Long.parseLong(value, radix), key);
       } catch (NumberFormatException e) {
@@ -130,7 +130,7 @@ public class LongLoadable implements Loadable<Long> {
 
     @Override
     public Long convert(JsonElement element, String key, TypedMap context) {
-      return parseString(GsonHelper.convertToString(element, key), key);
+      return parseString(GsonHelper.convertToString(element, key), key, context);
     }
 
     @Override

@@ -17,6 +17,7 @@ import java.util.function.Function;
  * Loadable that maps to a string, can be used as a key for a {@link com.google.gson.JsonObject} parsed as a {@link java.util.Map}.
  * @param <T>
  */
+@SuppressWarnings("unused")  // API
 public interface StringLoadable<T> extends Loadable<T> {
   /** Loadable for the default max string length */
   StringLoadable<String> DEFAULT = maxLength(Short.MAX_VALUE);
@@ -28,16 +29,22 @@ public interface StringLoadable<T> extends Loadable<T> {
 
   /**
    * Converts this value from a string.
-   * @param value  Value to parse
-   * @param key    Json key containing the value used for exceptions only.
+   * @param value    Value to parse
+   * @param key      Json key containing the value used for exceptions only.
+   * @param context  Additional parsing context, used notably by recipe serializers to store the ID and serializer.
    * @return  Converted value.'
    * @throws com.google.gson.JsonSyntaxException  If unable to parse the value
    */
-  T parseString(String value, String key);
+  T parseString(String value, String key, TypedMap context);
+
+  /** Same as {@link #parseString(String, String, TypedMap)} but passes {@link TypedMap#EMPTY} for context. */
+  default T parseString(String value, String key) {
+    return parseString(value, key, TypedMap.EMPTY);
+  }
 
   @Override
   default T convert(JsonElement element, String key, TypedMap context) {
-    return parseString(GsonHelper.convertToString(element, key), key);
+    return parseString(GsonHelper.convertToString(element, key), key, context);
   }
 
   /**
@@ -98,7 +105,7 @@ public interface StringLoadable<T> extends Loadable<T> {
   }
 
   @Override
-  default Loadable<T> validate(BiFunction<T,ErrorFactory,T> validator) {
+  default StringLoadable<T> validate(BiFunction<T,ErrorFactory,T> validator) {
     return xmap(validator, validator);
   }
 }

@@ -36,7 +36,7 @@ public abstract class AbstractNamedComponentRegistry<T> implements ResourceLocat
   /* Json */
 
   @Override
-  public T fromKey(ResourceLocation name, String key) {
+  public T fromKey(ResourceLocation name, String key, TypedMap context) {
     T value = getValue(name);
     if (value != null) {
       return value;

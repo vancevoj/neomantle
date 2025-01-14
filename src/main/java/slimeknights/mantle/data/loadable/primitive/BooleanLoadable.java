@@ -59,7 +59,7 @@ public enum BooleanLoadable implements StringLoadable<Boolean> {
   /* String loadable */
 
   @Override
-  public Boolean parseString(String value, String key) {
+  public Boolean parseString(String value, String key, TypedMap context) {
     // Boolean#valueOf and Boolean#parseBoolean both just treat all non-true as false, which is less desirable for well-formed JSON
     return switch (value.toLowerCase(Locale.ROOT)) {
       case "true" -> true;

@@ -14,6 +14,7 @@ import slimeknights.mantle.util.typed.TypedMap;
 import java.util.Objects;
 
 /** Loadable for a registry entry */
+@SuppressWarnings("unused")  // API
 public record RegistryLoadable<T>(Registry<T> registry, ResourceLocation registryId) implements ResourceLocationLoadable<T> {
   public RegistryLoadable(ResourceKey<? extends Registry<T>> registryId) {
     this(Objects.requireNonNull(RegistryHelper.getRegistry(registryId), "Unknown registry " + registryId.location()), registryId.location());
@@ -21,11 +22,11 @@ public record RegistryLoadable<T>(Registry<T> registry, ResourceLocation registr
 
   @SuppressWarnings("unchecked")
   public RegistryLoadable(Registry<T> registry) {
-    this(registry, ((Registry<Registry<?>>)BuiltInRegistries.REGISTRY).getKey(registry));
+    this(registry, Objects.requireNonNull(((Registry<Registry<?>>) BuiltInRegistries.REGISTRY).getKey(registry)));
   }
 
   @Override
-  public T fromKey(ResourceLocation name, String key) {
+  public T fromKey(ResourceLocation name, String key, TypedMap context) {
     if (registry.containsKey(name)) {
       T value = registry.get(name);
       if (value != null) {

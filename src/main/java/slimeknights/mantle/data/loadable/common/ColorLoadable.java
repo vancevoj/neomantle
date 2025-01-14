@@ -15,7 +15,7 @@ import java.util.function.Function;
 public enum ColorLoadable implements StringLoadable<Integer> {
   ALPHA {
     @Override
-    public Integer parseString(String color, String key) {
+    public Integer parseString(String color, String key, TypedMap context) {
       // two options, 6 character or 8 character, must not start with - sign
       if (color.charAt(0) != '-') {
         try {
@@ -41,7 +41,7 @@ public enum ColorLoadable implements StringLoadable<Integer> {
   },
   NO_ALPHA {
     @Override
-    public Integer parseString(String color, String key) {
+    public Integer parseString(String color, String key, TypedMap context) {
       // only consider 6 digits with no alpha, will force to full alpha
       if (color.charAt(0) != '-' && color.length() == 6) {
         try {

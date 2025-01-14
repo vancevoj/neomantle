@@ -212,7 +212,7 @@ public class IntLoadable implements Loadable<Integer> {
     }
 
     @Override
-    public Integer parseString(String value, String key) {
+    public Integer parseString(String value, String key, TypedMap context) {
       try {
         return validate(Integer.parseInt(value, radix), key);
       } catch (NumberFormatException e) {
@@ -222,7 +222,7 @@ public class IntLoadable implements Loadable<Integer> {
 
     @Override
     public Integer convert(JsonElement element, String key, TypedMap context) {
-      return parseString(GsonHelper.convertToString(element, key), key);
+      return parseString(GsonHelper.convertToString(element, key), key, context);
     }
 
     @Override
