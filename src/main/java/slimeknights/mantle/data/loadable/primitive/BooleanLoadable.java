@@ -5,6 +5,8 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
+import slimeknights.mantle.data.loadable.array.ArrayLoadable;
+import slimeknights.mantle.data.loadable.array.BooleanArrayLoadable;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -14,6 +16,9 @@ import java.util.function.Function;
 /** Loadable for a boolean */
 public enum BooleanLoadable implements StringLoadable<Boolean> {
   INSTANCE;
+
+  @SuppressWarnings("unused")  // Just a static helper to hide the misleading string loadable
+  public static final BooleanLoadable DEFAULT = INSTANCE;
 
   @Override
   public Boolean convert(JsonElement element, String key, TypedMap context) {
@@ -41,6 +46,15 @@ public enum BooleanLoadable implements StringLoadable<Boolean> {
     return defaultField(key, defaultValue, true, getter);
   }
 
+  /** Creates a loadable for a  boolean array */
+  public ArrayLoadable<boolean[]> array(int minSize, int maxSize) {
+    return new BooleanArrayLoadable(this, minSize, maxSize);
+  }
+
+  /** Creates a loadable for a  boolean array */
+  public ArrayLoadable<boolean[]> array(int minSize) {
+    return array(minSize, Integer.MAX_VALUE);
+  }
 
   /* String loadable */
 

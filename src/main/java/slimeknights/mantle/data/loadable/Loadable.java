@@ -10,6 +10,8 @@ import com.google.gson.JsonSyntaxException;
 import org.jetbrains.annotations.ApiStatus.NonExtendable;
 import org.jetbrains.annotations.ApiStatus.OverrideOnly;
 import org.jetbrains.annotations.Contract;
+import slimeknights.mantle.data.loadable.array.ArrayLoadable;
+import slimeknights.mantle.data.loadable.array.ObjectArrayLoadable;
 import slimeknights.mantle.data.loadable.field.DefaultingField;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.field.NullableField;
@@ -28,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 
 /** Interface for a generic loadable object */
 @SuppressWarnings("unused")  // API
@@ -91,7 +94,7 @@ public interface Loadable<T> extends JsonDeserializer<T>, JsonSerializer<T>, Str
     if (parent.has(key)) {
       return convert(parent.get(key), key, context);
     }
-    throw new JsonSyntaxException("Missing JSON field " + key + "");
+    throw new JsonSyntaxException("Missing JSON field '" + key + "'");
   }
 
   /** Same as {@link #getIfPresent(JsonObject, String, TypedMap)} but passes {@link TypedMap#EMPTY} for the context */
@@ -160,6 +163,16 @@ public interface Loadable<T> extends JsonDeserializer<T>, JsonSerializer<T>, Str
 
 
   /* Collections */
+
+  /** Makes an array of this loadable */
+  default ArrayLoadable<T[]> array(IntFunction<T[]> constructor, boolean allowNull, int minSize, int maxSize) {
+    return new ObjectArrayLoadable<>(this, constructor, minSize, maxSize, allowNull);
+  }
+
+  /** Makes an array of this loadable */
+  default ArrayLoadable<T[]> array(IntFunction<T[]> constructor, boolean allowNull, int minSize) {
+    return array(constructor, allowNull, minSize, Integer.MAX_VALUE);
+  }
 
   /** Makes a list of this loadable */
   default Loadable<List<T>> list(int minSize) {

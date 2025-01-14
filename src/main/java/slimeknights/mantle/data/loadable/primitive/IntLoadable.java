@@ -7,18 +7,25 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.array.ArrayLoadable;
+import slimeknights.mantle.data.loadable.array.ByteArrayLoadable;
+import slimeknights.mantle.data.loadable.array.IntArrayLoadable;
+import slimeknights.mantle.data.loadable.array.ShortArrayLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
 /**
  * Loadable for an integer.
  * @see slimeknights.mantle.data.loadable.common.ColorLoadable
  */
+@SuppressWarnings("unused")  // API
 @RequiredArgsConstructor
 public class IntLoadable implements Loadable<Integer> {
   /** Loadable ranging from integer min to integer max */
   public static final IntLoadable ANY_FULL = range(Integer.MIN_VALUE, Integer.MAX_VALUE);
   /** Loadable ranging from short min to short max */
   public static final IntLoadable ANY_SHORT = range(Short.MIN_VALUE, Short.MAX_VALUE);
+  /** Loadable ranging from short min to short max */
+  public static final IntLoadable ANY_BYTE = range(Byte.MIN_VALUE, Byte.MAX_VALUE);
   /** Loadable ranging from -1 to integer max */
   public static final IntLoadable FROM_MINUS_ONE = range(-1, Short.MAX_VALUE);
   /** Loadable ranging from zero to integer max */
@@ -38,7 +45,7 @@ public class IntLoadable implements Loadable<Integer> {
     return new IntLoadable(min, max, IntNetwork.recommended(min, max));
   }
 
-  /** Creates a loadable ranging from the parameter to short max */
+  /** Creates a loadable ranging from the parameter to int max */
   public static IntLoadable min(int min) {
     return range(min, Integer.MAX_VALUE);
   }
@@ -114,6 +121,17 @@ public class IntLoadable implements Loadable<Integer> {
       void toNetwork(int value, FriendlyByteBuf buffer) {
         buffer.writeShort(value);
       }
+    },
+    BYTE {
+      @Override
+      int fromNetwork(FriendlyByteBuf buffer) {
+        return buffer.readByte();
+      }
+
+      @Override
+      void toNetwork(int value, FriendlyByteBuf buffer) {
+        buffer.writeByte(value);
+      }
     };
 
     /** Reads the int from the network */
@@ -127,11 +145,47 @@ public class IntLoadable implements Loadable<Integer> {
       if (min >= 0) {
         return IntNetwork.VAR_INT;
       }
+      if (min >= Byte.MIN_VALUE && max <= Byte.MAX_VALUE) {
+        return IntNetwork.BYTE;
+      }
       if (min >= Short.MIN_VALUE && max <= Short.MAX_VALUE) {
         return IntNetwork.SHORT;
       }
       return IntNetwork.INT;
     }
+  }
+
+
+  /* Arrays */
+
+  /** Creates a loadable for a integer array */
+  public ArrayLoadable<int[]> array(int minSize, int maxSize) {
+    return new IntArrayLoadable(this, minSize, maxSize);
+  }
+
+  /** Creates a loadable for a short array */
+  public ArrayLoadable<short[]> shortArray(int minSize, int maxSize) {
+    return new ShortArrayLoadable<>(this, minSize, maxSize, Integer::valueOf);
+  }
+
+  /** Creates a loadable for a byte array */
+  public ArrayLoadable<byte[]> byteArray(int minSize, int maxSize) {
+    return new ByteArrayLoadable<>(this, minSize, maxSize, Integer::valueOf);
+  }
+
+  /** Creates a loadable for a integer array */
+  public ArrayLoadable<int[]> array(int minSize) {
+    return array(minSize, Integer.MAX_VALUE);
+  }
+
+  /** Creates a loadable for a short array */
+  public ArrayLoadable<short[]> shortArray(int minSize) {
+    return shortArray(minSize, Integer.MAX_VALUE);
+  }
+
+  /** Creates a loadable for a byte array */
+  public ArrayLoadable<byte[]> byteArray(int minSize) {
+    return byteArray(minSize, Integer.MAX_VALUE);
   }
 
 

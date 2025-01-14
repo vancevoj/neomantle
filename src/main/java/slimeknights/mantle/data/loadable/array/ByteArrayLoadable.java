@@ -1,0 +1,60 @@
+package slimeknights.mantle.data.loadable.array;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import it.unimi.dsi.fastutil.bytes.Byte2ObjectFunction;
+import net.minecraft.network.FriendlyByteBuf;
+import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
+
+/** Loadable for a byte array */
+public record ByteArrayLoadable<T extends Number>(Loadable<T> base, int minSize, int maxSize, Byte2ObjectFunction<T> mapper) implements ArrayLoadable.SizeRange<byte[]> {
+  @Override
+  public int getLength(byte[] array) {
+    return array.length;
+  }
+
+  @Override
+  public byte[] convertCompact(JsonElement element, String key, TypedMap context) {
+    return new byte[] { base.convert(element, key, context).byteValue() };
+  }
+
+  @Override
+  public byte[] convertArray(JsonArray array, String key, TypedMap context) {
+    byte[] result = new byte[array.size()];
+    for (int i = 0; i < result.length; i++) {
+      result[i] = base.convert(array.get(i), key + '[' + i + ']', context).byteValue();
+    }
+    return result;
+  }
+
+  @Override
+  public JsonElement serializeFirst(byte[] object) {
+    return base.serialize(mapper.get(object[0]));
+  }
+
+  @Override
+  public void serializeAll(JsonArray array, byte[] object) {
+    for (byte element : object) {
+      array.add(base.serialize(mapper.get(element)));
+    }
+  }
+
+  @Override
+  public byte[] decode(FriendlyByteBuf buffer, TypedMap context) {
+    int max = buffer.readVarInt();
+    byte[] array = new byte[max];
+    for (int i = 0; i < max; i++) {
+      array[i] = base.decode(buffer, context).byteValue();
+    }
+    return array;
+  }
+
+  @Override
+  public void encode(FriendlyByteBuf buffer, byte[] array) {
+    buffer.writeVarInt(array.length);
+    for (byte element : array) {
+      base.encode(buffer, mapper.get(element));
+    }
+  }
+}

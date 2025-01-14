@@ -6,6 +6,8 @@ import com.google.gson.JsonSyntaxException;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.array.ArrayLoadable;
+import slimeknights.mantle.data.loadable.array.FloatArrayLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
 /**
@@ -31,7 +33,7 @@ public record FloatLoadable(float min, float max) implements Loadable<Float> {
     return new FloatLoadable(min, Float.POSITIVE_INFINITY);
   }
 
-  protected float validate(float value, String key) {
+  private float validate(float value, String key) {
     if (min <= value && value <= max) {
       return value;
     }
@@ -62,5 +64,15 @@ public record FloatLoadable(float min, float max) implements Loadable<Float> {
   @Override
   public void encode(FriendlyByteBuf buffer, Float object) {
     buffer.writeFloat(object);
+  }
+
+  /** Creates a loadable for a float array */
+  public ArrayLoadable<float[]> array(int minSize, int maxSize) {
+    return new FloatArrayLoadable(this, minSize, maxSize);
+  }
+
+  /** Creates a loadable for a float array */
+  public ArrayLoadable<float[]> array(int minSize) {
+    return array(minSize, Integer.MAX_VALUE);
   }
 }

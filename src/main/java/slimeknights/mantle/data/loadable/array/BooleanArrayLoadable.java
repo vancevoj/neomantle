@@ -1,0 +1,59 @@
+package slimeknights.mantle.data.loadable.array;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import net.minecraft.network.FriendlyByteBuf;
+import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.util.typed.TypedMap;
+
+/** Loadable for an integer array */
+public record BooleanArrayLoadable(Loadable<Boolean> base, int minSize, int maxSize) implements ArrayLoadable.SizeRange<boolean[]> {
+  @Override
+  public int getLength(boolean[] array) {
+    return array.length;
+  }
+
+  @Override
+  public boolean[] convertCompact(JsonElement element, String key, TypedMap context) {
+    return new boolean[] { base.convert(element, key, context) };
+  }
+
+  @Override
+  public boolean[] convertArray(JsonArray array, String key, TypedMap context) {
+    boolean[] result = new boolean[array.size()];
+    for (int i = 0; i < result.length; i++) {
+      result[i] = base.convert(array.get(i), key + '[' + i + ']', context);
+    }
+    return result;
+  }
+
+  @Override
+  public JsonElement serializeFirst(boolean[] object) {
+    return base.serialize(object[0]);
+  }
+
+  @Override
+  public void serializeAll(JsonArray array, boolean[] object) {
+    for (boolean element : object) {
+      array.add(base.serialize(element));
+    }
+  }
+
+  @Override
+  public boolean[] decode(FriendlyByteBuf buffer, TypedMap context) {
+    int max = buffer.readVarInt();
+    boolean[] array = new boolean[max];
+    for (int i = 0; i < max; i++) {
+      array[i] = base.decode(buffer, context);
+    }
+    return array;
+  }
+
+  @Override
+  public void encode(FriendlyByteBuf buffer, boolean[] array) {
+    buffer.writeVarInt(array.length);
+    for (boolean element : array) {
+      base.encode(buffer, element);
+    }
+  }
+}
