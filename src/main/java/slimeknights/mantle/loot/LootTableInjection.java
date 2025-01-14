@@ -1,6 +1,6 @@
 package slimeknights.mantle.loot;
 
-import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -10,8 +10,10 @@ import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,22 +55,24 @@ public record LootTableInjection(ResourceLocation name, List<LootPoolInjection> 
 
   /** Builder instance for a loot table injection */
   public static class Builder {
-    private final Map<String,ImmutableList.Builder<LootPoolEntryContainer>> pools = new HashMap<>();
+    private final Map<String,List<LootPoolEntryContainer>> pools = new LinkedHashMap<>();
 
     /** Inserts the given entries into the pool */
+    @CanIgnoreReturnValue
     public Builder addToPool(String name, LootPoolEntryContainer... entries) {
-      pools.computeIfAbsent(name, n -> ImmutableList.builder()).add(entries);
+      Collections.addAll(pools.computeIfAbsent(name, n -> new ArrayList<>()), entries);
       return this;
     }
 
     /** Inserts the given entries into the pool */
+    @CanIgnoreReturnValue
     public Builder addToPool(LootPoolInjection injection) {
       return addToPool(injection.name, injection.entries);
     }
 
     /** Builds the list of injections */
     public LootTableInjection build(ResourceLocation name) {
-      return new LootTableInjection(name, pools.entrySet().stream().map(entry -> new LootPoolInjection(entry.getKey(), entry.getValue().build())).toList());
+      return new LootTableInjection(name, pools.entrySet().stream().map(entry -> new LootPoolInjection(entry.getKey(), List.copyOf(entry.getValue()))).toList());
     }
   }
 }

@@ -1,6 +1,5 @@
 package slimeknights.mantle.loot.condition;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
@@ -45,7 +44,7 @@ public class BlockTagLootCondition implements LootItemCondition {
 
   @Override
   public Set<LootContextParam<?>> getReferencedContextParams() {
-    return ImmutableSet.of(LootContextParams.BLOCK_STATE);
+    return Set.of(LootContextParams.BLOCK_STATE);
   }
 
   @Override

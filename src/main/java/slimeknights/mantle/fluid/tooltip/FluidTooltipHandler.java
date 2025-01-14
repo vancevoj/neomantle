@@ -1,6 +1,5 @@
 package slimeknights.mantle.fluid.tooltip;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -107,7 +106,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   @Override
   protected void apply(Map<ResourceLocation,JsonElement> splashList, ResourceManager manager, ProfilerFiller profiler) {
     long time = System.nanoTime();
-    ImmutableMap.Builder<ResourceLocation,FluidUnitList> builder = ImmutableMap.builder();
+    Map<ResourceLocation,FluidUnitList> builder = new HashMap<>();
     Map<ResourceLocation,ResourceLocation> redirects = new HashMap<>();
     for (Entry<ResourceLocation,JsonElement> entry : splashList.entrySet()) {
       ResourceLocation key = entry.getKey();
@@ -129,9 +128,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
       }
     }
     // process redirects
-    Map<ResourceLocation,FluidUnitList> mapBeforeRedirects = builder.build();
-    builder = ImmutableMap.builder();
-    builder.putAll(mapBeforeRedirects);
+    Map<ResourceLocation,FluidUnitList> mapBeforeRedirects = Map.copyOf(builder);
     for (Entry<ResourceLocation,ResourceLocation> entry : redirects.entrySet()) {
       ResourceLocation from = entry.getKey();
       ResourceLocation to = entry.getValue();
@@ -143,7 +140,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
       }
     }
     // find the fallback
-    unitLists = builder.build();
+    unitLists = Map.copyOf(builder);
     fallback = this.unitLists.getOrDefault(DEFAULT_ID, DEFAULT_LIST);
     listCache.clear();
     log.info("Loaded {} fluid unit lists in {} ms", unitLists.size(), (System.nanoTime() - time) / 1000000f);
@@ -188,6 +185,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
    * @param amount Amount override
    * @return  Fluid tooltip
    */
+  @SuppressWarnings("deprecation")
   public static List<Component> getFluidTooltip(FluidStack fluid, int amount) {
     List<Component> tooltip = new ArrayList<>();
     // fluid name, not sure if there is a cleaner way to do this

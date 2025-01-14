@@ -1,6 +1,5 @@
 package slimeknights.mantle.loot.function;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import net.minecraft.world.item.ItemStack;
@@ -40,7 +39,7 @@ public class RetexturedLootFunction extends LootItemConditionalFunction {
 
   @Override
   public Set<LootContextParam<?>> getReferencedContextParams() {
-    return ImmutableSet.of(LootContextParams.BLOCK_ENTITY);
+    return Set.of(LootContextParams.BLOCK_ENTITY);
   }
 
   @Override

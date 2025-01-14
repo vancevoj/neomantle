@@ -1,6 +1,5 @@
 package slimeknights.mantle.data.loadable.mapping;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import lombok.RequiredArgsConstructor;
@@ -10,22 +9,21 @@ import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 /** Shared base class for a loadable of a collection of elements */
 @SuppressWarnings("unused") // API
 @RequiredArgsConstructor
-public abstract class CollectionLoadable<T,C extends Collection<T>,B extends ImmutableCollection.Builder<T>> implements ArrayLoadable<C> {
+public abstract class CollectionLoadable<T,C extends Collection<T>> implements ArrayLoadable<C> {
   /** Loadable for an object */
   private final Loadable<T> base;
   /** Minimum list size allowed */
   private final int minSize;
 
-  /** Creates a builder for the collection */
-  protected abstract B makeBuilder();
-
-  /** Builds the final collection */
-  protected abstract C build(B builder);
+  /** Builds the final collection, given the passed mutable collection */
+  protected abstract C build(Collection<T> builder);
 
   @Override
   public void checkSize(String key, int size, ErrorFactory error) {
@@ -50,14 +48,12 @@ public abstract class CollectionLoadable<T,C extends Collection<T>,B extends Imm
 
   @Override
   public C convertCompact(JsonElement element, String key, TypedMap context) {
-    B builder = makeBuilder();
-    builder.add(base.convert(element, key, context));
-    return build(builder);
+    return build(List.of(base.convert(element, key, context)));
   }
 
   @Override
   public C convertArray(JsonArray array, String key, TypedMap context) {
-    B builder = makeBuilder();
+    List<T> builder = new ArrayList<>(array.size());
     for (int i = 0; i < array.size(); i++) {
       builder.add(base.convert(array.get(i), key + '[' + i + ']', context));
     }
@@ -78,8 +74,8 @@ public abstract class CollectionLoadable<T,C extends Collection<T>,B extends Imm
 
   @Override
   public C decode(FriendlyByteBuf buffer, TypedMap context) {
-    B builder = makeBuilder();
     int max = buffer.readVarInt();
+    List<T> builder = new ArrayList<>(max);
     for (int i = 0; i < max; i++) {
       builder.add(base.decode(buffer, context));
     }

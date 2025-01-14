@@ -1,6 +1,5 @@
 package slimeknights.mantle.data.listener;
 
-import com.google.common.collect.ImmutableSet;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -26,7 +25,7 @@ public class ResourceValidator implements IEarlySafeManagerReloadListener, Predi
     this.folder = folder;
     this.trim = trim.length() + 1;
     this.extension = extension;
-    this.resources = ImmutableSet.of();
+    this.resources = Set.of();
   }
 
   @Override
@@ -38,7 +37,7 @@ public class ResourceValidator implements IEarlySafeManagerReloadListener, Predi
     }).keySet().stream().map((location) -> {
       String path = location.getPath();
       return new ResourceLocation(location.getNamespace(), path.substring(trim, path.length() - extensionLength));
-    }).collect(Collectors.toSet());
+    }).collect(Collectors.toUnmodifiableSet());
   }
 
   @Override
@@ -50,6 +49,6 @@ public class ResourceValidator implements IEarlySafeManagerReloadListener, Predi
    * Clears the resource cache, saves RAM as there could be a lot of locations
    */
   public void clear() {
-    resources = ImmutableSet.of();
+    resources = Set.of();
   }
 }

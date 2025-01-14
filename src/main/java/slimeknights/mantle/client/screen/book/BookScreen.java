@@ -1,6 +1,5 @@
 package slimeknights.mantle.client.screen.book;
 
-import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.advancements.Advancement;
@@ -463,7 +462,7 @@ public class BookScreen extends Screen {
 
     // Not foreach to prevent conmodification crashes
     int oldPage = this.page;
-    List<BookElement> elementList = ImmutableList.copyOf(right ? this.rightElements : this.leftElements);
+    List<BookElement> elementList = List.copyOf(right ? this.rightElements : this.leftElements);
     for (BookElement element : elementList) {
       element.mouseClicked(mouseX, mouseY, mouseButton);
       // if we changed page stop so we don't act on the new page

@@ -2,7 +2,6 @@
 // See: https://github.com/BluSunrize/ImmersiveEngineering/blob/1.18/src/main/java/blusunrize/immersiveengineering/common/util/fakeworld/TemplateWorld.java
 package slimeknights.mantle.client.book.structure.level;
 
-import com.google.common.collect.ImmutableList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -154,7 +153,7 @@ public class TemplateLevel extends Level {
   @Nonnull
   @Override
   public List<? extends Player> players() {
-    return ImmutableList.of();
+    return List.of();
   }
 
   @Nonnull

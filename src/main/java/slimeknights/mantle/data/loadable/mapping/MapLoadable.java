@@ -1,6 +1,5 @@
 package slimeknights.mantle.data.loadable.mapping;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
@@ -10,6 +9,7 @@ import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -41,7 +41,7 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
     if (json.size() < minSize) {
       throw new JsonSyntaxException(key + " must have at least " + minSize + " elements");
     }
-    ImmutableMap.Builder<K,V> builder = ImmutableMap.builder();
+    Map<K,V> builder = new HashMap<>(json.size());
     String mapKey = key + "'s key";
     for (Entry<String, JsonElement> entry : json.entrySet()) {
       String entryKey = entry.getKey();
@@ -49,7 +49,7 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
         keyLoadable.parseString(entryKey, mapKey),
         valueLoadable.convert(entry.getValue(), entryKey, context));
     }
-    return builder.build();
+    return Map.copyOf(builder);
   }
 
   @Override
@@ -69,13 +69,13 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
   @Override
   public Map<K,V> decode(FriendlyByteBuf buffer, TypedMap context) {
     int size = buffer.readVarInt();
-    ImmutableMap.Builder<K,V> builder = ImmutableMap.builder();
+    Map<K,V> builder = new HashMap<>(size);
     for (int i = 0; i < size; i++) {
       builder.put(
         keyLoadable.decode(buffer, context),
         valueLoadable.decode(buffer, context));
     }
-    return builder.build();
+    return Map.copyOf(builder);
   }
 
   @Override

@@ -1,6 +1,5 @@
 package slimeknights.mantle.client.model.util;
 
-import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -40,6 +39,7 @@ import slimeknights.mantle.util.LogicHelper;
 import slimeknights.mantle.util.ReversedListBuilder;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -73,11 +73,11 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
 
   @Override
   public void resolveParents(Function<ResourceLocation,UnbakedModel> modelGetter, IGeometryBakingContext owner) {
-    ImmutableList.Builder<Material> builder = ImmutableList.builder();
+    List<Material> builder = new ArrayList<>();
     for (int i = 0; owner.hasMaterial("layer" + i); i++) {
       builder.add(owner.getMaterial("layer" + i));
     }
-    textures = builder.build();
+    textures = List.copyOf(builder);
   }
 
   /** Gets the default render type for an item layer */
@@ -141,7 +141,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
    * @param luminosity  Extra light to add to the quad from 0-15, makes it appear to glow a bit
    * @return  List of baked quads
    */
-  public static ImmutableList<BakedQuad> getQuadsForSprite(int color, int tint, TextureAtlasSprite sprite, Transformation transform, int luminosity) {
+  public static List<BakedQuad> getQuadsForSprite(int color, int tint, TextureAtlasSprite sprite, Transformation transform, int luminosity) {
     return getQuadsForSprite(color, tint, sprite, transform, luminosity, null);
   }
 
@@ -156,8 +156,8 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
    * @return  List of baked quads
    * @see #getQuadForGui(int, int, TextureAtlasSprite, Transformation, int)
    */
-  public static ImmutableList<BakedQuad> getQuadsForSprite(int color, int tint, TextureAtlasSprite sprite, Transformation transform, int emissivity, @Nullable ItemLayerPixels pixels) {
-    ImmutableList.Builder<BakedQuad> builder = ImmutableList.builder();
+  public static List<BakedQuad> getQuadsForSprite(int color, int tint, TextureAtlasSprite sprite, Transformation transform, int emissivity, @Nullable ItemLayerPixels pixels) {
+    List<BakedQuad> builder = new ArrayList<>();
 
     SpriteContents contents = sprite.contents();
     int uMax = contents.width();
@@ -327,7 +327,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
       }
     }
 
-    return builder.build();
+    return List.copyOf(builder);
   }
 
   /**

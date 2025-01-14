@@ -1,6 +1,5 @@
 package slimeknights.mantle.data.loadable.mapping;
 
-import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
@@ -13,6 +12,7 @@ import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,7 +40,7 @@ public class EitherLoadable {
     /** Primitive loadable, if set, allows parsing from primitives */
     private Loadable<? extends T> primitive = null;
     /** Object options to choose from by present key */
-    protected final ImmutableList.Builder<KeyOption<T>> keys = ImmutableList.builder();
+    private final List<KeyOption<T>> keys = new ArrayList<>();
 
     private TypedBuilder() {}
 
@@ -70,7 +70,7 @@ public class EitherLoadable {
 
     /** Gets the keys for the builder */
     private List<KeyOption<T>> getKeys() {
-      List<KeyOption<T>> keys = this.keys.build();
+      List<KeyOption<T>> keys = List.copyOf(this.keys);
       int size = keys.size() + (array != null ? 1 : 0) + (primitive != null ? 1 : 0);
       if (size < 2) {
         throw new IllegalStateException("EitherLoadable must have at least 2 options.");
@@ -87,7 +87,7 @@ public class EitherLoadable {
     @SuppressWarnings("unchecked")
     public Loadable<T> build() {
       List<KeyOption<T>> keys = getKeys();
-      ImmutableList.Builder<Loadable<T>> builder = ImmutableList.builder();
+      List<Loadable<T>> builder = new ArrayList<>(keys.size() + 2);
       keys.forEach(key -> builder.add((Loadable<T>)key.loadable));
       if (array != null) {
         builder.add((Loadable<T>)array);
@@ -95,14 +95,14 @@ public class EitherLoadable {
       if (primitive != null) {
         builder.add((Loadable<T>)primitive);
       }
-      return new Typing<>(builder.build(), getKeys(), array, primitive);
+      return new Typing<>(List.copyOf(builder), keys, array, primitive);
     }
   }
 
   /** Builder class */
   public static class RecordBuilder<T extends IAmLoadable.Record> {
     /** Object options to choose from by present key */
-    protected final ImmutableList.Builder<KeyOption<T>> keys = ImmutableList.builder();
+    private final List<KeyOption<T>> keys = new ArrayList<>();
 
     private RecordBuilder() {}
 
@@ -114,7 +114,7 @@ public class EitherLoadable {
 
     /** Gets the keys for the builder */
     private List<KeyOption<T>> getKeys() {
-      List<KeyOption<T>> keys = this.keys.build();
+      List<KeyOption<T>> keys = List.copyOf(this.keys);
       if (keys.size() < 2) {
         throw new IllegalStateException("EitherLoadable must have at least 2 options.");
       }

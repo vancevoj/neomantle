@@ -1,7 +1,6 @@
 package slimeknights.mantle.client.model;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
@@ -109,14 +108,14 @@ public class NBTKeyModel implements IUnbakedGeometry<NBTKeyModel> {
     // setup transforms
     Transformation transform = MantleItemLayerModel.applyTransform(modelTransform, owner.getRootTransform()).getRotation();
     // build variants map
-    ImmutableMap.Builder<String, BakedModel> variants = ImmutableMap.builder();
+    Map<String, BakedModel> variants = new HashMap<>(textures.size());
     for (Entry<String,Material> entry : textures.entrySet()) {
       String key = entry.getKey();
       if (!key.equals("default")) {
         variants.put(key, bakeModel(owner, entry.getValue(), spriteGetter, transform, ItemOverrides.EMPTY));
       }
     }
-    return bakeModel(owner, textures.get("default"), spriteGetter, transform, new Overrides(nbtKey, textures, variants.build()));
+    return bakeModel(owner, textures.get("default"), spriteGetter, transform, new Overrides(nbtKey, textures, Map.copyOf(variants)));
   }
 
   /** Overrides list for a tool slot item model */

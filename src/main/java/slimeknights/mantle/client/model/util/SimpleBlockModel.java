@@ -1,8 +1,7 @@
 package slimeknights.mantle.client.model.util;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -39,7 +38,8 @@ import slimeknights.mantle.Mantle;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -296,15 +296,15 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
     // textures, empty map if missing
     Map<String, Either<Material, String>> textureMap;
     if (json.has("textures")) {
-      ImmutableMap.Builder<String, Either<Material, String>> builder = new ImmutableMap.Builder<>();
       ResourceLocation atlas = InventoryMenu.BLOCK_ATLAS;
       JsonObject textures = GsonHelper.getAsJsonObject(json, "textures");
+      Map<String, Either<Material, String>> builder = new HashMap<>(textures.size());
       for(Entry<String, JsonElement> entry : textures.entrySet()) {
         builder.put(entry.getKey(), BlockModel.Deserializer.parseTextureLocationOrReference(atlas, entry.getValue().getAsString()));
       }
-      textureMap = builder.build();
+      textureMap = Map.copyOf(builder);
     } else {
-      textureMap = Collections.emptyMap();
+      textureMap = Map.of();
     }
 
     // elements, empty list if missing
@@ -312,7 +312,7 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
     if (json.has("elements")) {
       parts = getModelElements(context, GsonHelper.getAsJsonArray(json, "elements"), "elements");
     } else {
-      parts = Collections.emptyList();
+      parts = List.of();
     }
     return new SimpleBlockModel(parent, textureMap, parts);
   }
@@ -320,21 +320,22 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
   /**
    * Gets a list of models from a JSON array
    * @param context  Json Context
-   * @param array    Json array
+   * @param element  Json array
    * @return  Model list
    */
-  public static List<BlockElement> getModelElements(JsonDeserializationContext context, JsonElement array, String name) {
+  public static List<BlockElement> getModelElements(JsonDeserializationContext context, JsonElement element, String name) {
     // if just one element, array is optional
-    if (array.isJsonObject()) {
-      return ImmutableList.of(context.deserialize(array.getAsJsonObject(), BlockElement.class));
+    if (element.isJsonObject()) {
+      return List.of(context.deserialize(element.getAsJsonObject(), BlockElement.class));
     }
     // if an array, get array of elements
-    if (array.isJsonArray()) {
-      ImmutableList.Builder<BlockElement> builder = ImmutableList.builder();
-      for(JsonElement json : array.getAsJsonArray()) {
-        builder.add((BlockElement)context.deserialize(json, BlockElement.class));
+    if (element.isJsonArray()) {
+      JsonArray array = element.getAsJsonArray();
+      List<BlockElement> builder = new ArrayList<>(array.size());
+      for(JsonElement json : array) {
+        builder.add(context.deserialize(json, BlockElement.class));
       }
-      return builder.build();
+      return List.copyOf(builder);
     }
 
     throw new JsonSyntaxException("Missing " + name + ", expected to find a JsonArray or JsonObject");

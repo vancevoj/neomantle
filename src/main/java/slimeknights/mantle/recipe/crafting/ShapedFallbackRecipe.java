@@ -1,6 +1,5 @@
 package slimeknights.mantle.recipe.crafting;
 
-import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.FriendlyByteBuf;
@@ -19,6 +18,7 @@ import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.recipe.MantleRecipeSerializers;
 import slimeknights.mantle.util.JsonHelper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -97,13 +97,12 @@ public class ShapedFallbackRecipe extends ShapedRecipe {
     @Override
     public ShapedFallbackRecipe fromNetwork(ResourceLocation id, FriendlyByteBuf buffer) {
       ShapedRecipe base = super.fromNetwork(id, buffer);
-      assert base != null;
       int size = buffer.readVarInt();
-      ImmutableList.Builder<ResourceLocation> builder = ImmutableList.builder();
+      List<ResourceLocation> builder = new ArrayList<>(size);
       for (int i = 0; i < size; i++) {
         builder.add(buffer.readResourceLocation());
       }
-      return new ShapedFallbackRecipe(base, builder.build());
+      return new ShapedFallbackRecipe(base, List.copyOf(builder));
     }
 
     @Override

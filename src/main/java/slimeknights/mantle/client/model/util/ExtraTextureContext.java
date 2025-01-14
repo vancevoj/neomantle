@@ -1,6 +1,5 @@
 package slimeknights.mantle.client.model.util;
 
-import com.google.common.collect.ImmutableMap;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
@@ -32,7 +31,7 @@ public class ExtraTextureContext extends GeometryContextWrapper {
    */
   public ExtraTextureContext(IGeometryBakingContext base, String name, ResourceLocation texture) {
     super(base);
-    this.textures = ImmutableMap.of(name, new Material(InventoryMenu.BLOCK_ATLAS, texture));
+    this.textures = Map.of(name, new Material(InventoryMenu.BLOCK_ATLAS, texture));
   }
 
   @Override

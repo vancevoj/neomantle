@@ -23,10 +23,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Ingredient accepting an entity or an entity tag as an input
  */
+@SuppressWarnings("unused")
 public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmLoadable {
   /** Empty entity ingredient, matching nothing. This ingredient does not parse from JSON, use defaulting methods if you wish to use it */
   public static final EntityIngredient EMPTY = new Compound(Collections.emptyList());
@@ -97,8 +99,8 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
   /* Common methods */
 
   /**
-   * Gets a list of entity types matched by this ingredient
-   * @return  List of types
+   * Gets a set of entity types matched by this ingredient
+   * @return  Set of types
    */
   public abstract Set<EntityType<?>> getTypes();
 
@@ -185,10 +187,11 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
       return type.is(tag);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Set<EntityType<?>> getTypes() {
       if (types == null) {
-        types = RegistryHelper.getTagValueStream(BuiltInRegistries.ENTITY_TYPE, tag).collect(ImmutableSet.toImmutableSet());
+        types = RegistryHelper.getTagValueStream(BuiltInRegistries.ENTITY_TYPE, tag).collect(Collectors.toUnmodifiableSet());
       }
       return types;
     }
@@ -220,7 +223,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
       if (allTypes == null) {
         allTypes = ingredients.stream()
                               .flatMap(ingredient -> ingredient.getTypes().stream())
-                              .collect(ImmutableSet.toImmutableSet());
+                              .collect(Collectors.toUnmodifiableSet());
       }
       return allTypes;
     }

@@ -1,6 +1,5 @@
 package slimeknights.mantle.util;
 
-import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -28,6 +27,7 @@ import slimeknights.mantle.network.packet.ISimplePacket;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -104,15 +104,15 @@ public class JsonHelper {
    * @return  List of output objects
    */
   public static <T> List<T> parseList(JsonArray array, String name, BiFunction<JsonElement,String,T> mapper) {
-    if (array.size() == 0) {
+    if (array.isEmpty()) {
       throw new JsonSyntaxException(name + " must have at least 1 element");
     }
     // build the list
-    ImmutableList.Builder<T> builder = ImmutableList.builder();
+    List<T> builder = new ArrayList<>(array.size());
     for (int i = 0; i < array.size(); i++) {
       builder.add(mapper.apply(array.get(i), name + "[" + i + "]"));
     }
-    return builder.build();
+    return List.copyOf(builder);
   }
 
   /**

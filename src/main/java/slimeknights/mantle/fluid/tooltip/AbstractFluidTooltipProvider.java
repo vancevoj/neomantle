@@ -1,12 +1,10 @@
 package slimeknights.mantle.fluid.tooltip;
 
-import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.Util;
 import net.minecraft.data.CachedOutput;
-import net.minecraft.data.DataGenerator;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.PackOutput.Target;
 import net.minecraft.resources.ResourceLocation;
@@ -15,7 +13,9 @@ import net.minecraft.world.level.material.Fluid;
 import slimeknights.mantle.data.GenericDataProvider;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 /** Provider for fluid tooltip information */
 @SuppressWarnings({"unused", "SameParameterValue"})  // API
 public abstract class AbstractFluidTooltipProvider extends GenericDataProvider {
-  private final Map<ResourceLocation,ResourceLocation> redirects = new HashMap<>();;
+  private final Map<ResourceLocation,ResourceLocation> redirects = new HashMap<>();
   private final Map<ResourceLocation,FluidUnitListBuilder> builders = new HashMap<>();
   private final String modId;
 
@@ -105,7 +105,7 @@ public abstract class AbstractFluidTooltipProvider extends GenericDataProvider {
   protected class FluidUnitListBuilder {
     @Nullable
     private final TagKey<Fluid> tag;
-    private final ImmutableList.Builder<FluidUnit> units = ImmutableList.builder();
+    private final List<FluidUnit> units = new ArrayList<>();
 
     /** Adds a unit with a full translation key */
     public FluidUnitListBuilder addUnitRaw(String key, int amount) {
@@ -125,7 +125,7 @@ public abstract class AbstractFluidTooltipProvider extends GenericDataProvider {
 
     /** Builds the final instance */
     private FluidUnitList build() {
-      return new FluidUnitList(tag, units.build());
+      return new FluidUnitList(tag, List.copyOf(units));
     }
   }
 }

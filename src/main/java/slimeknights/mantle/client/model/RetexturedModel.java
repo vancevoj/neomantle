@@ -1,6 +1,5 @@
 package slimeknights.mantle.client.model;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
@@ -45,6 +44,7 @@ import slimeknights.mantle.util.RetexturedHelper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -93,7 +93,7 @@ public class RetexturedModel implements IUnbakedGeometry<RetexturedModel> {
         })
       );
     }
-    return ImmutableSet.copyOf(retextured);
+    return Set.copyOf(retextured);
   }
 
   /** Deserializes a retextured model from JSON */
@@ -109,7 +109,7 @@ public class RetexturedModel implements IUnbakedGeometry<RetexturedModel> {
   /**
    * Gets the list of retextured textures from the model
    * @param json  Model json
-   * @return  List of textures
+   * @return  Set of textures
    */
   public static Set<String> getRetexturedNames(JsonObject json) {
     if (json.has("retextured")) {
@@ -117,18 +117,18 @@ public class RetexturedModel implements IUnbakedGeometry<RetexturedModel> {
       JsonElement retextured = json.get("retextured");
       if (retextured.isJsonArray()) {
         JsonArray array = retextured.getAsJsonArray();
-        if (array.size() == 0) {
+        if (array.isEmpty()) {
           throw new JsonSyntaxException("Must have at least one texture in retextured");
         }
-        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        List<String> builder = new ArrayList<>(array.size());
         for (int i = 0; i < array.size(); i++) {
           builder.add(GsonHelper.convertToString(array.get(i), "retextured[" + i + "]"));
         }
-        return builder.build();
+        return Set.copyOf(builder);
       }
       // if string, single texture
       if (retextured.isJsonPrimitive()) {
-        return ImmutableSet.of(retextured.getAsString());
+        return Set.of(retextured.getAsString());
       }
     }
     // if neither or missing, error

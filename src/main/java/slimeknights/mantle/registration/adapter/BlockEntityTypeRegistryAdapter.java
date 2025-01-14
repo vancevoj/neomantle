@@ -1,7 +1,6 @@
 package slimeknights.mantle.registration.adapter;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.mojang.datafixers.types.Type;
 import net.minecraft.Util;
 import net.minecraft.util.datafix.fixes.References;
@@ -88,8 +87,8 @@ public class BlockEntityTypeRegistryAdapter extends RegistryAdapter<BlockEntityT
    * @param <T>              Tile entity type
    * @return  Tile entity type registry object
    */
-  public <T extends BlockEntity> BlockEntityType<T> register(BlockEntitySupplier<? extends T> factory, String name, Consumer<Builder<Block>> blockCollector) {
-    ImmutableSet.Builder<Block> blocks = new ImmutableSet.Builder<>();
+  public <T extends BlockEntity> BlockEntityType<T> register(BlockEntitySupplier<? extends T> factory, String name, Consumer<ImmutableSet.Builder<Block>> blockCollector) {
+    ImmutableSet.Builder<Block> blocks = ImmutableSet.builder();
     blockCollector.accept(blocks);
     return register(factory, blocks.build(), name);
   }

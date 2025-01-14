@@ -1,5 +1,6 @@
 package slimeknights.mantle.data.predicate;
 
+import com.google.common.collect.ImmutableSet;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.tags.TagKey;
 import slimeknights.mantle.Mantle;
@@ -34,6 +35,12 @@ public class RegistryPredicateRegistry<R,T> extends TagPredicateRegistry<R,T> {
   /** Creates a new set predicate given the passed values */
   public IJsonPredicate<T> setOf(Set<R> values) {
     return new SetPredicate(values);
+  }
+
+  /** Creates a new set predicate given the passed values */
+  @SafeVarargs
+  public final IJsonPredicate<T> setOf(R... values) {
+    return setOf(ImmutableSet.copyOf(values));
   }
 
   /** Predicate matching an entry from a set of values */

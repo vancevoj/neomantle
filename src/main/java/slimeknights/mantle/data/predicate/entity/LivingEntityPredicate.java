@@ -1,6 +1,5 @@
 package slimeknights.mantle.data.predicate.entity;
 
-import com.google.common.collect.ImmutableSet;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -71,7 +70,7 @@ public interface LivingEntityPredicate extends IJsonPredicate<LivingEntity> {
 
   /** Creates an entity set predicate */
   static IJsonPredicate<LivingEntity> set(EntityType<?>... types) {
-    return LOADER.setOf(ImmutableSet.copyOf(types));
+    return LOADER.setOf(types);
   }
 
   /** Creates a tag predicate */

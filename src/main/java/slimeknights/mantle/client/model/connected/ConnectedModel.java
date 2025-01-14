@@ -1,6 +1,5 @@
 package slimeknights.mantle.client.model.connected;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
@@ -124,7 +123,7 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
       }
     }
     // copy into immutable for better performance
-    this.extraTextures = ImmutableMap.copyOf(extraTextures);
+    this.extraTextures = Map.copyOf(extraTextures);
   }
 
   @Override
@@ -170,13 +169,13 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
         return direction;
       }
       // sides all just have the next side for left and right, and consistent up and down
-      switch(direction) {
-        case NORTH: return Direction.UP;
-        case SOUTH: return Direction.DOWN;
-        case EAST: return rotation.getCounterClockWise();
-        case WEST: return rotation.getClockWise();
-      }
-      throw new IllegalArgumentException("Direction must be horizontal axis");
+      return switch (direction) {
+        case NORTH -> Direction.UP;
+        case SOUTH -> Direction.DOWN;
+        case EAST -> rotation.getCounterClockWise();
+        case WEST -> rotation.getClockWise();
+        default -> throw new IllegalArgumentException("Direction must be horizontal axis");
+      };
     }
 
     /**
@@ -418,7 +417,7 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
     }
 
     // build texture list
-    ImmutableMap.Builder<String,String[]> connectedTextures = new ImmutableMap.Builder<>();
+    Map<String,String[]> connectedTextures = new HashMap<>(connected.size());
     for (Entry<String,JsonElement> entry : connected.entrySet()) {
       // don't validate texture as it may be contained in a child model that is not yet loaded
       // get type, put in map
@@ -447,6 +446,6 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
     BiPredicate<BlockState,BlockState> predicate = ConnectedModelRegistry.deserializePredicate(data, "predicate");
 
     // final model instance
-    return new ConnectedModel(model, connectedTextures.build(), predicate, sides);
+    return new ConnectedModel(model, Map.copyOf(connectedTextures), predicate, sides);
   }
 }

@@ -1,6 +1,5 @@
 package slimeknights.mantle.data.predicate.item;
 
-import com.google.common.collect.ImmutableSet;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import slimeknights.mantle.data.loadable.Loadables;
@@ -46,7 +45,7 @@ public interface ItemPredicate extends IJsonPredicate<Item> {
 
   /** Creates am item set predicate */
   static IJsonPredicate<Item> set(Item... items) {
-    return LOADER.setOf(ImmutableSet.copyOf(items));
+    return LOADER.setOf(items);
   }
 
   /** Creates a tag predicate */

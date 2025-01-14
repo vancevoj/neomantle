@@ -1,6 +1,5 @@
 package slimeknights.mantle.data.predicate.block;
 
-import com.google.common.collect.ImmutableSet;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour.BlockStateBase;
@@ -55,7 +54,7 @@ public interface BlockPredicate extends IJsonPredicate<BlockState> {
 
   /** Creates a block set predicate */
   static IJsonPredicate<BlockState> set(Block... blocks) {
-    return LOADER.setOf(ImmutableSet.copyOf(blocks));
+    return LOADER.setOf(blocks);
   }
 
   /** Creates a tag predicate */
