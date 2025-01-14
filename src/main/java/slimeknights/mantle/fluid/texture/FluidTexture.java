@@ -36,7 +36,6 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
   public static FluidTexture deserialize(JsonObject json) {
     ResourceLocation still = JsonHelper.getResourceLocation(json, "still");
     ResourceLocation flowing = JsonHelper.getResourceLocation(json, "flowing");
-    //noinspection ConstantConditions
     ResourceLocation overlay = JsonHelper.getResourceLocation(json, "overlay", null);
     ResourceLocation camera = null;
     if (json.has("camera")) {

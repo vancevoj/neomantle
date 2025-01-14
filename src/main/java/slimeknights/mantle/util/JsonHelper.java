@@ -18,7 +18,9 @@ import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.PacketDistributor.PacketTarget;
 import net.minecraftforge.registries.IForgeRegistry;
+import org.jetbrains.annotations.Contract;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.common.BlockStateLoadable;
 import slimeknights.mantle.network.NetworkWrapper;
 import slimeknights.mantle.network.packet.ISimplePacket;
@@ -57,8 +59,40 @@ public class JsonHelper {
     if (json.has(memberName)) {
       return json.get(memberName);
     } else {
-      throw new JsonSyntaxException("Missing " + memberName + "");
+      throw new JsonSyntaxException("Missing " + memberName);
     }
+  }
+
+  /**
+   * Parses a list from an JsonArray
+   * @param array   Json array
+   * @param name    Json key of the array
+   * @param mapper  Mapper from the element object and name to new object
+   * @param <T>     Output type
+   * @return  List of output objects
+   */
+  public static <T> List<T> parseList(JsonArray array, String name, Loadable<T> mapper) {
+    if (array.isEmpty()) {
+      throw new JsonSyntaxException(name + " must have at least 1 element");
+    }
+    // build the list
+    List<T> builder = new ArrayList<>(array.size());
+    for (int i = 0; i < array.size(); i++) {
+      builder.add(mapper.convert(array.get(i), name + "[" + i + "]"));
+    }
+    return List.copyOf(builder);
+  }
+
+  /**
+   * Parses a list from an JsonArray
+   * @param parent  Parent JSON object
+   * @param name    Json key of the array
+   * @param mapper  Mapper from raw type to new object
+   * @param <T>     Output type
+   * @return  List of output objects
+   */
+  public static <T> List<T> parseList(JsonObject parent, String name, Loadable<T> mapper) {
+    return parseList(GsonHelper.getAsJsonArray(parent, name), name, mapper);
   }
 
   /**
@@ -88,7 +122,9 @@ public class JsonHelper {
    * @param mapper  Mapper from the json object to new object
    * @param <T>     Output type
    * @return  List of output objects
+   * @deprecated use {@link #parseList(JsonArray, String, Loadable)}
    */
+  @Deprecated(forRemoval = true)
   public static <T> List<T> parseList(JsonArray array, String name, Function<JsonObject,T> mapper) {
     return parseList(array, name, (element, s) -> mapper.apply(GsonHelper.convertToJsonObject(element, s)));
   }
@@ -112,7 +148,9 @@ public class JsonHelper {
    * @param mapper  Mapper from json object to new object
    * @param <T>     Output type
    * @return  List of output objects
+   * @deprecated use {@link #parseList(JsonObject, String, Loadable)}
    */
+  @Deprecated(forRemoval = true)
   public static <T> List<T> parseList(JsonObject parent, String name, Function<JsonObject,T> mapper) {
     return parseList(GsonHelper.getAsJsonArray(parent, name), name, mapper);
   }
@@ -139,7 +177,9 @@ public class JsonHelper {
    * @param fallback  Fallback if key is not present
    * @return  Resource location parsed
    */
-  public static ResourceLocation getResourceLocation(JsonObject json, String key, ResourceLocation fallback) {
+  @Contract("_,_,!null -> !null")
+  @Nullable
+  public static ResourceLocation getResourceLocation(JsonObject json, String key, @Nullable ResourceLocation fallback) {
     if (json.has(key)) {
       return getResourceLocation(json, key);
     }
@@ -169,7 +209,9 @@ public class JsonHelper {
    * @param <T>  Object type
    * @return  Registry value
    * @throws JsonSyntaxException  If something failed to parse
+   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables}
    */
+  @Deprecated(forRemoval = true)
   public static <T> T convertToEntry(IForgeRegistry<T> registry, JsonElement element, String key) {
     ResourceLocation name = JsonHelper.convertToResourceLocation(element, key);
     if (registry.containsKey(name)) {
@@ -189,7 +231,9 @@ public class JsonHelper {
    * @param <T>  Object type
    * @return  Registry value
    * @throws JsonSyntaxException  If something failed to parse
+   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables}
    */
+  @Deprecated(forRemoval = true)
   public static <T> T getAsEntry(IForgeRegistry<T> registry, JsonObject parent, String key) {
     return convertToEntry(registry, JsonHelper.getElement(parent, key), key);
   }
@@ -204,13 +248,15 @@ public class JsonHelper {
     throw new JsonSyntaxException("Invalid " + enumClass.getSimpleName() + " " + name);
   }
 
-  /** Gets an enum value from its string name */
+  /** @deprecated use {@link slimeknights.mantle.data.loadable.primitive.EnumLoadable} */
+  @Deprecated(forRemoval = true)
   public static <T extends Enum<T>> T convertToEnum(JsonElement element, String key, Class<T> enumClass) {
     String name = GsonHelper.convertToString(element, key);
     return enumByName(name, enumClass);
   }
 
-  /** Gets an enum value from its string name */
+  /** @deprecated use {@link slimeknights.mantle.data.loadable.primitive.EnumLoadable} */
+  @Deprecated(forRemoval = true)
   public static <T extends Enum<T>> T getAsEnum(JsonObject json, String key, Class<T> enumClass) {
     String name = GsonHelper.getAsString(json, key);
     return enumByName(name, enumClass);

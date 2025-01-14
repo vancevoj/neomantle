@@ -1,6 +1,5 @@
 package slimeknights.mantle.client.model.builder;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.model.generators.CustomLoaderBuilder;
@@ -47,11 +46,7 @@ public class ColoredModelBuilder<T extends ModelBuilder<T>> extends CustomLoader
   public JsonObject toJson(JsonObject json) {
     json = super.toJson(json);
     if (!colors.isEmpty()) {
-      JsonArray array = new JsonArray();
-      for (ColorData colorData : colors) {
-        array.add(colorData.toJson());
-      }
-      json.add("colors", array);
+      json.add("colors", ColorData.LIST_LOADABLE.serialize(colors));
     }
     return json;
   }

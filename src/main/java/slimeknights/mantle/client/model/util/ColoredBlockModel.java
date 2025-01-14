@@ -21,7 +21,6 @@ import net.minecraft.client.resources.model.SimpleBakedModel;
 import net.minecraft.client.resources.model.SimpleBakedModel.Builder;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.util.Mth;
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.client.model.IQuadTransformer;
@@ -30,12 +29,14 @@ import net.minecraftforge.client.model.geometry.IGeometryBakingContext;
 import net.minecraftforge.client.model.geometry.IGeometryLoader;
 import org.joml.Vector3f;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.common.ColorLoadable;
-import slimeknights.mantle.util.JsonHelper;
+import slimeknights.mantle.data.loadable.primitive.BooleanLoadable;
+import slimeknights.mantle.data.loadable.primitive.IntLoadable;
+import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.LogicHelper;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -150,6 +151,12 @@ public class ColoredBlockModel extends SimpleBlockModel {
    */
   public record ColorData(int color, @Deprecated int luminosity, @Nullable Boolean uvlock) {
     public static final ColorData DEFAULT = new ColorData(-1, -1, null);
+    public static final RecordLoadable<ColorData> LOADABLE = RecordLoadable.create(
+      ColorLoadable.ALPHA.defaultField("color", false, ColorData::color),
+      IntLoadable.range(-1, 15).defaultField("luminosity", -1, ColorData::luminosity),
+      BooleanLoadable.INSTANCE.nullableField("uvlock", ColorData::uvlock),
+      ColorData::new);
+    public static final Loadable<List<ColorData>> LIST_LOADABLE = LOADABLE.list(0);
 
     /** Gets the UV lock for the given part */
     public boolean isUvLock(boolean defaultLock) {
@@ -159,31 +166,17 @@ public class ColoredBlockModel extends SimpleBlockModel {
       return uvlock;
     }
 
-    /**
-     * Parses the color data from JSON
-     */
+    /** @deprecated use {@link #LOADABLE} */
+    @Deprecated(forRemoval = true)
     public static ColorData fromJson(JsonObject json) {
-      int color = ColorLoadable.ALPHA.getOrWhite(json, "color");
-      int luminosity = GsonHelper.getAsInt(json, "luminosity", -1);
-      Boolean uvlock = null;
-      if (json.has("uvlock")) {
-        uvlock = GsonHelper.getAsBoolean(json, "uvlock");
-      }
-      return new ColorData(color, luminosity, uvlock);
+      return LOADABLE.deserialize(json);
     }
 
-    /** Serializes this data to JSON */
+    /** @deprecated use {@link #LOADABLE} */
+    @Deprecated(forRemoval = true)
     public JsonObject toJson() {
       JsonObject json = new JsonObject();
-      if (this.color != -1) {
-        json.add("color", ColorLoadable.ALPHA.serialize(this.color));
-      }
-      if (this.luminosity != -1) {
-        json.addProperty("luminosity", this.luminosity);
-      }
-      if (this.uvlock != null) {
-        json.addProperty("uvlock", this.uvlock);
-      }
+      LOADABLE.serialize(this, json);
       return json;
     }
   }
@@ -194,7 +187,7 @@ public class ColoredBlockModel extends SimpleBlockModel {
   /** Deserializes the model from JSON */
   public static ColoredBlockModel deserialize(JsonObject json, JsonDeserializationContext context) {
     SimpleBlockModel model = SimpleBlockModel.deserialize(json, context);
-    List<ColorData> colorData = json.has("colors") ? JsonHelper.parseList(json, "colors", ColorData::fromJson) : Collections.emptyList();
+    List<ColorData> colorData = ColorData.LIST_LOADABLE.getOrDefault(json, "colors", List.of());
     return new ColoredBlockModel(model, colorData);
   }
 

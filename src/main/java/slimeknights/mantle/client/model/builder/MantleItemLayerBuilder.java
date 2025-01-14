@@ -1,6 +1,5 @@
 package slimeknights.mantle.client.model.builder;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.model.generators.CustomLoaderBuilder;
@@ -13,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Builder for {@link slimeknights.mantle.client.model.util.MantleItemLayerModel} */
+@SuppressWarnings("unused")  // API
 public class MantleItemLayerBuilder<T extends ModelBuilder<T>> extends CustomLoaderBuilder<T> {
   private final List<LayerData> layers = new ArrayList<>();
   protected MantleItemLayerBuilder(ResourceLocation loaderId, T parent, ExistingFileHelper existingFileHelper) {
@@ -43,11 +43,7 @@ public class MantleItemLayerBuilder<T extends ModelBuilder<T>> extends CustomLoa
   public JsonObject toJson(JsonObject json) {
     json = super.toJson(json);
     if (!layers.isEmpty()) {
-      JsonArray array = new JsonArray();
-      for (LayerData data : layers) {
-        array.add(data.toJson());
-      }
-      json.add("layers", array);
+      json.add("layers", LayerData.LIST_LOADABLE.serialize(layers));
     }
     return json;
   }

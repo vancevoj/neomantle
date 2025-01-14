@@ -19,7 +19,6 @@ import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
 import net.minecraftforge.client.ForgeRenderTypes;
 import net.minecraftforge.client.RenderTypeGroup;
 import net.minecraftforge.client.model.CompositeModel;
@@ -30,9 +29,13 @@ import net.minecraftforge.client.model.geometry.IUnbakedGeometry;
 import net.minecraftforge.client.model.geometry.UnbakedGeometryHelper;
 import net.minecraftforge.client.model.pipeline.QuadBakingVertexConsumer;
 import net.minecraftforge.client.model.pipeline.TransformingVertexPipeline;
+import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.common.ColorLoadable;
+import slimeknights.mantle.data.loadable.primitive.BooleanLoadable;
+import slimeknights.mantle.data.loadable.primitive.IntLoadable;
+import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.ItemLayerPixels;
-import slimeknights.mantle.util.JsonHelper;
 import slimeknights.mantle.util.LogicHelper;
 import slimeknights.mantle.util.ReversedListBuilder;
 
@@ -492,6 +495,14 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
    */
   public record LayerData(int color, int luminosity, boolean noTint, @Nullable ResourceLocation renderType) {
     private static final LayerData DEFAULT = new LayerData(-1, 0, false, null);
+    public static final RecordLoadable<LayerData> LOADABLE = RecordLoadable.create(
+      ColorLoadable.ALPHA.defaultField("color", false, LayerData::color),
+      // TODO: rename this field?
+      IntLoadable.range(0, 15).defaultField("luminosity", 0, LayerData::luminosity),
+      BooleanLoadable.INSTANCE.defaultField("no_tint", false, false, LayerData::noTint),
+      Loadables.RESOURCE_LOCATION.nullableField("render_type", LayerData::renderType),
+      LayerData::new);
+    public static final Loadable<List<LayerData>> LIST_LOADABLE = LOADABLE.list(1);
 
     /** Gets the render type for this layer from the context, falling back to the passed type if not requested */
     public RenderTypeGroup getRenderType(IGeometryBakingContext context, RenderTypeGroup defaultType) {
@@ -501,37 +512,23 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
       return context.getRenderType(renderType);
     }
 
-    /**
-     * Parses the layer data from JSON
-     */
+    /** @deprecated use {@link #LOADABLE} */
+    @Deprecated(forRemoval = true)
     public static LayerData fromJson(JsonObject json) {
-      int color = ColorLoadable.ALPHA.getOrDefault(json, "color", -1);
-      // TODO: rename this field?
-      int luminosity = GsonHelper.getAsInt(json, "luminosity", 0);
-      boolean noTint = GsonHelper.getAsBoolean(json, "no_tint", false);
-      //noinspection ConstantConditions  Null is fine as its just a default
-      ResourceLocation renderType = JsonHelper.getResourceLocation(json, "render_type", null);
-      return new LayerData(color, luminosity, noTint, renderType);
+      return LOADABLE.deserialize(json);
     }
 
-    /** Serializes this data to JSON */
+    /** @deprecated use {@link #LOADABLE} */
+    @Deprecated(forRemoval = true)
     public JsonObject toJson() {
       JsonObject json = new JsonObject();
-      if (color != -1) {
-        json.add("color", ColorLoadable.ALPHA.serialize(color));
-      }
-      json.addProperty("luminosity", luminosity);
-      json.addProperty("no_tint", noTint);
-      if (renderType != null) {
-        json.addProperty("render_type", renderType.toString());
-      }
+      LOADABLE.serialize(this, json);
       return json;
     }
   }
 
   /** Deserializes this model from JSON */
   public static MantleItemLayerModel deserialize(JsonObject json, JsonDeserializationContext context) {
-    List<LayerData> layers = JsonHelper.parseList(json, "layers", LayerData::fromJson);
-    return new MantleItemLayerModel(layers);
+    return new MantleItemLayerModel(LayerData.LIST_LOADABLE.getIfPresent(json, "layers"));
   }
 }
