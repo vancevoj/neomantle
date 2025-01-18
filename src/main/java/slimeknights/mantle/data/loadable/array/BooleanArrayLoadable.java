@@ -4,7 +4,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.field.DefaultingField;
+import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.util.typed.TypedMap;
+
+import java.util.Arrays;
+import java.util.function.Function;
 
 /** Loadable for an integer array */
 public record BooleanArrayLoadable(Loadable<Boolean> base, int minSize, int maxSize) implements ArrayLoadable.SizeRange<boolean[]> {
@@ -55,5 +60,11 @@ public record BooleanArrayLoadable(Loadable<Boolean> base, int minSize, int maxS
     for (boolean element : array) {
       base.encode(buffer, element);
     }
+  }
+
+  @Override
+  public <P> LoadableField<boolean[],P> defaultField(String key, boolean[] defaultValue, boolean serializeDefault, Function<P,boolean[]> getter) {
+    //noinspection Convert2Diamond  I think the method overloading stops type inferrence here
+    return new DefaultingField<boolean[],P>(this, key, defaultValue, serializeDefault ? null : Arrays::equals, getter);
   }
 }

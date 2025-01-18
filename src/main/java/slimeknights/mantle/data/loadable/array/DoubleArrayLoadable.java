@@ -4,7 +4,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.field.DefaultingField;
+import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.util.typed.TypedMap;
+
+import java.util.Arrays;
+import java.util.function.Function;
 
 /** Loadable for a double array */
 public record DoubleArrayLoadable(Loadable<Double> base, int minSize, int maxSize) implements ArrayLoadable.SizeRange<double[]> {
@@ -55,5 +60,11 @@ public record DoubleArrayLoadable(Loadable<Double> base, int minSize, int maxSiz
     for (double element : array) {
       base.encode(buffer, element);
     }
+  }
+
+  @Override
+  public <P> LoadableField<double[],P> defaultField(String key, double[] defaultValue, boolean serializeDefault, Function<P,double[]> getter) {
+    //noinspection Convert2Diamond  I think the method overloading stops type inferrence here
+    return new DefaultingField<double[],P>(this, key, defaultValue, serializeDefault ? null : Arrays::equals, getter);
   }
 }

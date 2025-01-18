@@ -5,10 +5,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.field.DefaultingField;
+import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 
 /** Loadable for an object array */
@@ -93,5 +97,11 @@ public record ObjectArrayLoadable<T>(Loadable<T> base, IntFunction<T[]> construc
         base.encode(buffer, element);
       }
     }
+  }
+
+  @Override
+  public <P> LoadableField<T[],P> defaultField(String key, T[] defaultValue, boolean serializeDefault, Function<P,T[]> getter) {
+    //noinspection Convert2Diamond  I think the method overloading stops type inferrence here
+    return new DefaultingField<T[],P>(this, key, defaultValue, serializeDefault ? null : Arrays::equals, getter);
   }
 }

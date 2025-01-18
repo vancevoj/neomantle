@@ -5,7 +5,12 @@ import com.google.gson.JsonElement;
 import it.unimi.dsi.fastutil.bytes.Byte2ObjectFunction;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.field.DefaultingField;
+import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.util.typed.TypedMap;
+
+import java.util.Arrays;
+import java.util.function.Function;
 
 /** Loadable for a byte array */
 public record ByteArrayLoadable<T extends Number>(Loadable<T> base, int minSize, int maxSize, Byte2ObjectFunction<T> mapper) implements ArrayLoadable.SizeRange<byte[]> {
@@ -56,5 +61,11 @@ public record ByteArrayLoadable<T extends Number>(Loadable<T> base, int minSize,
     for (byte element : array) {
       base.encode(buffer, mapper.get(element));
     }
+  }
+
+  @Override
+  public <P> LoadableField<byte[],P> defaultField(String key, byte[] defaultValue, boolean serializeDefault, Function<P,byte[]> getter) {
+    //noinspection Convert2Diamond  I think the method overloading stops type inferrence here
+    return new DefaultingField<byte[],P>(this, key, defaultValue, serializeDefault ? null : Arrays::equals, getter);
   }
 }
