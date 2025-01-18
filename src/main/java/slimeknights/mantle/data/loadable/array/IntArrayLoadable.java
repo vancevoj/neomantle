@@ -67,4 +67,9 @@ public record IntArrayLoadable(Loadable<Integer> base, int minSize, int maxSize)
     //noinspection Convert2Diamond  I think the method overloading stops type inferrence here
     return new DefaultingField<int[],P>(this, key, defaultValue, serializeDefault ? null : Arrays::equals, getter);
   }
+
+  @Override
+  public <P> LoadableField<int[],P> emptyField(String key, boolean serializeEmpty, Function<P,int[]> getter) {
+    return defaultField(key, new int[0], serializeEmpty, getter);
+  }
 }

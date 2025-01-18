@@ -6,12 +6,14 @@ import com.google.gson.JsonSyntaxException;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 
 /**
  * Loadable for a map type.
@@ -85,6 +87,16 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
       keyLoadable.encode(buffer, entry.getKey());
       valueLoadable.encode(buffer, entry.getValue());
     }
+  }
+
+  /** Creates a field that defaults to empty */
+  public <P> LoadableField<Map<K,V>,P> emptyField(String key, boolean serializeEmpty, Function<P,Map<K,V>> getter) {
+    return defaultField(key, Map.of(), serializeEmpty, getter);
+  }
+
+  /** Creates a field that defaults to empty */
+  public <P> LoadableField<Map<K,V>,P> emptyField(String key, Function<P,Map<K,V>> getter) {
+    return emptyField(key, false, getter);
   }
 
   @Override

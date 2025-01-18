@@ -68,4 +68,9 @@ public record ByteArrayLoadable<T extends Number>(Loadable<T> base, int minSize,
     //noinspection Convert2Diamond  I think the method overloading stops type inferrence here
     return new DefaultingField<byte[],P>(this, key, defaultValue, serializeDefault ? null : Arrays::equals, getter);
   }
+
+  @Override
+  public <P> LoadableField<byte[],P> emptyField(String key, boolean serializeEmpty, Function<P,byte[]> getter) {
+    return defaultField(key, new byte[0], serializeEmpty, getter);
+  }
 }

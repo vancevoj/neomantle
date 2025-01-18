@@ -5,7 +5,10 @@ import com.google.gson.JsonElement;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.util.typed.TypedMap;
+
+import java.util.function.Function;
 
 /** Helpers for all array loadables */
 public interface ArrayLoadable<A> extends Loadable<A> {
@@ -68,6 +71,17 @@ public interface ArrayLoadable<A> extends Loadable<A> {
     JsonArray array = new JsonArray();
     serializeAll(array, object);
     return array;
+  }
+
+
+  /* Fields */
+
+  /** Creates a field that defaults to empty */
+  <P> LoadableField<A,P> emptyField(String key, boolean serializeEmpty, Function<P,A> getter);
+
+  /** Creates a field that defaults to empty */
+  default <P> LoadableField<A,P> emptyField(String key, Function<P,A> getter) {
+    return emptyField(key, false, getter);
   }
 
   /** Standard implementation of array loadable using a single size parameter */

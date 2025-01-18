@@ -68,4 +68,9 @@ public record ShortArrayLoadable<T extends Number>(Loadable<T> base, int minSize
     //noinspection Convert2Diamond  I think the method overloading stops type inferrence here
     return new DefaultingField<short[],P>(this, key, defaultValue, serializeDefault ? null : Arrays::equals, getter);
   }
+
+  @Override
+  public <P> LoadableField<short[],P> emptyField(String key, boolean serializeEmpty, Function<P,short[]> getter) {
+    return defaultField(key, new short[0], serializeEmpty, getter);
+  }
 }

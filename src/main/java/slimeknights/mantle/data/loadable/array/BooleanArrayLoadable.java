@@ -67,4 +67,9 @@ public record BooleanArrayLoadable(Loadable<Boolean> base, int minSize, int maxS
     //noinspection Convert2Diamond  I think the method overloading stops type inferrence here
     return new DefaultingField<boolean[],P>(this, key, defaultValue, serializeDefault ? null : Arrays::equals, getter);
   }
+
+  @Override
+  public <P> LoadableField<boolean[],P> emptyField(String key, boolean serializeEmpty, Function<P,boolean[]> getter) {
+    return defaultField(key, new boolean[0], serializeEmpty, getter);
+  }
 }

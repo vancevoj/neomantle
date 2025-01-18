@@ -1,6 +1,7 @@
 package slimeknights.mantle.data.loadable.mapping;
 
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.field.LoadableField;
 
 import java.util.Collection;
 import java.util.Map;
@@ -22,5 +23,10 @@ public class SetLoadable<T> extends CollectionLoadable<T,Set<T>> {
   /** Creates a map from this collection using the given getter to find values for the map */
   public <V> Loadable<Map<T,V>> mapWithValues(Function<T,V> valueGetter) {
     return flatXmap(collection -> collection.stream().collect(Collectors.toUnmodifiableMap(Function.identity(), valueGetter)), Map::keySet);
+  }
+
+  @Override
+  public <P> LoadableField<Set<T>,P> emptyField(String key, boolean serializeEmpty, Function<P,Set<T>> getter) {
+    return defaultField(key, Set.of(), serializeEmpty, getter);
   }
 }

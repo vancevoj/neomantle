@@ -67,4 +67,9 @@ public record LongArrayLoadable(Loadable<Long> base, int minSize, int maxSize) i
     //noinspection Convert2Diamond  I think the method overloading stops type inferrence here
     return new DefaultingField<long[],P>(this, key, defaultValue, serializeDefault ? null : Arrays::equals, getter);
   }
+
+  @Override
+  public <P> LoadableField<long[],P> emptyField(String key, boolean serializeEmpty, Function<P,long[]> getter) {
+    return defaultField(key, new long[0], serializeEmpty, getter);
+  }
 }

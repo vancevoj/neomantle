@@ -104,4 +104,9 @@ public record ObjectArrayLoadable<T>(Loadable<T> base, IntFunction<T[]> construc
     //noinspection Convert2Diamond  I think the method overloading stops type inferrence here
     return new DefaultingField<T[],P>(this, key, defaultValue, serializeDefault ? null : Arrays::equals, getter);
   }
+
+  @Override
+  public <P> LoadableField<T[],P> emptyField(String key, boolean serializeEmpty, Function<P,T[]> getter) {
+    return defaultField(key, constructor.apply(0), serializeEmpty, getter);
+  }
 }
