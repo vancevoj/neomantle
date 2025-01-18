@@ -8,8 +8,7 @@ import lombok.Getter;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.data.gson.GenericRegisteredSerializer;
-import slimeknights.mantle.data.loadable.field.DirectField;
-import slimeknights.mantle.data.loadable.field.LoadableField;
+import slimeknights.mantle.data.loadable.field.RecordField;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.data.registry.GenericLoaderRegistry.IHaveLoader;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -113,14 +112,8 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements RecordLoada
     return loaders.decode(buffer, context).decode(buffer, context);
   }
 
-  /** Creates a field that loads this object directly into the parent JSON object, will conflict if the parent already has a type */
-  @Override
-  public <P> LoadableField<T,P> directField(Function<P,T> getter) {
-    return new DirectField<>(this, getter);
-  }
-
   /** Creates a field that loads this object directly into the parent JSON object by mapping the type key */
-  public <P> LoadableField<T,P> directField(String typeKey, Function<P,T> getter) {
+  public <P> RecordField<T,P> directField(String typeKey, Function<P,T> getter) {
     return new MergingRegistryField<>(this, typeKey, getter);
   }
 

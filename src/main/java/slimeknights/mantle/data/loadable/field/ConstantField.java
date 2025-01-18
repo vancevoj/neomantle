@@ -5,7 +5,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.util.typed.TypedMap;
 
 /** Record field that always returns the same value, used mainly to pass a different object in JSON vs buffer parsing */
-public record ConstantField<T>(T fromJson, T fromBuffer) implements LoadableField<T,Object> {
+public record ConstantField<T>(T fromJson, T fromBuffer) implements RecordField<T,Object> {
   public ConstantField(T value) {
     this(value, value);
   }

@@ -18,6 +18,8 @@ import java.util.function.BiFunction;
 public class ContextKey<T> implements Key<T> {
   /** Context field representing the object's ID */
   public static final ContextKey<ResourceLocation> ID = new ContextKey<>("id");
+  /** Key for adding debug info to log messages. Generally not useful as a field */
+  public static final ContextKey<String> DEBUG = new ContextKey<>("debug info");
 
   /** Name of the field, used primarily for debug */
   @Getter

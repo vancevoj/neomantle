@@ -4,7 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import net.minecraft.util.GsonHelper;
-import slimeknights.mantle.data.loadable.field.AlwaysPresentLoadableField;
+import slimeknights.mantle.data.loadable.field.AlwaysPresentRecordField;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -12,7 +12,7 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 
 /** Direct field for a registry which maps the type to a different key to prevent conflict */
-public record MergingRegistryField<T,P>(RecordLoadable<T> loadable, String typeKey, Function<P,T> getter) implements AlwaysPresentLoadableField<T,P> {
+public record MergingRegistryField<T,P>(RecordLoadable<T> loadable, String typeKey, Function<P,T> getter) implements AlwaysPresentRecordField<T,P> {
   /** Moves the passed type key to "type" */
   public static void mapType(JsonObject json, String typeKey) {
     json.addProperty("type", GsonHelper.getAsString(json, typeKey));

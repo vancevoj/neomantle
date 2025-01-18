@@ -76,7 +76,7 @@ public enum NBTLoadable implements RecordLoadable<CompoundTag> {
   private record NullableNBTField<P>(Loadable<CompoundTag> loadable, String key, Function<P,CompoundTag> getter) implements LoadableField<CompoundTag,P> {
     @Nullable
     @Override
-    public CompoundTag get(JsonObject json, TypedMap context) {
+    public CompoundTag get(JsonObject json, String key, TypedMap context) {
       return loadable.getOrDefault(json, key, null, context);
     }
 

@@ -15,7 +15,7 @@ import java.util.function.Function;
  */
 public record TryDirectField<T,P>(Loadable<T> loadable, String key, Function<P,T> getter, String... conflicts) implements AlwaysPresentLoadableField<T,P> {
   @Override
-  public T get(JsonObject json, TypedMap context) {
+  public T get(JsonObject json, String key, TypedMap context) {
     // if we have the nested key, read from that
     if (json.has(key)) {
       return loadable.convert(json.get(key), key, context);

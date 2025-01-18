@@ -20,7 +20,6 @@ import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.field.DirectField;
-import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.field.RecordField;
 import slimeknights.mantle.data.loadable.mapping.CompactLoadable;
 import slimeknights.mantle.data.loadable.mapping.MappedLoadable;
@@ -74,8 +73,8 @@ public interface RecordLoadable<T> extends Loadable<T> {
 
   /* Fields */
 
-  /** Creates a field that loads this object directly into the parent JSON object */
-  default <P> LoadableField<T,P> directField(Function<P,T> getter) {
+  /** Creates a field that loads this object directly into the parent JSON object. May conflict if any key overlaps exist */
+  default <P> RecordField<T,P> directField(Function<P,T> getter) {
     return new DirectField<>(this, getter);
   }
 

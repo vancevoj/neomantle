@@ -13,7 +13,7 @@ import java.util.function.Function;
  */
 public record DefaultingField<T,P>(Loadable<T> loadable, String key, T defaultValue, boolean serializeDefault, Function<P,T> getter) implements AlwaysPresentLoadableField<T,P> {
   @Override
-  public T get(JsonObject json, TypedMap context) {
+  public T get(JsonObject json, String key, TypedMap context) {
     return loadable.getOrDefault(json, key, defaultValue, context);
   }
 

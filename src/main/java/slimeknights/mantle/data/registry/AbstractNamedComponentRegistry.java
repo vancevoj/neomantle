@@ -101,7 +101,7 @@ public abstract class AbstractNamedComponentRegistry<T> implements ResourceLocat
   private record NullableField<T,P>(AbstractNamedComponentRegistry<T> registry, String key, Function<P,T> getter) implements LoadableField<T,P> {
     @Nullable
     @Override
-    public T get(JsonObject json, TypedMap context) {
+    public T get(JsonObject json, String key, TypedMap context) {
       return registry.getOrDefault(json, key, null, context);
     }
 

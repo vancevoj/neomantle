@@ -48,7 +48,7 @@ public class LoadableRecipeSerializer<T extends Recipe<?>> implements LoggingRec
 
   /** Builds a context for the given ID */
   protected TypedMapBuilder buildContext(ResourceLocation id) {
-    return TypedMapBuilder.builder().put(ContextKey.ID, id).put(SERIALIZER, this);
+    return TypedMapBuilder.builder().put(ContextKey.ID, id).put(ContextKey.DEBUG, "Recipe " + id).put(SERIALIZER, this);
   }
 
   @Override

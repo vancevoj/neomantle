@@ -14,7 +14,7 @@ import java.util.function.Function;
  */
 public record NullableField<T,P>(Loadable<T> loadable, String key, Function<P,T> getter) implements LoadableField<T,P> {
   @Override
-  public T get(JsonObject json, TypedMap context) {
+  public T get(JsonObject json, String key, TypedMap context) {
     return loadable.getOrDefault(json, key, null, context);
   }
 

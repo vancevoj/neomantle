@@ -7,7 +7,7 @@ import slimeknights.mantle.util.typed.TypedMap;
 
 /**
  * Interface for fields in a {@link RecordLoadable}.
- * Unlike {@link LoadableField}, this interface is not designed for use outside of loadables.
+ * Unlike {@link LoadableField}, this interface is not designed for use outside of loadables..
  * @param <P>  Parent object
  * @param <T>  Loadable type
  */

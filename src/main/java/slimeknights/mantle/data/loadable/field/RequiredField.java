@@ -15,7 +15,7 @@ import java.util.function.Function;
  */
 public record RequiredField<T,P>(Loadable<T> loadable, String key, boolean serializeNull, Function<P,T> getter) implements AlwaysPresentLoadableField<T,P> {
   @Override
-  public T get(JsonObject json, TypedMap context) {
+  public T get(JsonObject json, String key, TypedMap context) {
     return loadable.getIfPresent(json, key, context);
   }
 

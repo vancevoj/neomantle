@@ -4,7 +4,7 @@ import com.google.gson.JsonSyntaxException;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.EncoderException;
 import slimeknights.mantle.data.loadable.field.ConstantField;
-import slimeknights.mantle.data.loadable.field.LoadableField;
+import slimeknights.mantle.data.loadable.field.RecordField;
 
 import java.util.function.Consumer;
 
@@ -29,7 +29,7 @@ public interface ErrorFactory extends Consumer<String> {
     }
   };
   /** Field for constructors wishing to possibly throw */
-  LoadableField<ErrorFactory,Object> FIELD = new ConstantField<>(JSON_SYNTAX_ERROR, DECODER_EXCEPTION);
+  RecordField<ErrorFactory,Object> FIELD = new ConstantField<>(JSON_SYNTAX_ERROR, DECODER_EXCEPTION);
 
   /** Throws an exception from the given error */
   @Override

@@ -12,7 +12,7 @@ import java.util.function.Function;
  * @param <P>  Parent object
  * @param <T>  Loadable type
  */
-public record DirectField<T,P>(RecordLoadable<T> loadable, Function<P,T> getter) implements AlwaysPresentLoadableField<T,P> {
+public record DirectField<T,P>(RecordLoadable<T> loadable, Function<P,T> getter) implements AlwaysPresentRecordField<T,P> {
   @Override
   public T get(JsonObject json, TypedMap context) {
     return loadable.deserialize(json, context);
