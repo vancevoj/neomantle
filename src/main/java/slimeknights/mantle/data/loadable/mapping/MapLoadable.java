@@ -37,13 +37,23 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
     this.minSize = minSize;
   }
 
+  /** Builds the final map, given the passed mutable map. */
+  protected Map<K,V> build(Map<K,V> builder) {
+    return Map.copyOf(builder);
+  }
+
+  /** Creates a new builder instance for the given expected size */
+  protected Map<K,V> createBuilder(int size) {
+    return new HashMap<>(size);
+  }
+
   @Override
   public Map<K,V> convert(JsonElement element, String key, TypedMap context) {
     JsonObject json = GsonHelper.convertToJsonObject(element, key);
     if (json.size() < minSize) {
       throw new JsonSyntaxException(key + " must have at least " + minSize + " elements");
     }
-    Map<K,V> builder = new HashMap<>(json.size());
+    Map<K,V> builder = createBuilder(json.size());
     String mapKey = key + "'s key";
     for (Entry<String, JsonElement> entry : json.entrySet()) {
       String entryKey = entry.getKey();
@@ -51,7 +61,7 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
         keyLoadable.parseString(entryKey, mapKey),
         valueLoadable.convert(entry.getValue(), entryKey, context));
     }
-    return Map.copyOf(builder);
+    return build(builder);
   }
 
   @Override
@@ -71,13 +81,13 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
   @Override
   public Map<K,V> decode(FriendlyByteBuf buffer, TypedMap context) {
     int size = buffer.readVarInt();
-    Map<K,V> builder = new HashMap<>(size);
+    Map<K,V> builder = createBuilder(size);
     for (int i = 0; i < size; i++) {
       builder.put(
         keyLoadable.decode(buffer, context),
         valueLoadable.decode(buffer, context));
     }
-    return Map.copyOf(builder);
+    return build(builder);
   }
 
   @Override

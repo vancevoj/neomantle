@@ -18,11 +18,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public abstract class CollectionLoadable<T,C extends Collection<T>> implements ArrayLoadable<C> {
   /** Loadable for an object */
-  private final Loadable<T> base;
+  protected final Loadable<T> base;
   /** Minimum list size allowed */
   private final int minSize;
 
-  /** Builds the final collection, given the passed mutable collection */
+  /** Creates a new builder instance for the given expected size */
+  protected Collection<T> createBuilder(int size) {
+    return new ArrayList<>(size);
+  }
+
+  /** Builds the final collection, given the passed mutable collection. */
   protected abstract C build(Collection<T> builder);
 
   @Override
@@ -53,7 +58,7 @@ public abstract class CollectionLoadable<T,C extends Collection<T>> implements A
 
   @Override
   public C convertArray(JsonArray array, String key, TypedMap context) {
-    List<T> builder = new ArrayList<>(array.size());
+    Collection<T> builder = createBuilder(array.size());
     for (int i = 0; i < array.size(); i++) {
       builder.add(base.convert(array.get(i), key + '[' + i + ']', context));
     }
@@ -75,7 +80,7 @@ public abstract class CollectionLoadable<T,C extends Collection<T>> implements A
   @Override
   public C decode(FriendlyByteBuf buffer, TypedMap context) {
     int max = buffer.readVarInt();
-    List<T> builder = new ArrayList<>(max);
+    Collection<T> builder = createBuilder(max);
     for (int i = 0; i < max; i++) {
       builder.add(base.decode(buffer, context));
     }

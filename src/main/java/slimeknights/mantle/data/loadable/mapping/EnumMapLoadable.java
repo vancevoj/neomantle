@@ -1,18 +1,12 @@
 package slimeknights.mantle.data.loadable.mapping;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.primitive.EnumLoadable;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
-import slimeknights.mantle.util.typed.TypedMap;
 
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * Loadable for a map type with enum keys. Allows using the more efficient enum map on parsing
@@ -31,31 +25,12 @@ public class EnumMapLoadable<K extends Enum<K>,V> extends MapLoadable<K,V> {
   }
 
   @Override
-  public Map<K,V> convert(JsonElement element, String key, TypedMap context) {
-    JsonObject json = GsonHelper.convertToJsonObject(element, key);
-    if (json.size() < minSize) {
-      throw new JsonSyntaxException(key + " must have at least " + minSize + " elements");
-    }
-    Map<K,V> map = new EnumMap<>(enumClass);
-    String mapKey = key + "'s key";
-    for (Entry<String,JsonElement> entry : json.entrySet()) {
-      String entryKey = entry.getKey();
-      map.put(
-        keyLoadable.parseString(entryKey, mapKey),
-        valueLoadable.convert(entry.getValue(), entryKey, context));
-    }
-    return map;
+  protected Map<K,V> createBuilder(int size) {
+    return new EnumMap<>(enumClass);
   }
 
   @Override
-  public Map<K,V> decode(FriendlyByteBuf buffer, TypedMap context) {
-    int size = buffer.readVarInt();
-    Map<K,V> map = new EnumMap<>(enumClass);
-    for (int i = 0; i < size; i++) {
-      map.put(
-        keyLoadable.decode(buffer, context),
-        valueLoadable.decode(buffer, context));
-    }
-    return map;
+  protected Map<K,V> build(Map<K,V> builder) {
+    return Collections.unmodifiableMap(builder);
   }
 }
