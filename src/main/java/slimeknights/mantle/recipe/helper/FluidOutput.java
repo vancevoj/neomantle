@@ -235,9 +235,10 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
     public FluidOutput convert(JsonElement element, String key, TypedMap context) {
       JsonObject json = GsonHelper.convertToJsonObject(element, key);
       if (json.has("tag")) {
-        TagKey<Fluid> tag = Loadables.FLUID_TAG.getIfPresent(json, "tag", context);
-        // 0 amount means its using the stack loadable
-        return fromTag(tag, IntLoadable.FROM_ONE.getIfPresent(json, "amount", context));
+        return fromTag(
+          Loadables.FLUID_TAG.getIfPresent(json, "tag", context),
+          IntLoadable.FROM_ONE.getIfPresent(json, "amount", context),
+          NBTLoadable.ALLOW_STRING.getOrDefault(json, "nbt", null));
       }
       return fromStack(stack.deserialize(json, context));
     }

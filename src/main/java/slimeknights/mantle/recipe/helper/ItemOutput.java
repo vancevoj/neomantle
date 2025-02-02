@@ -287,7 +287,7 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
         if (readCount) {
           count = IntLoadable.FROM_ONE.getOrDefault(json, "count", 1, context);
         }
-        return fromTag(tag, count);
+        return fromTag(tag, count, NBTLoadable.ALLOW_STRING.getOrDefault(json, "nbt", null));
       }
       return fromStack(stack.deserialize(json, context));
     }
