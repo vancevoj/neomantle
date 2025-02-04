@@ -20,6 +20,8 @@ import slimeknights.mantle.loot.condition.ILootModifierCondition;
 import slimeknights.mantle.loot.condition.InvertedModifierLootCondition;
 import slimeknights.mantle.loot.function.RetexturedLootFunction;
 import slimeknights.mantle.loot.function.SetFluidLootFunction;
+import slimeknights.mantle.recipe.condition.TagEmptyCondition;
+import slimeknights.mantle.recipe.condition.TagFilledCondition;
 import slimeknights.mantle.registration.adapter.RegistryAdapter;
 
 import java.util.Objects;
@@ -28,12 +30,17 @@ import static slimeknights.mantle.loot.condition.ILootModifierCondition.MODIFIER
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MantleLoot {
+  /** Matches if the passed tag is empty */
+  public static LootItemConditionType TAG_EMPTY;
+  /** Matches if the passed tag is filled */
+  public static LootItemConditionType TAG_FILLED;
   /** Condition to match a block tag and property predicate */
   public static LootItemConditionType BLOCK_TAG_CONDITION;
   /** Function to add block entity texture to a dropped item */
   public static LootItemFunctionType RETEXTURED_FUNCTION;
   /** Function to add a fluid to an item fluid capability */
   public static LootItemFunctionType SET_FLUID_FUNCTION;
+
 
   /**
    * Called during serializer registration to register any relevant loot logic
@@ -49,6 +56,8 @@ public class MantleLoot {
 
     // conditions
     BLOCK_TAG_CONDITION = Registry.register(BuiltInRegistries.LOOT_CONDITION_TYPE, Mantle.getResource("block_tag"), new LootItemConditionType(BlockTagLootCondition.SERIALIZER));
+    TAG_EMPTY = Registry.register(BuiltInRegistries.LOOT_CONDITION_TYPE, TagEmptyCondition.SERIALIZER.getID(), new LootItemConditionType(TagEmptyCondition.SERIALIZER));
+    TAG_FILLED = Registry.register(BuiltInRegistries.LOOT_CONDITION_TYPE, TagFilledCondition.SERIALIZER.getID(), new LootItemConditionType(TagFilledCondition.SERIALIZER));
 
     // loot modifier conditions
     MODIFIER_CONDITIONS.registerDeserializer(InvertedModifierLootCondition.ID, (JsonDeserializer<? extends ILootModifierCondition>)InvertedModifierLootCondition::deserialize);

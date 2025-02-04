@@ -56,9 +56,11 @@ import slimeknights.mantle.item.LecternBookItem;
 import slimeknights.mantle.loot.LootTableInjector;
 import slimeknights.mantle.loot.MantleLoot;
 import slimeknights.mantle.network.MantleNetwork;
+import slimeknights.mantle.recipe.condition.TagCombinationCondition;
+import slimeknights.mantle.recipe.condition.TagEmptyCondition;
+import slimeknights.mantle.recipe.condition.TagFilledCondition;
 import slimeknights.mantle.recipe.crafting.ShapedFallbackRecipe;
 import slimeknights.mantle.recipe.crafting.ShapedRetexturedRecipe;
-import slimeknights.mantle.recipe.helper.TagEmptyCondition;
 import slimeknights.mantle.recipe.helper.TagPreference;
 import slimeknights.mantle.recipe.ingredient.FluidContainerIngredient;
 import slimeknights.mantle.registration.adapter.BlockEntityTypeRegistryAdapter;
@@ -126,6 +128,8 @@ public class Mantle {
       adapter.register(new ShapedRetexturedRecipe.Serializer(), "crafting_shaped_retextured");
 
       CraftingHelper.register(TagEmptyCondition.SERIALIZER);
+      CraftingHelper.register(TagFilledCondition.SERIALIZER);
+      CraftingHelper.register(TagCombinationCondition.SERIALIZER);
       CraftingHelper.register(FluidContainerIngredient.ID, FluidContainerIngredient.SERIALIZER);
 
       // fluid container transfer
