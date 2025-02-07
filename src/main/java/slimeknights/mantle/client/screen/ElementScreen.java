@@ -36,7 +36,17 @@ public class ElementScreen {
    * @param xPos X-Coordinate on the screen
    * @param yPos Y-Coordinate on the screen
    */
+  public void draw(GuiGraphics graphics, int xPos, int yPos, int blitOffset) {
+    graphics.blit(this.texture, xPos, yPos, blitOffset, this.x, this.y, this.w, this.h, this.texW, this.texH);
+  }
+
+  /**
+   * Draws the element at the given x/y coordinates
+   *
+   * @param xPos X-Coordinate on the screen
+   * @param yPos Y-Coordinate on the screen
+   */
   public void draw(GuiGraphics graphics, int xPos, int yPos) {
-    graphics.blit(this.texture, xPos, yPos, this.x, this.y, this.w, this.h, this.texW, this.texH);
+    this.draw(graphics, xPos, yPos, 0);
   }
 }
