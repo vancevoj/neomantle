@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 
 /** Fluid transfer info that empties a fluid from an item */
 @RequiredArgsConstructor
-public class EmptyFluidContainerTransfer implements IFluidContainerTransfer {
+public class EmptyFluidContainerTransfer implements IFluidContainerTransfer.WithDirection {
   public static final ResourceLocation ID = Mantle.getResource("empty_item");
 
   private final Ingredient input;
@@ -57,7 +57,10 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer {
   }
 
   @Override
-  public TransferResult transfer(ItemStack stack, FluidStack fluid, IFluidHandler handler) {
+  public TransferResult transfer(ItemStack stack, FluidStack fluid, IFluidHandler handler, TransferDirection direction) {
+    if (!direction.canEmpty()) {
+      return null;
+    }
     FluidStack contained = getFluid(stack);
     int simulated = handler.fill(contained.copy(), FluidAction.SIMULATE);
     if (simulated == contained.getAmount()) {

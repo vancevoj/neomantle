@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 
 /** Fluid transfer info that fills a fluid into an item */
 @RequiredArgsConstructor
-public class FillFluidContainerTransfer implements IFluidContainerTransfer {
+public class FillFluidContainerTransfer implements IFluidContainerTransfer.WithDirection {
   public static final ResourceLocation ID = Mantle.getResource("fill_item");
 
   private final Ingredient input;
@@ -53,7 +53,10 @@ public class FillFluidContainerTransfer implements IFluidContainerTransfer {
 
   @Nullable
   @Override
-  public TransferResult transfer(ItemStack stack, FluidStack fluid, IFluidHandler handler) {
+  public TransferResult transfer(ItemStack stack, FluidStack fluid, IFluidHandler handler, TransferDirection direction) {
+    if (!direction.canFill()) {
+      return null;
+    }
     int amount = this.fluid.getAmount(fluid.getFluid());
     FluidStack toDrain = new FluidStack(fluid, amount);
     FluidStack simulated = handler.drain(toDrain.copy(), FluidAction.SIMULATE);

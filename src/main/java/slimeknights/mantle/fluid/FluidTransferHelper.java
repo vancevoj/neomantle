@@ -32,6 +32,7 @@ import net.minecraftforge.items.ItemHandlerHelper;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
 import slimeknights.mantle.fluid.transfer.IFluidContainerTransfer;
+import slimeknights.mantle.fluid.transfer.IFluidContainerTransfer.TransferDirection;
 import slimeknights.mantle.fluid.transfer.IFluidContainerTransfer.TransferResult;
 
 /**
@@ -70,14 +71,23 @@ public class FluidTransferHelper {
    * @return  True if transfer succeeded
    */
   public static FluidStack tryTransfer(IFluidHandler input, IFluidHandler output, int maxFill) {
-    // first, figure out how much we can drain
-    FluidStack simulated = input.drain(maxFill, FluidAction.SIMULATE);
-    if (!simulated.isEmpty()) {
+    return tryTransfer(input, output, input.drain(maxFill, FluidAction.SIMULATE));
+  }
+
+  /**
+   * Attempts to transfer fluid
+   * @param input    Fluid source
+   * @param output   Fluid destination
+   * @param fluid    Fluid to transfer, will not be modified. Precondition is it must be valid to drain from the input.
+   * @return  True if transfer succeeded
+   */
+  public static FluidStack tryTransfer(IFluidHandler input, IFluidHandler output, FluidStack fluid) {
+    if (!fluid.isEmpty()) {
       // next, find out how much we can fill
-      int simulatedFill = output.fill(simulated, FluidAction.SIMULATE);
+      int simulatedFill = output.fill(fluid.copy(), FluidAction.SIMULATE);
       if (simulatedFill > 0) {
-        // actually drain
-        FluidStack drainedFluid = input.drain(simulatedFill, FluidAction.EXECUTE);
+        // actually drain, use the fluid we successfully filled with just in case that changes
+        FluidStack drainedFluid = input.drain(new FluidStack(fluid, simulatedFill), FluidAction.EXECUTE);
         if (!drainedFluid.isEmpty()) {
           // acutally fill
           int actualFill = output.fill(drainedFluid.copy(), FluidAction.EXECUTE);
@@ -174,7 +184,7 @@ public class FluidTransferHelper {
               FluidStack currentFluid = teHandler.drain(Integer.MAX_VALUE, FluidAction.SIMULATE);
               IFluidContainerTransfer transfer = FluidContainerTransferManager.INSTANCE.getTransfer(stack, currentFluid);
               if (transfer != null) {
-                TransferResult result = transfer.transfer(stack, currentFluid, teHandler);
+                TransferResult result = transfer.transfer(stack, currentFluid, teHandler, TransferDirection.AUTO);
                 if (result != null) {
                   if (result.didFill()) {
                     playFillSound(world, pos, player, result.fluid());
@@ -230,5 +240,106 @@ public class FluidTransferHelper {
   public static boolean interactWithTank(Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
     return interactWithFluidItem(world, pos, player, hand, hit)
            || interactWithBucket(world, pos, player, hand, hit.getDirection(), hit.getDirection());
+  }
+
+  /**
+   * Attempts to transfer fluid from the passed stack into a tank.
+   * @param teHandler  Tank handler
+   * @param stack      Input stack, may be modified
+   * @param direction  Determines whether we may empty the item, fill, or both
+   * @return  Resulting stack after transfer
+   */
+  public static ItemStack interactWithTankSlot(IFluidHandler teHandler, ItemStack stack, TransferDirection direction) {
+    if (!stack.isEmpty()) {
+      // fallback to JSON based transfer
+      if (FluidContainerTransferManager.INSTANCE.mayHaveTransfer(stack)) {
+        // only actually transfer on the serverside, client just has items
+        FluidStack currentFluid = teHandler.drain(Integer.MAX_VALUE, FluidAction.SIMULATE);
+        IFluidContainerTransfer transfer = FluidContainerTransferManager.INSTANCE.getTransfer(stack, currentFluid);
+        if (transfer != null) {
+          TransferResult result = transfer.transfer(stack, currentFluid, teHandler, direction);
+          if (result != null) {
+            stack.shrink(1);
+            return result.stack();
+          }
+        }
+      }
+
+      // if the item has a capability, do a direct transfer
+      ItemStack copy = ItemHandlerHelper.copyStackWithSize(stack, 1);
+      LazyOptional<IFluidHandlerItem> itemCapability = copy.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM);
+      if (itemCapability.isPresent()) {
+        IFluidHandlerItem itemHandler = itemCapability.resolve().orElseThrow();
+        // first, try filling the TE from the item
+        FluidStack transferred = FluidStack.EMPTY;
+        if (direction.canEmpty()) {
+          transferred = tryTransfer(itemHandler, teHandler, Integer.MAX_VALUE);
+        }
+        // if that failed, try filling the item handler from the TE
+        if (direction.canFill() && transferred.isEmpty()) {
+          transferred = tryTransfer(teHandler, itemHandler, Integer.MAX_VALUE);
+        }
+        // if either worked, update the player's inventory
+        if (!transferred.isEmpty()) {
+          stack.shrink(1);
+          return itemHandler.getContainer();
+        }
+      }
+    }
+    return ItemStack.EMPTY;
+  }
+
+  /**
+   * Attempts to transfer fluid into the passed stack from the given handler.
+   * Similar to {@link #interactWithTankSlot(IFluidHandler, ItemStack, TransferDirection)} except filtered and unable to set direction.
+   * @param teHandler  Tank handler
+   * @param stack      Input stack, may be modified
+   * @param fluid      Determines the fluid used to fill the item
+   * @return  Resulting stack after transfer
+   */
+  public static ItemStack fillFromTankSlot(IFluidHandler teHandler, ItemStack stack, FluidStack fluid) {
+    if (!stack.isEmpty()) {
+      // fallback to JSON based transfer
+      if (FluidContainerTransferManager.INSTANCE.mayHaveTransfer(stack)) {
+        // only actually transfer on the serverside, client just has items
+        IFluidContainerTransfer transfer = FluidContainerTransferManager.INSTANCE.getTransfer(stack, fluid);
+        if (transfer != null) {
+          TransferResult result = transfer.transfer(stack, fluid, teHandler, TransferDirection.FILL_ITEM);
+          if (result != null) {
+            stack.shrink(1);
+            return result.stack();
+          }
+        }
+      }
+
+      // if the item has a capability, do a direct transfer
+      ItemStack copy = ItemHandlerHelper.copyStackWithSize(stack, 1);
+      LazyOptional<IFluidHandlerItem> itemCapability = copy.getCapability(ForgeCapabilities.FLUID_HANDLER_ITEM);
+      if (itemCapability.isPresent()) {
+        IFluidHandlerItem itemHandler = itemCapability.resolve().orElseThrow();
+        // first, try filling the TE from the item
+        FluidStack transferred = tryTransfer(teHandler, itemHandler, fluid.copy());
+        if (!transferred.isEmpty()) {
+          stack.shrink(1);
+          return itemHandler.getContainer();
+        }
+      }
+    }
+    return ItemStack.EMPTY;
+  }
+  
+  /**
+   * Same as {@link net.minecraft.world.item.ItemUtils#createFilledResult(ItemStack, Player, ItemStack)} but doesn't shrink results or check creative.
+   * Useful in UIs along {@link #interactWithTankSlot(IFluidHandler, ItemStack, TransferDirection)} or {@link #fillFromTankSlot(IFluidHandler, ItemStack, FluidStack)}
+   */
+  public static ItemStack getOrTransferFilled(Player player, ItemStack emptyStack, ItemStack filledStack) {
+    // if no more helpd
+    if (emptyStack.isEmpty()) {
+      return filledStack;
+    }
+    if (!player.getInventory().add(filledStack)) {
+      player.drop(filledStack, false);
+    }
+    return emptyStack;
   }
 }
