@@ -57,9 +57,14 @@ public interface IFluidContainerTransfer extends IJsonSerializable {
 
   /** Represents the direction to allow transfer */
   enum TransferDirection {
+    /** Attempts to empty the item. If that fails, attempts to fill the item. */
     AUTO,
+    /** Empties the item into the tank */
     EMPTY_ITEM,
-    FILL_ITEM;
+    /** Fills the item from the tank */
+    FILL_ITEM,
+    /** Attempts to fill the item. If that fails, attempts to empty the item. */
+    REVERSE;
 
     /** If true, may fill the item */
     public boolean canEmpty() {
@@ -77,11 +82,11 @@ public interface IFluidContainerTransfer extends IJsonSerializable {
     @Override
     TransferResult transfer(ItemStack stack, FluidStack fluid, IFluidHandler handler, TransferDirection direction);
 
+    @SuppressWarnings("removal")
     @Override
     @Deprecated(forRemoval = true)
     default TransferResult transfer(ItemStack stack, FluidStack fluid, IFluidHandler handler) {
       return transfer(stack, fluid, handler, TransferDirection.AUTO);
     }
-
   }
 }

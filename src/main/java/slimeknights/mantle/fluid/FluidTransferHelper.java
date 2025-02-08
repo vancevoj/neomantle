@@ -272,11 +272,16 @@ public class FluidTransferHelper {
         IFluidHandlerItem itemHandler = itemCapability.resolve().orElseThrow();
         // first, try filling the TE from the item
         FluidStack transferred = FluidStack.EMPTY;
-        if (direction.canEmpty()) {
+        // reverse means try TE to item first
+        if (direction == TransferDirection.REVERSE) {
+          transferred = tryTransfer(teHandler, itemHandler, Integer.MAX_VALUE);
+        }
+        // if not reverse or reverse failed, try filling TE from item
+        if (direction.canEmpty() && transferred.isEmpty()) {
           transferred = tryTransfer(itemHandler, teHandler, Integer.MAX_VALUE);
         }
         // if that failed, try filling the item handler from the TE
-        if (direction.canFill() && transferred.isEmpty()) {
+        if (direction != TransferDirection.REVERSE && direction.canFill() && transferred.isEmpty()) {
           transferred = tryTransfer(teHandler, itemHandler, Integer.MAX_VALUE);
         }
         // if either worked, update the player's inventory
