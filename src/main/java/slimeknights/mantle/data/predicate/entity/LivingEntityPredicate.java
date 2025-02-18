@@ -35,6 +35,12 @@ public interface LivingEntityPredicate extends IJsonPredicate<LivingEntity> {
   LivingEntityPredicate FIRE_IMMUNE = simple(Entity::fireImmune);
   /** Predicate that matches fire immune entities */
   LivingEntityPredicate ON_FIRE = simple(Entity::isOnFire);
+  /** Predicate that matches entities that can freeze */
+  LivingEntityPredicate CAN_FREEZE = simple(Entity::canFreeze);
+  /** Predicate that matches entities that are freezing */
+  LivingEntityPredicate IS_FREEZING = simple(entity -> entity.getTicksFrozen() >= entity.getTicksRequiredToFreeze());
+  /** Predicate that matches entities that are freezing */
+  LivingEntityPredicate IS_IN_POWDERED_SNOW = simple(Entity::isFreezing);
   /** Checks if the entity is on the ground */
   LivingEntityPredicate ON_GROUND = simple(Entity::onGround);
   /** Entities that are in the air */
