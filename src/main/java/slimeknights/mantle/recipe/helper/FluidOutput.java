@@ -1,13 +1,11 @@
 package slimeknights.mantle.recipe.helper;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.tags.TagKey;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import slimeknights.mantle.data.loadable.Loadables;
@@ -60,7 +58,15 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
    * Writes this output to JSON
    * @return  Json element
    */
-  public abstract JsonElement serialize();
+  @Deprecated(forRemoval = true)
+  public JsonObject serialize() {
+    JsonObject json = new JsonObject();
+    serialize(json);
+    return json;
+  }
+
+  /** Writes this output to JSON */
+  public abstract void serialize(JsonObject json);
 
   /**
    * Creates a new output for the given stack
@@ -139,13 +145,11 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
     }
 
     @Override
-    public JsonObject serialize() {
-      JsonObject json = new JsonObject();
+    public void serialize(JsonObject json) {
       if (amount > 0) {
         json.add("fluid", Loadables.FLUID.serialize(this.fluid));
       }
       json.addProperty("amount", amount);
-      return json;
     }
   }
 
@@ -165,8 +169,8 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
     }
 
     @Override
-    public JsonElement serialize() {
-      return FluidStackLoadable.OPTIONAL_STACK_NBT.serialize(stack);
+    public void serialize(JsonObject json) {
+      FluidStackLoadable.OPTIONAL_STACK_NBT.serialize(stack, json);
     }
   }
 
@@ -198,8 +202,7 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
     }
 
     @Override
-    public JsonElement serialize() {
-      JsonObject json = new JsonObject();
+    public void serialize(JsonObject json) {
       if (amount > 0) {
         json.addProperty("tag", tag.location().toString());
       }
@@ -207,12 +210,11 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
       if (amount > 0 && nbt != null) {
         json.add("nbt", NBTLoadable.ALLOW_STRING.serialize(nbt));
       }
-      return json;
     }
   }
 
   /** Loadable logic for an ItemOutput */
-  public enum Loadable implements slimeknights.mantle.data.loadable.Loadable<FluidOutput> {
+  public enum Loadable implements RecordLoadable<FluidOutput> {
     /** Loadable for an output that may be empty with any size */
     OPTIONAL(false),
     /** Loadable for an output that may not be empty with any size */
@@ -232,8 +234,7 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
     }
 
     @Override
-    public FluidOutput convert(JsonElement element, String key, TypedMap context) {
-      JsonObject json = GsonHelper.convertToJsonObject(element, key);
+    public FluidOutput deserialize(JsonObject json, TypedMap context) {
       if (json.has("tag")) {
         return fromTag(
           Loadables.FLUID_TAG.getIfPresent(json, "tag", context),
@@ -244,11 +245,11 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
     }
 
     @Override
-    public JsonElement serialize(FluidOutput output) {
+    public void serialize(FluidOutput output, JsonObject json) {
       if (nonEmpty && output.isEmpty()) {
         throw new IllegalArgumentException("ItemOutput cannot be empty for this recipe");
       }
-      return output.serialize();
+      output.serialize(json);
     }
 
     @Override

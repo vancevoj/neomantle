@@ -22,6 +22,7 @@ import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -247,7 +248,7 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
   }
 
   /** Loadable logic for an ItemOutput */
-  public enum Loadable implements slimeknights.mantle.data.loadable.Loadable<ItemOutput> {
+  public enum Loadable implements RecordLoadable<ItemOutput> {
     /** Loadable for an output that may be empty with a fixed size of 1 */
     OPTIONAL_ITEM(false, false),
     /** Loadable for an output that may be empty with any size */
@@ -273,13 +274,7 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
     }
 
     @Override
-    public ItemOutput convert(JsonElement element, String key, TypedMap context) {
-      // if it's a primitive, parse it directly with the stack logic
-      // that handles single items and ensures both count and non-empty
-      if (element.isJsonPrimitive()) {
-        return fromStack(stack.convert(element, key, context));
-      }
-      JsonObject json = GsonHelper.convertToJsonObject(element, key);
+    public ItemOutput deserialize(JsonObject json, TypedMap context) {
       if (json.has("tag")) {
         TagKey<Item> tag = Loadables.ITEM_TAG.getIfPresent(json, "tag", context);
         int count = 1;
@@ -290,6 +285,29 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
         return fromTag(tag, count, NBTLoadable.ALLOW_STRING.getOrDefault(json, "nbt", null));
       }
       return fromStack(stack.deserialize(json, context));
+    }
+
+    @Override
+    public ItemOutput convert(JsonElement element, String key, TypedMap context) {
+      // if it's a primitive, parse it directly with the stack logic
+      // that handles single items and ensures both count and non-empty
+      if (element.isJsonPrimitive()) {
+        return fromStack(stack.convert(element, key, context));
+      }
+      return deserialize(GsonHelper.convertToJsonObject(element, key), context);
+    }
+
+    @Override
+    public void serialize(ItemOutput object, JsonObject json) {
+      JsonElement element = serialize(object);
+      if (element.isJsonObject()) {
+        for (Entry<String,JsonElement> entry : element.getAsJsonObject().entrySet()) {
+          json.add(entry.getKey(), entry.getValue());
+        }
+      } else {
+        // if its a primitive, it must be the item field, so add that directly
+        json.add("item", element);
+      }
     }
 
     @Override
