@@ -13,6 +13,7 @@ import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.data.registry.GenericLoaderRegistry.IHaveLoader;
 import slimeknights.mantle.util.typed.TypedMap;
 
+import javax.annotation.Nullable;
 import java.util.function.Function;
 
 /**
@@ -43,6 +44,12 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements RecordLoada
   /** Registers a deserializer by name */
   public void register(ResourceLocation name, RecordLoadable<? extends T> loader) {
     loaders.register(name, loader);
+  }
+
+  /** Returns the name of a registered loader, or null if it is unregistered */
+  @Nullable
+  public ResourceLocation getName(RecordLoadable<? extends T> loader) {
+    return loaders.getOptionalKey(loader);
   }
 
   @Override
