@@ -147,7 +147,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   }
 
   /** Gets the unit list for the given fluid */
-  private FluidUnitList getUnitList(Fluid fluid) {
+  public FluidUnitList getUnitList(Fluid fluid) {
     FluidUnitList cached = listCache.get(fluid);
     if (cached != null) {
       return cached;
@@ -221,6 +221,21 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   }
 
   /**
+   * Adds fluid speciifc tooltip information, ignoring the tooltip key
+   * @param fluid      Input fluid
+   * @param original   Input amount
+   * @param tooltip    Tooltip to append information
+   * @return  True if the amount is not in buckets
+   */
+  public static boolean appendMaterialNoFallback(Fluid fluid, int original, List<Component> tooltip) {
+    int amount = original;
+    FluidUnitList unitList = INSTANCE.getUnitList(fluid);
+    amount = unitList.getText(tooltip, amount);
+    MILLIBUCKET.getText(tooltip, amount);
+    return unitList != INSTANCE.fallback;
+  }
+
+  /**
    * Adds information for the tooltip based on material units, does not show "hold shift for buckets"
    * @param fluid      Input fluid
    * @param original   Input amount
@@ -230,10 +245,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   public static boolean appendMaterialNoShift(Fluid fluid, int original, List<Component> tooltip) {
     // if holding shift, skip specific units
     if (SafeClientAccess.getTooltipKey() != TooltipKey.SHIFT) {
-      int amount = original;
-      amount = INSTANCE.getUnitList(fluid).getText(tooltip, amount);
-      MILLIBUCKET.getText(tooltip, amount);
-      return INSTANCE.listCache.get(fluid) != INSTANCE.fallback;
+      return appendMaterialNoFallback(fluid, original, tooltip);
     } else {
       // standard display stuff: bucket amounts
       appendBuckets(original, tooltip);
