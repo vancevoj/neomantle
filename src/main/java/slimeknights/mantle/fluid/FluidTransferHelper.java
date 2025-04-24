@@ -89,10 +89,17 @@ public class FluidTransferHelper {
         // actually drain, use the fluid we successfully filled with just in case that changes
         FluidStack drainedFluid = input.drain(new FluidStack(fluid, simulatedFill), FluidAction.EXECUTE);
         if (!drainedFluid.isEmpty()) {
-          // acutally fill
+          // actually fill
           int actualFill = output.fill(drainedFluid.copy(), FluidAction.EXECUTE);
-          if (actualFill != drainedFluid.getAmount()) {
-            Mantle.logger.error("Lost {} fluid during transfer", drainedFluid.getAmount() - actualFill);
+          // failed to fill everything we drained, so try putting the extra back
+          if (actualFill < drainedFluid.getAmount()) {
+            int toReturn = drainedFluid.getAmount() - actualFill;
+            drainedFluid.setAmount(actualFill);
+            int returned = input.fill(new FluidStack(drainedFluid, toReturn), FluidAction.EXECUTE);
+            // failed to put the rest back, so all that's left to do is delete it
+            if (returned < toReturn) {
+              Mantle.logger.error("Lost {} fluid during transfer", toReturn - returned);
+            }
           }
         }
         return drainedFluid;
