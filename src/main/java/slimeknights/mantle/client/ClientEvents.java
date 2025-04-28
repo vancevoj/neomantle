@@ -67,6 +67,7 @@ public class ClientEvents {
     }
   }
 
+  @SuppressWarnings("removal")
   @SubscribeEvent
   static void registerListeners(RegisterClientReloadListenersEvent event) {
     event.registerReloadListener(ModelHelper.LISTENER);
@@ -76,6 +77,7 @@ public class ClientEvents {
     FluidTextureManager.init(event);
     event.registerReloadListener(FluidCuboid.REGISTRY);
     event.registerReloadListener(RenderItem.REGISTRY);
+    event.registerReloadListener(RenderItem.STATE_REGISTRY);
   }
 
   @SubscribeEvent
