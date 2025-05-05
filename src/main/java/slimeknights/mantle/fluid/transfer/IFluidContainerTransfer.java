@@ -51,7 +51,7 @@ public interface IFluidContainerTransfer extends IJsonSerializable {
    * Result after transferring a fluid
    * @param stack    Item stack result, may be modified
    * @param fluid    Fluid, generally should not be modified
-   * @param didFill  If true, the item stack was filled. If false, it was draine
+   * @param didFill  If true, the item stack was filled. If false, it was drained
    */
   record TransferResult(ItemStack stack, FluidStack fluid, boolean didFill) {}
 

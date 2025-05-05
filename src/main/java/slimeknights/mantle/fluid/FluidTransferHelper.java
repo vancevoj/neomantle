@@ -4,7 +4,10 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -34,6 +37,8 @@ import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
 import slimeknights.mantle.fluid.transfer.IFluidContainerTransfer;
 import slimeknights.mantle.fluid.transfer.IFluidContainerTransfer.TransferDirection;
 import slimeknights.mantle.fluid.transfer.IFluidContainerTransfer.TransferResult;
+
+import javax.annotation.Nullable;
 
 /**
  * Alternative to {@link net.minecraftforge.fluids.FluidUtil} since no one has time to make the forge util not a buggy mess
@@ -338,6 +343,30 @@ public class FluidTransferHelper {
    * @return  Resulting stack after transfer
    */
   public static ItemStack interactWithTankSlot(IFluidHandler teHandler, ItemStack stack, TransferDirection direction) {
+    return interactWithTankSlot(null, teHandler, stack, direction);
+  }
+
+  /** Plays sound only to the targeted player. Works by sending a targeted packet to server players, or a local packet to client. */
+  @SuppressWarnings("deprecation")
+  private static void playUISound(Player player, SoundEvent sound) {
+    if (player.level().isClientSide) {
+      player.playSound(sound);
+    }
+    else if (player instanceof ServerPlayer serverPlayer) {
+      serverPlayer.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(sound), player.getSoundSource(), player.getX(), player.getY(), player.getZ(), 1, 1, player.getRandom().nextLong()));
+    }
+  }
+
+  /**
+   * Attempts to transfer fluid from the passed stack into a tank.
+   * @param player     Player instance, if not null will be used to play transfer sound.
+   *                   Note both client and server will play the sound so if calling this method on both sides pass null for server.
+   * @param teHandler  Tank handler
+   * @param stack      Input stack, may be modified
+   * @param direction  Determines whether we may empty the item, fill, or both
+   * @return  Resulting stack after transfer
+   */
+  public static ItemStack interactWithTankSlot(@Nullable Player player, IFluidHandler teHandler, ItemStack stack, TransferDirection direction) {
     if (!stack.isEmpty()) {
       // fallback to JSON based transfer
       if (FluidContainerTransferManager.INSTANCE.mayHaveTransfer(stack)) {
@@ -348,6 +377,9 @@ public class FluidTransferHelper {
           TransferResult result = transfer.transfer(stack, currentFluid, teHandler, direction);
           if (result != null) {
             stack.shrink(1);
+            if (player != null) {
+              playUISound(player, result.didFill() ? getFillSound(result.fluid()) : getEmptySound(result.fluid()));
+            }
             return result.stack();
           }
         }
@@ -361,12 +393,16 @@ public class FluidTransferHelper {
         // first, try filling the TE from the item
         FluidStack transferred = FluidStack.EMPTY;
         // reverse means try TE to item first
+        boolean didFill = true;
         if (direction == TransferDirection.REVERSE) {
           transferred = tryTransfer(teHandler, itemHandler, Integer.MAX_VALUE);
         }
         // if not reverse or reverse failed, try filling TE from item
         if (direction.canEmpty() && transferred.isEmpty()) {
           transferred = tryTransfer(itemHandler, teHandler, Integer.MAX_VALUE);
+          if (!transferred.isEmpty()) {
+            didFill = false;
+          }
         }
         // if that failed, try filling the item handler from the TE
         if (direction != TransferDirection.REVERSE && direction.canFill() && transferred.isEmpty()) {
@@ -375,6 +411,9 @@ public class FluidTransferHelper {
         // if either worked, update the player's inventory
         if (!transferred.isEmpty()) {
           stack.shrink(1);
+          if (player != null) {
+            playUISound(player, didFill ? getFillSound(transferred) : getEmptySound(transferred));
+          }
           return itemHandler.getContainer();
         }
       }
@@ -391,6 +430,20 @@ public class FluidTransferHelper {
    * @return  Resulting stack after transfer
    */
   public static ItemStack fillFromTankSlot(IFluidHandler teHandler, ItemStack stack, FluidStack fluid) {
+    return fillFromTankSlot(null, teHandler, stack, fluid);
+  }
+
+  /**
+   * Attempts to transfer fluid into the passed stack from the given handler.
+   * Similar to {@link #interactWithTankSlot(IFluidHandler, ItemStack, TransferDirection)} except filtered and unable to set direction.
+   * @param player     Player instance, if not null will be used to play transfer sound.
+   *                   Note both client and server will play the sound so if calling this method on both sides pass null for server.
+   * @param teHandler  Tank handler
+   * @param stack      Input stack, may be modified
+   * @param fluid      Determines the fluid used to fill the item
+   * @return  Resulting stack after transfer
+   */
+  public static ItemStack fillFromTankSlot(@Nullable Player player, IFluidHandler teHandler, ItemStack stack, FluidStack fluid) {
     if (!stack.isEmpty()) {
       // fallback to JSON based transfer
       if (FluidContainerTransferManager.INSTANCE.mayHaveTransfer(stack)) {
@@ -400,6 +453,9 @@ public class FluidTransferHelper {
           TransferResult result = transfer.transfer(stack, fluid, teHandler, TransferDirection.FILL_ITEM);
           if (result != null) {
             stack.shrink(1);
+            if (player != null) {
+              playUISound(player, getFillSound(result.fluid()));
+            }
             return result.stack();
           }
         }
@@ -414,6 +470,9 @@ public class FluidTransferHelper {
         FluidStack transferred = tryTransfer(teHandler, itemHandler, fluid.copy());
         if (!transferred.isEmpty()) {
           stack.shrink(1);
+          if (player != null) {
+            playUISound(player, getFillSound(transferred));
+          }
           return itemHandler.getContainer();
         }
       }
