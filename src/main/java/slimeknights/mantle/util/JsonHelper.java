@@ -124,7 +124,7 @@ public class JsonHelper {
    * @return  List of output objects
    * @deprecated use {@link #parseList(JsonArray, String, Loadable)}
    */
-  @Deprecated(forRemoval = true)
+  @Deprecated
   public static <T> List<T> parseList(JsonArray array, String name, Function<JsonObject,T> mapper) {
     return parseList(array, name, (element, s) -> mapper.apply(GsonHelper.convertToJsonObject(element, s)));
   }
@@ -150,7 +150,7 @@ public class JsonHelper {
    * @return  List of output objects
    * @deprecated use {@link #parseList(JsonObject, String, Loadable)}
    */
-  @Deprecated(forRemoval = true)
+  @Deprecated
   public static <T> List<T> parseList(JsonObject parent, String name, Function<JsonObject,T> mapper) {
     return parseList(GsonHelper.getAsJsonArray(parent, name), name, mapper);
   }
