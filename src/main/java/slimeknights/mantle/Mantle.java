@@ -194,7 +194,7 @@ public class Mantle {
         adapter.register(MantleHangingSignBlockEntity::new, signs, "hanging_sign");
       }
     }
-    else if (key == ForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS) {
+    else {
       MantleLoot.registerGlobalLootModifiers(event);
     }
   }
