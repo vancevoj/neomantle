@@ -175,22 +175,22 @@ public interface Loadable<T> extends JsonDeserializer<T>, JsonSerializer<T>, Str
   }
 
   /** Makes a list of this loadable */
-  default Loadable<List<T>> list(int minSize) {
+  default ArrayLoadable<List<T>> list(int minSize) {
     return new ListLoadable<>(this, minSize);
   }
 
   /** Makes a list of this loadable */
-  default Loadable<List<T>> list() {
+  default ArrayLoadable<List<T>> list() {
     return list(1);
   }
 
   /** Makes a set of this loadable */
-  default Loadable<Set<T>> set(int minSize) {
+  default ArrayLoadable<Set<T>> set(int minSize) {
     return new SetLoadable<>(this, minSize);
   }
 
   /** Makes a set of this loadable */
-  default Loadable<Set<T>> set() {
+  default ArrayLoadable<Set<T>> set() {
     return set(1);
   }
 
