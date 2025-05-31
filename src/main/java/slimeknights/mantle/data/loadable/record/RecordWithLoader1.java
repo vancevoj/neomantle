@@ -8,7 +8,7 @@ import slimeknights.mantle.util.typed.TypedMap;
 import java.util.function.BiFunction;
 
 /** Record loadable with 1 field plus the loader itself */
-record RecordWIthLoader1<A,R>(
+record RecordWithLoader1<A,R>(
   RecordField<A,? super R> fieldA,
   BiFunction<A,RecordLoadable<R>,R> constructor
 ) implements RecordLoadable<R> {

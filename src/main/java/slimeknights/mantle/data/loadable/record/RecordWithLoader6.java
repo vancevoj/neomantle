@@ -8,7 +8,7 @@ import slimeknights.mantle.util.typed.TypedMap;
 
 /** Record loadable with 6 fields plus the loader itself */
 @SuppressWarnings("DuplicatedCode")
-record RecordWIthLoader6<A,B,C,D,E,F,R>(
+record RecordWithLoader6<A,B,C,D,E,F,R>(
   RecordField<A,? super R> fieldA,
   RecordField<B,? super R> fieldB,
   RecordField<C,? super R> fieldC,

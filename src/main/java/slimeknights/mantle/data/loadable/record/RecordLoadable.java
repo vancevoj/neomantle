@@ -527,7 +527,7 @@ public interface RecordLoadable<T> extends Loadable<T> {
   static <A,R> RecordLoadable<R> withLoader(
     RecordField<A,? super R> fieldA,
     BiFunction<A,RecordLoadable<R>,R> constructor) {
-    return new RecordWIthLoader1<>(
+    return new RecordWithLoader1<>(
       fieldA,
       constructor
     );
@@ -602,7 +602,7 @@ public interface RecordLoadable<T> extends Loadable<T> {
     RecordField<E,? super R> fieldE,
     RecordField<F,? super R> fieldF,
     Function7<A,B,C,D,E,F,RecordLoadable<R>,R> constructor) {
-    return new RecordWIthLoader6<>(
+    return new RecordWithLoader6<>(
       fieldA,
       fieldB,
       fieldC,
@@ -758,7 +758,7 @@ public interface RecordLoadable<T> extends Loadable<T> {
     RecordField<K,? super R> fieldK,
     RecordField<L,? super R> fieldL,
     Function13<A,B,C,D,E,F,G,H,I,J,K,L,RecordLoadable<R>,R> constructor) {
-    return new RecordWIthLoader12<>(
+    return new RecordWithLoader12<>(
       fieldA,
       fieldB,
       fieldC,
