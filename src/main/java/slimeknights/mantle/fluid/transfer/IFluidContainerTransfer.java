@@ -1,10 +1,12 @@
 package slimeknights.mantle.fluid.transfer;
 
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import slimeknights.mantle.data.gson.GenericRegisteredSerializer.IJsonSerializable;
+import slimeknights.mantle.fluid.FluidTransferHelper;
 
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
@@ -53,7 +55,12 @@ public interface IFluidContainerTransfer extends IJsonSerializable {
    * @param fluid    Fluid, generally should not be modified
    * @param didFill  If true, the item stack was filled. If false, it was drained
    */
-  record TransferResult(ItemStack stack, FluidStack fluid, boolean didFill) {}
+  record TransferResult(ItemStack stack, FluidStack fluid, boolean didFill) {
+    /** Gets the sound for this result */
+    public SoundEvent getSound() {
+      return didFill ? FluidTransferHelper.getFillSound(fluid) : FluidTransferHelper.getEmptySound(fluid);
+    }
+  }
 
   /** Represents the direction to allow transfer */
   enum TransferDirection {
