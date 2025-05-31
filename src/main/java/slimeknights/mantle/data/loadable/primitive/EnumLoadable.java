@@ -3,7 +3,6 @@ package slimeknights.mantle.data.loadable.primitive;
 import com.google.gson.JsonSyntaxException;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
-import slimeknights.mantle.data.loadable.array.ArrayLoadable;
 import slimeknights.mantle.data.loadable.mapping.EnumMapLoadable;
 import slimeknights.mantle.data.loadable.mapping.EnumSetLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -44,7 +43,7 @@ public record EnumLoadable<E extends Enum<E>>(Class<E> enumClass, E[] allowedVal
   }
 
   @Override
-  public ArrayLoadable<Set<E>> set(int minSize) {
+  public Loadable<Set<E>> set(int minSize) {
     return new EnumSetLoadable<>(this, minSize);
   }
 
