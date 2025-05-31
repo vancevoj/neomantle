@@ -372,6 +372,16 @@ public class BookData implements IDataItem {
   }
 
   /**
+   * Opens the GUI for a held book
+   * @param slot   Slot containing the book
+   * @param stack  Book stack
+   */
+  public void openGui(int slot, ItemStack stack) {
+    String page = BookHelper.getCurrentSavedPage(stack);
+    openGui(stack.getHoverName(), page, newPage -> BookLoader.updateSavedPage(Minecraft.getInstance().player, slot, newPage));
+  }
+
+  /**
    * Opens the GUI for a lectern containing the book
    * @param pos    Position of the lectern
    * @param stack  Item in the lectern
