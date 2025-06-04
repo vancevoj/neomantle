@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
  * @param <T>  Enum type
  * @param <I>  Entry type
  */
-@SuppressWarnings({"unused", "WeakerAccess", "ClassCanBeRecord"})
+@SuppressWarnings({"unused", "WeakerAccess"})
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public class EnumObject<T extends Enum<T>, I> {
+public class EnumObject<T extends Enum<T>, I> implements MultiObject<I> {
   /** Singleton empty object, type does not matter as it has no items */
   @SuppressWarnings({"rawtypes", "unchecked"})
   private static final EnumObject EMPTY = new EnumObject(Collections.emptyMap());
@@ -86,6 +86,7 @@ public class EnumObject<T extends Enum<T>, I> {
    * Gets a list of values in this enum object. Will error if a {@link net.minecraftforge.registries.RegistryObject} cannot be resolved, unlike {@link #forEach(Consumer)}
    * @return  List of values in the object
    */
+  @Override
   public List<I> values() {
     return this.map.values().stream().map(Supplier::get).filter(Objects::nonNull).collect(Collectors.toList());
   }
@@ -115,6 +116,7 @@ public class EnumObject<T extends Enum<T>, I> {
    * Will ignore any suppliers that have not yet resolved, to work around a Forge error with registry events failing.
    * @param consumer  Consumer passed each key value pair
    */
+  @Override
   public void forEach(Consumer<? super I> consumer) {
     forEach((k, v) -> consumer.accept(v));
   }
