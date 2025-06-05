@@ -25,7 +25,6 @@ import net.minecraftforge.fml.config.ModConfig.Type;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -63,6 +62,7 @@ import slimeknights.mantle.recipe.crafting.ShapedFallbackRecipe;
 import slimeknights.mantle.recipe.crafting.ShapedRetexturedRecipe;
 import slimeknights.mantle.recipe.helper.TagPreference;
 import slimeknights.mantle.recipe.ingredient.FluidContainerIngredient;
+import slimeknights.mantle.recipe.ingredient.PotionIngredient;
 import slimeknights.mantle.registration.adapter.BlockEntityTypeRegistryAdapter;
 import slimeknights.mantle.registration.adapter.RegistryAdapter;
 import slimeknights.mantle.util.OffhandCooldownTracker;
@@ -131,6 +131,7 @@ public class Mantle {
       CraftingHelper.register(TagFilledCondition.SERIALIZER);
       CraftingHelper.register(TagCombinationCondition.SERIALIZER);
       CraftingHelper.register(FluidContainerIngredient.ID, FluidContainerIngredient.SERIALIZER);
+      CraftingHelper.register(getResource("potion"), PotionIngredient.SERIALIZER);
 
       // fluid container transfer
       FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(EmptyFluidContainerTransfer.ID, EmptyFluidContainerTransfer.DESERIALIZER);
