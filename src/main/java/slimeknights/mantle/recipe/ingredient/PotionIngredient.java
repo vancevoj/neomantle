@@ -53,6 +53,22 @@ public class PotionIngredient extends AbstractIngredient {
     this.potion = potion;
   }
 
+  /** Creates a potion ingredient matching a list of items */
+  public static PotionIngredient of(Potion potion, List<Item> items) {
+    return new PotionIngredient(items, null, potion);
+  }
+
+  /** Creates a potion ingredient matching a list of items */
+  public static PotionIngredient of(Potion potion, Item... items) {
+    return of(potion, Arrays.asList(items));
+  }
+
+  /** Creates a potion ingredient matching a tag */
+  public static PotionIngredient of(Potion potion, TagKey<Item> tag) {
+    return new PotionIngredient(List.of(), tag, potion);
+  }
+
+
   @Override
   public boolean test(@Nullable ItemStack stack) {
     // stack must match, any item must match, and potion must match
