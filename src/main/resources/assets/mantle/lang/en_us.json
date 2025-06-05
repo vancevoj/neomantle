@@ -47,6 +47,11 @@
   "gui.mantle.fluid.bucket": "%s b",
   "gui.mantle.fluid.millibucket": "%s mb",
 
+  "gui.mantle.fluid.bowl": "%s Bowls",
+  "gui.mantle.fluid.bottle": "%s Bottles",
+  "gui.mantle.fluid.drop": "%s Drops",
+  "gui.mantle.fluid.sip": "%s Sips",
+
   "block.mantle.tank.drained": "Drained %s mb %s",
   "block.mantle.tank.filled": "Filled %s mb %s"
 }

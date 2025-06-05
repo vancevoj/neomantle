@@ -9,7 +9,11 @@ import slimeknights.mantle.Mantle;
 
 import java.util.concurrent.CompletableFuture;
 
+import static slimeknights.mantle.datagen.MantleTags.Fluids.BEETROOT_SOUP;
 import static slimeknights.mantle.datagen.MantleTags.Fluids.LAVA;
+import static slimeknights.mantle.datagen.MantleTags.Fluids.MUSHROOM_STEW;
+import static slimeknights.mantle.datagen.MantleTags.Fluids.RABBIT_STEW;
+import static slimeknights.mantle.datagen.MantleTags.Fluids.SOUP;
 import static slimeknights.mantle.datagen.MantleTags.Fluids.WATER;
 
 /** Provider for tags added by mantle, generally not useful for other mods */
@@ -22,6 +26,10 @@ public class MantleFluidTagProvider extends FluidTagsProvider {
   protected void addTags(Provider pProvider) {
     this.tag(WATER).add(Fluids.WATER, Fluids.FLOWING_WATER);
     this.tag(LAVA).add(Fluids.LAVA, Fluids.FLOWING_LAVA);
+    this.tag(SOUP)
+      .addOptionalTag(BEETROOT_SOUP.location())
+      .addOptionalTag(MUSHROOM_STEW.location())
+      .addOptionalTag(RABBIT_STEW.location());
   }
 
   @Override

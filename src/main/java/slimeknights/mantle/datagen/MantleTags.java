@@ -39,6 +39,8 @@ public class MantleTags {
     public static final TagKey<Fluid> LAVA = tag("lava");
 
     // common fluids with Mantle compat
+    /** Anything classified as a soup, notably used for tooltips */
+    public static final TagKey<Fluid> SOUP = tag("soup");
     /** Fluid inside honey bottles, at 250mb per bottle */
     public static final TagKey<Fluid> HONEY = common("honey");
     /** Fluid inside beetroot soup bowls, at 250mb per bowl */

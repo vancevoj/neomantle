@@ -1,6 +1,5 @@
 package slimeknights.mantle.datagen;
 
-import net.minecraft.data.DataGenerator;
 import net.minecraft.data.PackOutput;
 import net.minecraftforge.fluids.FluidType;
 import slimeknights.mantle.Mantle;
@@ -19,6 +18,24 @@ public class MantleFluidTooltipProvider extends AbstractFluidTooltipProvider {
       .addUnit("kilobucket", FluidType.BUCKET_VOLUME * 1000)
       .addUnit("bucket", FluidType.BUCKET_VOLUME);
     addRedirect(FluidTooltipHandler.DEFAULT_ID, id("buckets"));
+    // water divides into bottles then "drops"
+    add("water", MantleTags.Fluids.WATER)
+      .addUnit("kilobucket", FluidType.BUCKET_VOLUME * 1000)
+      .addUnit("bucket", FluidType.BUCKET_VOLUME)
+      .addUnit("bottle", MantleValues.BOTTLE)
+      .addUnit("drop", MantleValues.DROP);
+    // potions and soup don't bother with buckets, stick with the directly useful units
+    add("potion", MantleTags.Fluids.POTION)
+      .addUnit("bottle", MantleValues.BOTTLE)
+      .addUnit("sip", MantleValues.SIP);
+    add("soup", MantleTags.Fluids.SOUP)
+      .addUnit("bowl", MantleValues.BOWL)
+      .addUnit("sip", MantleValues.SIP);
+    // honey buckets are equal to honey blocks making it a useful number
+    add("honey", MantleTags.Fluids.HONEY)
+      .addUnit("bucket", MantleValues.BOTTLE * 4)
+      .addUnit("bottle", MantleValues.BOTTLE)
+      .addUnit("sip", MantleValues.SIP);
   }
 
   @Override
