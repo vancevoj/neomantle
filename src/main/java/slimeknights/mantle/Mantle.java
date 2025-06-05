@@ -45,9 +45,11 @@ import slimeknights.mantle.data.predicate.entity.MobTypePredicate;
 import slimeknights.mantle.data.predicate.item.ItemPredicate;
 import slimeknights.mantle.datagen.MantleFluidTagProvider;
 import slimeknights.mantle.datagen.MantleFluidTooltipProvider;
+import slimeknights.mantle.datagen.MantleFluidTransferProvider;
 import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.fluid.transfer.EmptyFluidContainerTransfer;
 import slimeknights.mantle.fluid.transfer.EmptyFluidWithNBTTransfer;
+import slimeknights.mantle.fluid.transfer.EmptyPotionTransfer;
 import slimeknights.mantle.fluid.transfer.FillFluidContainerTransfer;
 import slimeknights.mantle.fluid.transfer.FillFluidWithNBTTransfer;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
@@ -138,6 +140,7 @@ public class Mantle {
       FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(FillFluidContainerTransfer.ID, FillFluidContainerTransfer.DESERIALIZER);
       FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(EmptyFluidWithNBTTransfer.ID, EmptyFluidWithNBTTransfer.DESERIALIZER);
       FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(FillFluidWithNBTTransfer.ID, FillFluidWithNBTTransfer.DESERIALIZER);
+      FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(EmptyPotionTransfer.ID, EmptyPotionTransfer.DESERIALIZER);
 
       // predicates
       {
@@ -206,6 +209,7 @@ public class Mantle {
     boolean client = event.includeClient();
     PackOutput packOutput = generator.getPackOutput();
     generator.addProvider(server, new MantleFluidTagProvider(packOutput, event.getLookupProvider(), event.getExistingFileHelper()));
+    generator.addProvider(server, new MantleFluidTransferProvider(packOutput));
     generator.addProvider(client, new MantleFluidTooltipProvider(packOutput));
   }
 

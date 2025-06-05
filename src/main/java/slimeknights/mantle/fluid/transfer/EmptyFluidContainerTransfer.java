@@ -30,8 +30,8 @@ import java.util.function.Consumer;
 public class EmptyFluidContainerTransfer implements IFluidContainerTransfer.WithDirection {
   public static final ResourceLocation ID = Mantle.getResource("empty_item");
 
-  private final Ingredient input;
-  private final ItemOutput result;
+  protected final Ingredient input;
+  protected final ItemOutput result;
   protected final FluidOutput fluid;
 
   /** @deprecated use {@link #EmptyFluidContainerTransfer(Ingredient, ItemOutput, FluidOutput)} */
