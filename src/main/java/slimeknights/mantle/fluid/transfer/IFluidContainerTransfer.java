@@ -86,10 +86,12 @@ public interface IFluidContainerTransfer extends IJsonSerializable {
 
   /** Temporary interface to make it easier to work with the method deprecation */
   interface WithDirection extends IFluidContainerTransfer {
+    @Nullable
     @Override
     TransferResult transfer(ItemStack stack, FluidStack fluid, IFluidHandler handler, TransferDirection direction);
 
     @SuppressWarnings("removal")
+    @Nullable
     @Override
     @Deprecated(forRemoval = true)
     default TransferResult transfer(ItemStack stack, FluidStack fluid, IFluidHandler handler) {
