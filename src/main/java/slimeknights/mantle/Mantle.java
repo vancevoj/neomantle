@@ -1,6 +1,7 @@
 package slimeknights.mantle;
 
 import net.minecraft.Util;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.PackOutput;
@@ -15,6 +16,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.common.crafting.CraftingHelper;
+import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -43,6 +45,7 @@ import slimeknights.mantle.data.predicate.entity.HasEnchantmentEntityPredicate;
 import slimeknights.mantle.data.predicate.entity.LivingEntityPredicate;
 import slimeknights.mantle.data.predicate.entity.MobTypePredicate;
 import slimeknights.mantle.data.predicate.item.ItemPredicate;
+import slimeknights.mantle.datagen.MantleBlockTagProvider;
 import slimeknights.mantle.datagen.MantleFluidTagProvider;
 import slimeknights.mantle.datagen.MantleFluidTooltipProvider;
 import slimeknights.mantle.datagen.MantleFluidTransferProvider;
@@ -71,6 +74,7 @@ import slimeknights.mantle.util.OffhandCooldownTracker;
 
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Mantle
@@ -208,7 +212,10 @@ public class Mantle {
     boolean server = event.includeServer();
     boolean client = event.includeClient();
     PackOutput packOutput = generator.getPackOutput();
-    generator.addProvider(server, new MantleFluidTagProvider(packOutput, event.getLookupProvider(), event.getExistingFileHelper()));
+    CompletableFuture<HolderLookup.Provider> lookupProvider = event.getLookupProvider();
+    ExistingFileHelper existingFileHelper = event.getExistingFileHelper();
+    generator.addProvider(server, new MantleBlockTagProvider(packOutput, lookupProvider, existingFileHelper));
+    generator.addProvider(server, new MantleFluidTagProvider(packOutput, lookupProvider, existingFileHelper));
     generator.addProvider(server, new MantleFluidTransferProvider(packOutput));
     generator.addProvider(client, new MantleFluidTooltipProvider(packOutput));
   }

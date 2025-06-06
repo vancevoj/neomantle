@@ -3,6 +3,7 @@ package slimeknights.mantle.datagen;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
 import slimeknights.mantle.Mantle;
 
@@ -10,6 +11,24 @@ import slimeknights.mantle.Mantle;
 public class MantleTags {
   public static void init() {
     Fluids.init();
+  }
+
+  public static class Blocks {
+    /** Blocks in this tag will show fluid tooltips when targeted */
+    public static final TagKey<Block> GAUGES = tag("gauges");
+    /**
+     * Blocks in this tag will show the fluid of attached block.
+     * Must have {@link net.minecraft.world.level.block.state.properties.BlockStateProperties#FACING}.
+     * @see slimeknights.mantle.block.GaugeBlock
+     */
+    public static final TagKey<Block> ATTACHED_GAUGES = tag("gauges/attached");
+    /** Blocks in this tag will show the fluid contained. Must have a block entity with a fluid handler capability. */
+    public static final TagKey<Block> GAUGE_TANKS = tag("gauges/tank");
+
+    /** Adds a mantle domain tag */
+    private static TagKey<Block> tag(String name) {
+      return TagKey.create(Registries.BLOCK, Mantle.getResource(name));
+    }
   }
 
   public static class Items {

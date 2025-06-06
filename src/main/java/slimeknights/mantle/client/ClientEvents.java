@@ -7,11 +7,20 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.renderer.Sheets;
 import net.minecraft.client.renderer.blockentity.HangingSignRenderer;
 import net.minecraft.client.renderer.blockentity.SignRenderer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.client.event.ModelEvent.RegisterGeometryLoaders;
@@ -20,8 +29,12 @@ import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.gui.overlay.NamedGuiOverlay;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.templates.EmptyFluidHandler;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -39,15 +52,20 @@ import slimeknights.mantle.client.model.util.ModelHelper;
 import slimeknights.mantle.client.render.FluidCuboid;
 import slimeknights.mantle.client.render.RenderItem;
 import slimeknights.mantle.command.client.MantleClientCommand;
+import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.fluid.texture.FluidTextureManager;
 import slimeknights.mantle.fluid.tooltip.FluidTooltipHandler;
 import slimeknights.mantle.registration.MantleRegistrations;
 import slimeknights.mantle.registration.RegistrationHelper;
 import slimeknights.mantle.util.OffhandCooldownTracker;
+import slimeknights.mantle.util.TranslationHelper;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
-@SuppressWarnings("unused")
+import static slimeknights.mantle.block.GaugeBlock.CAPACITY_KEY;
+
 @EventBusSubscriber(modid = Mantle.modId, value = Dist.CLIENT, bus = Bus.MOD)
 public class ClientEvents {
   private static final Function<OffhandCooldownTracker,Float> COOLDOWN_TRACKER = OffhandCooldownTracker::getCooldown;
@@ -105,6 +123,7 @@ public class ClientEvents {
   static void commonSetup(FMLCommonSetupEvent event) {
     MinecraftForge.EVENT_BUS.register(new ExtraHeartRenderHandler());
     MinecraftForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, RenderGuiOverlayEvent.Post.class, ClientEvents::renderOffhandAttackIndicator);
+    MinecraftForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, RenderGuiOverlayEvent.Post.class, ClientEvents::renderGaugeTooltip);
   }
 
   // registered with FORGE bus
@@ -168,5 +187,62 @@ public class ClientEvents {
         }
         break;
     }
+  }
+
+
+
+  /** Renders the tooltip when targeting the gauge block */
+  private static void renderGaugeTooltip(RenderGuiOverlayEvent.Post event) {
+    if (event.getOverlay() != VanillaGuiOverlay.CROSSHAIR.type()) {
+      return;
+    }
+    // must not be in a screen, though chat is fine
+    Minecraft minecraft = Minecraft.getInstance();
+    if (minecraft.screen != null && minecraft.screen.getClass() != ChatScreen.class) {
+      return;
+    }
+    // must have a hit result
+    if (minecraft.level == null || minecraft.hitResult == null || minecraft.hitResult.getType() != HitResult.Type.BLOCK) {
+      return;
+    }
+    BlockHitResult blockHit = (BlockHitResult) minecraft.hitResult;
+    BlockPos pos = blockHit.getBlockPos();
+
+    // must be targeting a gauge
+    BlockState targeted = minecraft.level.getBlockState(blockHit.getBlockPos());
+    if (!targeted.is(MantleTags.Blocks.GAUGES)) {
+      return;
+    }
+    BlockEntity gaugeContainer;
+    Direction side;
+    if (targeted.is(MantleTags.Blocks.ATTACHED_GAUGES)) {
+      side = targeted.getValue(BlockStateProperties.FACING);
+      gaugeContainer = minecraft.level.getBlockEntity(pos.relative(side.getOpposite()));
+    } else {
+      side = blockHit.getDirection();
+      gaugeContainer = minecraft.level.getBlockEntity(pos);
+    }
+    // must have a block entity behind the gauge
+    if (gaugeContainer == null) {
+      return;
+    }
+    // block entity must have a fluid handler
+    IFluidHandler handler = gaugeContainer.getCapability(ForgeCapabilities.FLUID_HANDLER, side).orElse(EmptyFluidHandler.INSTANCE);
+    if (handler.getTanks() <= 0) {
+      return;
+    }
+    // if the fluid is empty, just render the capacity
+    FluidStack fluid = handler.getFluidInTank(0);
+    List<Component> tooltip;
+    if (fluid.isEmpty()) {
+      tooltip = List.of(Component.translatable(CAPACITY_KEY, TranslationHelper.COMMA_FORMAT.format(handler.getTankCapacity(0))));
+    } else {
+      // render full fluid tooltip
+      tooltip = FluidTooltipHandler.getFluidTooltip(fluid);
+    }
+
+    int x = minecraft.getWindow().getGuiScaledWidth() / 2;
+    int y = minecraft.getWindow().getGuiScaledHeight() / 2;
+    event.getGuiGraphics().renderTooltip(minecraft.font, tooltip, Optional.empty(), x, y);
   }
 }
