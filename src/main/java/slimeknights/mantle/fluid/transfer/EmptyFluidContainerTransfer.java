@@ -82,7 +82,9 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer.With
     JsonObject json = new JsonObject();
     json.addProperty("type", ID.toString());
     json.add("input", input.toJson());
-    json.add("result", result.serialize(false));
+    if (!result.isEmpty()) {
+      json.add("result", result.serialize(false));
+    }
     json.add("fluid", FluidOutput.Loadable.REQUIRED.serialize(fluid));
     return json;
   }
@@ -97,7 +99,7 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer.With
       Mantle.logger.warn("Using deprecated field 'filled' for fluid container transfer, use 'result' instead.");
       key = "filled";
     }
-    return ItemOutput.Loadable.REQUIRED_ITEM.getIfPresent(json, key);
+    return ItemOutput.Loadable.OPTIONAL_ITEM.getOrEmpty(json, key);
   }
 
   /**

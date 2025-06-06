@@ -75,7 +75,9 @@ public class FillFluidContainerTransfer implements IFluidContainerTransfer.WithD
     JsonObject json = new JsonObject();
     json.addProperty("type", ID.toString());
     json.add("input", input.toJson());
-    json.add("result", result.serialize(false));
+    if (!result.isEmpty()) {
+      json.add("result", result.serialize(false));
+    }
     json.add("fluid", fluid.serialize());
     return json;
   }
