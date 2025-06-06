@@ -21,6 +21,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.ModList;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.SafeClientAccess;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
 /** Handles fluid units displaying in tooltips */
@@ -179,6 +181,23 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
     return getFluidTooltip(fluid, fluid.getAmount());
   }
 
+  /** Appends the ID in advanced tooltips */
+  public static void appendAdvanced(ResourceLocation id, List<Component> tooltip) {
+    if (SafeClientAccess.isAdvancedTooltip()) {
+      tooltip.add(Component.literal(id.toString()).withStyle(ChatFormatting.DARK_GRAY));
+    }
+  }
+
+  /** Gets the mod name for display in the tooltip */
+  public static <T> Component formatModName(ResourceLocation key) {
+    String name = key.getNamespace();
+    Optional<? extends ModContainer> mod = ModList.get().getModContainerById(name);
+    if (mod.isPresent()) {
+      name = mod.get().getModInfo().getDisplayName();
+    }
+    return Component.literal(name).withStyle(ChatFormatting.BLUE, ChatFormatting.ITALIC);
+  }
+
   /**
    * Gets the tooltip for a fluid stack
    * @param fluid  Fluid stack instance
@@ -188,14 +207,15 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   @SuppressWarnings("deprecation")
   public static List<Component> getFluidTooltip(FluidStack fluid, int amount) {
     List<Component> tooltip = new ArrayList<>();
+    ResourceLocation key = BuiltInRegistries.FLUID.getKey(fluid.getFluid());
     // fluid name, not sure if there is a cleaner way to do this
-    tooltip.add(fluid.getDisplayName().plainCopy().withStyle(ChatFormatting.WHITE));
+    tooltip.add(fluid.getDisplayName());
+    // add ID if advanced
+    appendAdvanced(key, tooltip);
     // material
     appendMaterial(fluid.getFluid(), amount, tooltip);
     // add mod display name
-    ModList.get().getModContainerById(BuiltInRegistries.FLUID.getKey(fluid.getFluid()).getNamespace())
-           .map(container -> container.getModInfo().getDisplayName())
-           .ifPresent(name -> tooltip.add(Component.literal(name).withStyle(ChatFormatting.BLUE, ChatFormatting.ITALIC)));
+    tooltip.add(formatModName(key));
     return tooltip;
   }
 
