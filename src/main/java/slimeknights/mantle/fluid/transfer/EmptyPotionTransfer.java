@@ -22,7 +22,7 @@ import slimeknights.mantle.recipe.helper.TagPreference;
 public class EmptyPotionTransfer extends EmptyFluidContainerTransfer {
   public static final ResourceLocation ID = Mantle.getResource("empty_potion");
   /** Unique loader instance */
-  public static final RecordLoadable<EmptyPotionTransfer> LOADER = RecordLoadable.create(
+  public static final RecordLoadable<EmptyPotionTransfer> DESERIALIZER = RecordLoadable.create(
     IngredientLoadable.DISALLOW_EMPTY.requiredField("input", t -> t.input),
     ItemOutput.Loadable.OPTIONAL_ITEM.emptyField("result", t -> t.result),
     IntLoadable.FROM_ONE.requiredField("amount", t -> t.fluid.getAmount()),
@@ -55,7 +55,7 @@ public class EmptyPotionTransfer extends EmptyFluidContainerTransfer {
   public JsonObject serialize(JsonSerializationContext context) {
     JsonObject json = new JsonObject();
     json.addProperty("type", ID.toString());
-    LOADER.serialize(this, json);
+    DESERIALIZER.serialize(this, json);
     return json;
   }
 }
