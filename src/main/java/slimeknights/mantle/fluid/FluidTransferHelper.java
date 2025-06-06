@@ -40,6 +40,8 @@ import slimeknights.mantle.fluid.transfer.IFluidContainerTransfer.TransferResult
 
 import javax.annotation.Nullable;
 
+import static slimeknights.mantle.util.TranslationHelper.COMMA_FORMAT;
+
 /**
  * Alternative to {@link net.minecraftforge.fluids.FluidUtil} since no one has time to make the forge util not a buggy mess
  */
@@ -173,7 +175,7 @@ public class FluidTransferHelper {
             handler.fill(fluidStack, FluidAction.EXECUTE);
             bucket.checkExtraContent(player, world, held, pos.relative(offset));
             world.playSound(null, pos, sound, SoundSource.BLOCKS, 1.0F, 1.0F);
-            player.displayClientMessage(Component.translatable(KEY_FILLED, FluidType.BUCKET_VOLUME, fluidStack.getDisplayName()), true);
+            player.displayClientMessage(Component.translatable(KEY_FILLED, COMMA_FORMAT.format(FluidType.BUCKET_VOLUME), fluidStack.getDisplayName()), true);
             if (!player.isCreative()) {
               player.setItemInHand(hand, held.getCraftingRemainingItem());
             }
@@ -189,13 +191,13 @@ public class FluidTransferHelper {
   /** Plays the sound from filling a TE */
   public static void playEmptySound(Level world, BlockPos pos, Player player, FluidStack transferred) {
     world.playSound(null, pos, getEmptySound(transferred), SoundSource.BLOCKS, 1.0F, 1.0F);
-    player.displayClientMessage(Component.translatable(KEY_FILLED, transferred.getAmount(), transferred.getDisplayName()), true);
+    player.displayClientMessage(Component.translatable(KEY_FILLED, COMMA_FORMAT.format(transferred.getAmount()), transferred.getDisplayName()), true);
   }
 
   /** Plays the sound from draining a TE */
   public static void playFillSound(Level world, BlockPos pos, Player player, FluidStack transferred) {
     world.playSound(null, pos, getFillSound(transferred), SoundSource.BLOCKS, 1.0F, 1.0F);
-    player.displayClientMessage(Component.translatable(KEY_DRAINED, transferred.getAmount(), transferred.getDisplayName()), true);
+    player.displayClientMessage(Component.translatable(KEY_DRAINED, COMMA_FORMAT.format(transferred.getAmount()), transferred.getDisplayName()), true);
   }
 
   /** @deprecated use {@link #interactWithContainer(Level, BlockPos, Player, InteractionHand, BlockHitResult)} */
