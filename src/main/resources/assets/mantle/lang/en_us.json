@@ -44,13 +44,13 @@
 
   "gui.mantle.fluid.hold_shift": "Hold §e§oShift§r§7 for buckets",
   "gui.mantle.fluid.kilobucket": "%s kb",
-  "gui.mantle.fluid.bucket": "%s b",
+  "gui.mantle.fluid.bucket": "%s buckets",
   "gui.mantle.fluid.millibucket": "%s mb",
 
-  "gui.mantle.fluid.bowl": "%s Bowls",
-  "gui.mantle.fluid.bottle": "%s Bottles",
-  "gui.mantle.fluid.drop": "%s Drops",
-  "gui.mantle.fluid.sip": "%s Sips",
+  "gui.mantle.fluid.bowl": "%s bowls",
+  "gui.mantle.fluid.bottle": "%s bottles",
+  "gui.mantle.fluid.drop": "%s drops",
+  "gui.mantle.fluid.sip": "%s sips",
 
   "block.mantle.tank.drained": "Drained %s mb %s",
   "block.mantle.tank.filled": "Filled %s mb %s"

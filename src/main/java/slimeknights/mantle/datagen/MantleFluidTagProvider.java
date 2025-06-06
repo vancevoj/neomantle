@@ -5,6 +5,7 @@ import net.minecraft.data.PackOutput;
 import net.minecraft.data.tags.FluidTagsProvider;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.common.data.ExistingFileHelper;
+import org.jetbrains.annotations.ApiStatus.Internal;
 import slimeknights.mantle.Mantle;
 
 import java.util.concurrent.CompletableFuture;
@@ -17,6 +18,7 @@ import static slimeknights.mantle.datagen.MantleTags.Fluids.SOUP;
 import static slimeknights.mantle.datagen.MantleTags.Fluids.WATER;
 
 /** Provider for tags added by mantle, generally not useful for other mods */
+@Internal
 public class MantleFluidTagProvider extends FluidTagsProvider {
   public MantleFluidTagProvider(PackOutput output, CompletableFuture<Provider> holders, ExistingFileHelper existingFileHelper) {
     super(output, holders,  Mantle.modId, existingFileHelper);
