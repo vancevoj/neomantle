@@ -2,6 +2,7 @@ package slimeknights.mantle.client;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.AttackIndicatorStatus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -13,7 +14,9 @@ import net.minecraft.client.renderer.blockentity.HangingSignRenderer;
 import net.minecraft.client.renderer.blockentity.SignRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -40,6 +43,7 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.block.GaugeBlock;
 import slimeknights.mantle.client.book.BookLoader;
 import slimeknights.mantle.client.book.repository.FileRepository;
 import slimeknights.mantle.client.model.FallbackModelLoader;
@@ -58,13 +62,12 @@ import slimeknights.mantle.fluid.tooltip.FluidTooltipHandler;
 import slimeknights.mantle.registration.MantleRegistrations;
 import slimeknights.mantle.registration.RegistrationHelper;
 import slimeknights.mantle.util.OffhandCooldownTracker;
-import slimeknights.mantle.util.TranslationHelper;
+import slimeknights.mantle.util.RegistryHelper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-
-import static slimeknights.mantle.block.GaugeBlock.CAPACITY_KEY;
 
 @EventBusSubscriber(modid = Mantle.modId, value = Dist.CLIENT, bus = Bus.MOD)
 public class ClientEvents {
@@ -235,7 +238,15 @@ public class ClientEvents {
     FluidStack fluid = handler.getFluidInTank(0);
     List<Component> tooltip;
     if (fluid.isEmpty()) {
-      tooltip = List.of(Component.translatable(CAPACITY_KEY, TranslationHelper.COMMA_FORMAT.format(handler.getTankCapacity(0))));
+      tooltip = List.of(GaugeBlock.formatCapacity(handler.getTankCapacity(0)));
+    } else if (RegistryHelper.contains(BuiltInRegistries.BLOCK_ENTITY_TYPE, MantleTags.BlockEntities.HIDES_GAUGE_AMOUNT, gaugeContainer.getType())) {
+      // in the tag, don't show capacity
+      ResourceLocation id = BuiltInRegistries.FLUID.getKey(fluid.getFluid());
+      tooltip = new ArrayList<>(3);
+      tooltip.add(fluid.getDisplayName());
+      FluidTooltipHandler.appendAdvanced(id, tooltip);
+      tooltip.add(GaugeBlock.formatCapacity(handler.getTankCapacity(0)).withStyle(ChatFormatting.GRAY));
+      tooltip.add(FluidTooltipHandler.formatModName(id));
     } else {
       // render full fluid tooltip
       tooltip = FluidTooltipHandler.getFluidTooltip(fluid);

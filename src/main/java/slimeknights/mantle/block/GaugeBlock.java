@@ -2,7 +2,9 @@ package slimeknights.mantle.block;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -23,7 +25,12 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.templates.EmptyFluidHandler;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.datagen.MantleTags;
+import slimeknights.mantle.util.RegistryHelper;
+import slimeknights.mantle.util.TranslationHelper;
 
 import javax.annotation.Nullable;
 
@@ -35,8 +42,9 @@ import static slimeknights.mantle.util.TranslationHelper.COMMA_FORMAT;
  * @see slimeknights.mantle.datagen.MantleTags.Blocks#ATTACHED_GAUGES
  */
 public class GaugeBlock extends Block {
-  public static final String CAPACITY_KEY = Mantle.makeDescriptionId("gui", "fluid.capacity");
+  private static final String CAPACITY_KEY = Mantle.makeDescriptionId("gui", "fluid.capacity");
   private static final String CONTENTS_KEY = Mantle.makeDescriptionId("gui", "fluid.contents");
+  private static final String CONTENTS_FORMAT = Mantle.makeDescriptionId("gui", "fluid.format");
 
   private static final VoxelShape[] BOUNDS = {
     box( 4,15,  4, 12, 16, 12), // D
@@ -55,6 +63,11 @@ public class GaugeBlock extends Block {
 
   /* Behavior */
 
+  /** Formats the capacity tooltip */
+  public static MutableComponent formatCapacity(int capacity) {
+    return Component.translatable(CAPACITY_KEY, TranslationHelper.COMMA_FORMAT.format(capacity));
+  }
+
   @SuppressWarnings("deprecation")
   @Deprecated
   @Override
@@ -64,15 +77,21 @@ public class GaugeBlock extends Block {
       Direction side = state.getValue(FACING);
       BlockEntity te = world.getBlockEntity(pos.relative(side.getOpposite()));
       if (te != null) {
-        te.getCapability(ForgeCapabilities.FLUID_HANDLER, side).ifPresent(handler -> {
+        IFluidHandler handler = te.getCapability(ForgeCapabilities.FLUID_HANDLER, side).orElse(EmptyFluidHandler.INSTANCE);
+        if (handler.getTanks() > 0) {
           FluidStack fluid = handler.getFluidInTank(0);
-          int capacity = handler.getTankCapacity(0);
           if (fluid.isEmpty()) {
-            player.displayClientMessage(Component.translatable(CAPACITY_KEY, COMMA_FORMAT.format(capacity)), true);
+            // show simple empty message if gauge amount is hidden
+            player.displayClientMessage(formatCapacity(handler.getTankCapacity(0)), true);
           } else {
-            player.displayClientMessage(Component.translatable(CONTENTS_KEY, COMMA_FORMAT.format(fluid.getAmount()), COMMA_FORMAT.format(capacity), fluid.getDisplayName()), true);
+            // show just fluid name if the gauge amount is hidden
+            Component contents = fluid.getDisplayName();
+            if (!RegistryHelper.contains(BuiltInRegistries.BLOCK_ENTITY_TYPE, MantleTags.BlockEntities.HIDES_GAUGE_AMOUNT, te.getType())) {
+              contents = Component.translatable(CONTENTS_FORMAT, COMMA_FORMAT.format(fluid.getAmount()), COMMA_FORMAT.format(handler.getTankCapacity(0)), contents);
+            }
+            player.displayClientMessage(Component.translatable(CONTENTS_KEY, contents), true);
           }
-        });
+        }
       }
     }
 

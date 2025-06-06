@@ -4,16 +4,21 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.material.Fluid;
 import slimeknights.mantle.Mantle;
 
 /** List of all tags used directly by mantle */
 public class MantleTags {
   public static void init() {
+    Blocks.init();
+    Items.init();
     Fluids.init();
+    BlockEntities.init();
   }
 
   public static class Blocks {
+    private static void init() {}
     /** Blocks in this tag will show fluid tooltips when targeted */
     public static final TagKey<Block> GAUGES = tag("gauges");
     /**
@@ -32,6 +37,7 @@ public class MantleTags {
   }
 
   public static class Items {
+    private static void init() {}
     /** Tag of empty glass bottles that would contain a splash potion */
     public static final TagKey<Item> SPLASH_BOTTLE = common("bottles/splash");
     /** Tag of empty glass bottles that would contain a lingering potion */
@@ -81,5 +87,15 @@ public class MantleTags {
     private static TagKey<Fluid> common(String name) {
       return TagKey.create(Registries.FLUID, Mantle.commonResource(name));
     }
+  }
+
+  public static class BlockEntities {
+    private static void init() {}
+
+    /**
+     * Any block entities in this tag will show just the fluid name, no capacity when viewed in a gauge.
+     * Useful for blocks that don't fully sync the fluid to client, such as channels.
+     */
+    public static final TagKey<BlockEntityType<?>> HIDES_GAUGE_AMOUNT = TagKey.create(Registries.BLOCK_ENTITY_TYPE, Mantle.getResource("hides_gauge_amount"));
   }
 }
