@@ -225,8 +225,8 @@ public class ClientEvents {
       side = blockHit.getDirection();
       gaugeContainer = minecraft.level.getBlockEntity(pos);
     }
-    // must have a block entity behind the gauge
-    if (gaugeContainer == null) {
+    // must have a block entity behind the gauge that is not blacklisted
+    if (gaugeContainer == null || RegistryHelper.contains(BuiltInRegistries.BLOCK_ENTITY_TYPE, MantleTags.BlockEntities.GAUGE_BLACKLIST, gaugeContainer.getType())) {
       return;
     }
     // block entity must have a fluid handler

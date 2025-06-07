@@ -96,6 +96,16 @@ public class MantleTags {
      * Any block entities in this tag will show just the fluid name, no capacity when viewed in a gauge.
      * Useful for blocks that don't fully sync the fluid to client, such as channels.
      */
-    public static final TagKey<BlockEntityType<?>> HIDES_GAUGE_AMOUNT = TagKey.create(Registries.BLOCK_ENTITY_TYPE, Mantle.getResource("hides_gauge_amount"));
+    public static final TagKey<BlockEntityType<?>> HIDES_GAUGE_AMOUNT = tag("hides_gauge_amount");
+
+    /** Any block entities in this tag will not show any gauge information. */
+    public static final TagKey<BlockEntityType<?>> GAUGE_BLACKLIST = tag("gauge_blacklist");
+
+
+    /** Adds a mantle domain tag */
+    private static TagKey<BlockEntityType<?>> tag(String name) {
+      return TagKey.create(Registries.BLOCK_ENTITY_TYPE, Mantle.getResource(name));
+    }
+
   }
 }
