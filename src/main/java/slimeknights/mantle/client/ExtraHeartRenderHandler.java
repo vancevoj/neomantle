@@ -125,8 +125,8 @@ public class ExtraHeartRenderHandler {
     assert this.mc.level != null;
     if (this.mc.level.getLevelData().isHardcore()) {
       heartOffset += 9;
+      absorpOffset += 9;
       container += 9;
-      heartOffset += 9;
     }
 
     // if health is low, the hearts will wiggle
