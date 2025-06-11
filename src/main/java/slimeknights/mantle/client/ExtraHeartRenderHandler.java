@@ -20,17 +20,48 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.config.Config;
+import slimeknights.mantle.config.Config.HeartRenderer;
 
 import java.util.Random;
 
 public class ExtraHeartRenderHandler {
   private static final ResourceLocation ICON_HEARTS = new ResourceLocation(Mantle.modId, "textures/gui/extra_hearts.png");
   private static final ResourceLocation ICON_VANILLA = Gui.GUI_ICONS_LOCATION;
-  private static final int ROW_HEIGHT = 10;
-  /** Offsets for each heart position */
-  private final int[] offsets = new int[20];
+  /** Number of heart color variants */
+  private static final int HEART_VARIANTS = 12;
+  /** Number of heart color variants */
+  private static final int HEART_SIZE = 9;
+  /** Offset between hearts in the renderer */
+  private static final int HEART_OFFSET = HEART_SIZE - 1;
+  /** Height of a row of hearts */
+  private static final int ROW_HEIGHT = HEART_SIZE + 1;
+
+  /** Offset from a heart variant to the hardcore hearts */
+  private static final int HARDCORE_OFFSET = HEART_SIZE;
+  /** Offset from a heart variant to the last damage hearts */
+  private static final int DAMAGE_OFFSET = 2 * HEART_SIZE;
+
+  /** Starting pixel value for the normal hearts */
+  private static final int NORMAL_VARIANT = 0;
+  /** Starting pixel value for the poison hearts */
+  private static final int POISON_VARIANT = 36;
+  /** Starting pixel value for the wither hearts */
+  private static final int WITHER_VARIANT = 72;
+  /** Starting pixel value for the freeze hearts */
+  private static final int FREEZE_VARIANT = 108;
+  /** Starting pixel value for the absorption hearts */
+  private static final int ABSORPTION_VARIANT = 216;
+  /** Extra background "containers" for showing max health */
+  private static final int MAX_VARIANT = 180;
+
+  /** Background container for normal hearts */
+  private static final int NORMAL_CONTAINER = 216;
+  /** Background container for absorption hearts */
+  private static final int ABSORPTION_CONTAINER = 234;
 
   private final Minecraft mc = Minecraft.getInstance();
+  /** Offsets for each heart position */
+  private final int[] offsets = new int[20];
 
   /** Health in the last update */
   private int lastHealth = 0;
@@ -50,7 +81,8 @@ public class ExtraHeartRenderHandler {
    */
   @SubscribeEvent(priority = EventPriority.LOW)
   public void renderHealthbar(RenderGuiOverlayEvent.Pre event) {
-    if (event.isCanceled() || !Config.EXTRA_HEART_RENDERER.get() || event.getOverlay() != VanillaGuiOverlay.PLAYER_HEALTH.type()) {
+    HeartRenderer renderer = Config.HEART_RENDERER.get();
+    if (renderer == HeartRenderer.DISABLE || event.isCanceled() || event.getOverlay() != VanillaGuiOverlay.PLAYER_HEALTH.type()) {
       return;
     }
     // ensure its visible
@@ -96,7 +128,7 @@ public class ExtraHeartRenderHandler {
 
     // grab max health as the max of it or the health we will display
     // cap it to 20, as this just determines heart count
-    int showHealth = Math.min(Math.max(Mth.ceil(player.getAttributeValue(Attributes.MAX_HEALTH)), Math.max(displayHealth, health)), 20);
+    int maxHealth = Math.max(Mth.ceil(player.getAttributeValue(Attributes.MAX_HEALTH)), Math.max(displayHealth, health));
     int absorb = Mth.ceil(player.getAbsorptionAmount());
 
     // make hearts bounce with regen
@@ -109,30 +141,34 @@ public class ExtraHeartRenderHandler {
 
     // determine which hearts to display based on status effects
     // this is inspired by Gui.HeartType#forPlayer, keep it in sync
-    int container = 0;
-    int heartOffset = 0;
-    int absorpOffset = 216;
+    int container = MAX_VARIANT;
+    int heartOffset = NORMAL_VARIANT;
+    int absorpOffset = ABSORPTION_VARIANT;
     if (player.hasEffect(MobEffects.POISON)) {
-      heartOffset = 36;
+      heartOffset = POISON_VARIANT;
     } else if (player.hasEffect(MobEffects.WITHER)) {
-      heartOffset = 72;
+      heartOffset = WITHER_VARIANT;
       // absorption shows as wither under the effects of wither, no other changes
-      absorpOffset = 72;
+      absorpOffset = WITHER_VARIANT;
     } else if (player.isFullyFrozen()) {
-      heartOffset = 108;
+      heartOffset = FREEZE_VARIANT;
     }
     // if hardcore, switch to the hardcore hearts
     assert this.mc.level != null;
     if (this.mc.level.getLevelData().isHardcore()) {
-      heartOffset += 9;
-      absorpOffset += 9;
-      container += 9;
+      heartOffset += HARDCORE_OFFSET;
+      absorpOffset += HARDCORE_OFFSET;
+      container += HARDCORE_OFFSET;
+    }
+    if (highlight) {
+      container += DAMAGE_OFFSET;
     }
 
     // if health is low, the hearts will wiggle
     boolean wiggle = (health + absorb <= 4);
 
     // number of heart backgrounds to draw
+    int showHealth = Math.min(maxHealth, 20);
     int showHearts = (showHealth + 1) / 2;
     // if we have less than a row of hearts, and at most 1 row of absorption,
     boolean compactAbsorption = showHearts < 10 && absorb <= 2 * (10 - showHearts);
@@ -140,16 +176,29 @@ public class ExtraHeartRenderHandler {
     // time to draw heart backgrounds
     GuiGraphics graphics = event.getGuiGraphics();
 
+    // render max health backgrounds
+    int absorptionOffset = ROW_HEIGHT;
+    setOffsets(0, showHearts, wiggle, regen);
+    // if we have a large enough amount of health and its enabled, render the max health as backgrounds
+    if (renderer == HeartRenderer.NO_MAX || maxHealth <= 20) {
+      renderHeartRow(graphics, left, top, 0, NORMAL_CONTAINER, container, 0, showHealth / 2, showHealth % 2 == 1);
+    } else {
+      absorptionOffset += 1;
+      // all hearts for the container row are offset to the left by 1 for the sake of doing -20 here. Means you don't see red until row 13
+      renderHearts(graphics, left, top - 2, container, maxHealth - 20, 0);
+      renderHeartRow(graphics, left, top, 0, NORMAL_CONTAINER, container, 0, 10, false);
+    }
+
     // render containers for health
-    renderContainerRow(graphics, left, top, container, 0, showHealth / 2, showHealth < 20 && showHealth % 2 == 1, highlight, wiggle, regen);
     // for absorption, render containers in same row if they fit, but never split across rows (that gets confusing when we start stacking)
     if (absorb > 0) {
+      setOffsets(10, Math.min((absorb - 1) / 2, 10), wiggle, -1);
       boolean half = absorb < 20 && absorb % 2 == 1;
       int absorbHearts = absorb / 2;
       if (compactAbsorption) {
-        renderContainerRow(graphics, left + 8 * showHearts, top, container, 10, absorbHearts, half, highlight, wiggle, -1);
+        renderHeartRow(graphics, left + 8 * showHearts, top, 10, ABSORPTION_CONTAINER, container, 0, absorbHearts, half);
       } else {
-        renderContainerRow(graphics, left, top - ROW_HEIGHT, container, 10, Math.min(absorbHearts, 10), half, highlight, wiggle, -1);
+        renderHeartRow(graphics, left, top - absorptionOffset, 10, ABSORPTION_CONTAINER, container, 0, Math.min(absorbHearts, 10), half);
       }
     }
 
@@ -166,16 +215,16 @@ public class ExtraHeartRenderHandler {
     if (compactAbsorption) {
       int absorbHearts = absorb / 2;
       // render the top color on both rows
-      renderHeartRow(graphics, left + showHearts * 8, top, absorpOffset, 10, 0, 0, absorbHearts, absorb % 2 == 1);
+      renderHeartRow(graphics, left + showHearts * 8, top, 10, 0, absorpOffset, 0, absorbHearts, absorb % 2 == 1);
     } else {
-      renderHearts(graphics, left, top - ROW_HEIGHT, absorpOffset, absorb, 10);
+      renderHearts(graphics, left, top - absorptionOffset, absorpOffset, absorb, 10);
     }
 
     // prepare the GUI for the event
     RenderSystem.setShaderTexture(0, ICON_VANILLA);
     gui.leftHeight += ROW_HEIGHT;
-    if (absorb > 0) {
-      gui.leftHeight += ROW_HEIGHT;
+    if (!compactAbsorption && absorb > 0) {
+      gui.leftHeight += absorptionOffset;
     }
 
     event.setCanceled(true);
@@ -183,6 +232,11 @@ public class ExtraHeartRenderHandler {
     this.mc.getProfiler().pop();
     //noinspection UnstableApiUsage  I do what I want (more accurately, we override the renderer but want to let others still respond in post)
     MinecraftForge.EVENT_BUS.post(new RenderGuiOverlayEvent.Post(event.getWindow(), graphics, event.getPartialTick(), VanillaGuiOverlay.PLAYER_HEALTH.type()));
+  }
+
+  /** Computes the color U offset for a given heart index */
+  private static int colorOffset(int heartIndex) {
+    return (heartIndex % HEART_VARIANTS) * 2 * HEART_SIZE;
   }
 
   /**
@@ -200,10 +254,10 @@ public class ExtraHeartRenderHandler {
     int heartIndex = count / 20;
     // if we have 1 full non-vanilla row, render the right side hearts
     if (count >= 20) {
-      renderHeartRow(graphics, x, y, heartOffset, indexOffset, heartIndex - 1, heartsTopColor, 10, false);
+      renderHeartRow(graphics, x, y, indexOffset, colorOffset(heartIndex - 1), heartOffset, heartsTopColor, 10, false);
     }
     // for the current row, need to render starting from the left
-    renderHeartRow(graphics, x, y, heartOffset, indexOffset, heartIndex, 0, heartsTopColor, count % 2 == 1);
+    renderHeartRow(graphics, x, y, indexOffset, colorOffset(heartIndex), heartOffset, 0, heartsTopColor, count % 2 == 1);
   }
 
   /**
@@ -233,74 +287,68 @@ public class ExtraHeartRenderHandler {
       // damage wrapping around means we cover up current middle to right, just a question of whether we cover current entirely
       // ???__
       //    ^^
-      renderHeartRow(graphics, x, y, heartOffset + 18, 0, last / 20 - 1, bigDamage ? lastRight : currentRight, 10, false);
+      renderHeartRow(graphics, x, y, 0, colorOffset(last / 20 - 1), heartOffset + DAMAGE_OFFSET, bigDamage ? lastRight : currentRight, 10, false);
     } else {
       // current health from middle to right
       if (current >= 20) {
         // *--##
         //    ^^
-        renderHeartRow(graphics, x, y, heartOffset, 0, current / 20 - 1, lastRight, 10, false);
+        renderHeartRow(graphics, x, y, 0, colorOffset(current / 20 - 1), heartOffset, lastRight, 10, false);
       }
 
       // damage taken did not wrap around, render it on top of lower current health bar (rendering lower health if present)
       // *--##
       //  ^^
-      renderHeartRow(graphics, x, y, heartOffset + 18, 0, last / 20, currentRight, lastRight, lastTopRow % 2 == 1);
+      renderHeartRow(graphics, x, y, 0, colorOffset(last / 20), heartOffset + DAMAGE_OFFSET, currentRight, lastRight, lastTopRow % 2 == 1);
     }
 
     // current health from left to middle
     if (!bigDamage) {
       // ***?? OR --*??
       // ^^^        ^
-      renderHeartRow(graphics, x, y, heartOffset, 0, current / 20, damageWrapped ? lastRight : 0, currentRight, currentTopRow % 2 == 1);
+      renderHeartRow(graphics, x, y, 0, colorOffset(current / 20), heartOffset, damageWrapped ? lastRight : 0, currentRight, currentTopRow % 2 == 1);
     }
 
     // damage taken from left to middle
     if (damageWrapped) {
       // --???
       // ^^
-      renderHeartRow(graphics, x, y, heartOffset + 18, 0, last / 20, 0, lastRight, lastTopRow % 2 == 1);
+      renderHeartRow(graphics, x, y, 0, colorOffset(last / 20), heartOffset + DAMAGE_OFFSET, 0, lastRight, lastTopRow % 2 == 1);
     }
   }
 
   /**
    * Renders a row of hearts
-   * @param graphics     Graphics instance
-   * @param x            X position to draw
-   * @param y            Y position to draw
-   * @param typeOffset   Heart type to render
-   * @param indexOffset  Offset for index in {@link #offsets}
-   * @param heartIndex   Heart color to render
-   * @param start        First heart to render
-   * @param end          Above the last heart to renderer
-   * @param half         If true, renders an extra half heart
+   *
+   * @param graphics    Graphics instance
+   * @param x           X position to draw
+   * @param y           Y position to draw
+   * @param indexOffset Offset for index in {@link #offsets}
+   * @param uOffset     Horizontal offset, typically heart color
+   * @param vOffset     Vertical offset, typically heart variant
+   * @param start       First heart to render
+   * @param end         Above the last heart to renderer
+   * @param half        If true, renders an extra half heart
    */
-  private void renderHeartRow(GuiGraphics graphics, int x, int y, int typeOffset, int indexOffset, int heartIndex, int start, int end, boolean half) {
-    heartIndex %= 12;
+  private void renderHeartRow(GuiGraphics graphics, int x, int y, int indexOffset, int uOffset, int vOffset, int start, int end, boolean half) {
     // draw full hearts
     for (int i = start; i < end; i += 1) {
-      graphics.blit(ICON_HEARTS, x + 8 * i, y + offsets[i + indexOffset], 18 * heartIndex, typeOffset, 9, 9);
+      graphics.blit(ICON_HEARTS, x + HEART_OFFSET * i, y + offsets[i + indexOffset], uOffset, vOffset, HEART_SIZE, HEART_SIZE);
     }
     // draw half heart
     if (half) {
-      graphics.blit(ICON_HEARTS, x + 8 * end, y + offsets[end + indexOffset], 9 + 18 * heartIndex, typeOffset, 9, 9);
+      graphics.blit(ICON_HEARTS, x + HEART_OFFSET * end, y + offsets[end + indexOffset], uOffset + HEART_SIZE, vOffset, HEART_SIZE, HEART_SIZE);
     }
   }
 
   /**
    * Renders a row of heart containers
-   * @param graphics     Graphics instance
-   * @param x            X position to draw
-   * @param y            Y position to draw
-   * @param typeOffset   Container type to render
    * @param indexOffset  Offset for index in {@link #offsets}
    * @param end          Above the last heart index to render
-   * @param half         If true, renders an extra half container
-   * @param highlight    If true, highlights the heart for changing health
    * @param wiggle       If true, health is low so the hearts wiggle
    * @param regen        Index of the heart for the regen bounce
    */
-  private void renderContainerRow(GuiGraphics graphics, int x, int y, int typeOffset, int indexOffset, int end, boolean half, boolean highlight, boolean wiggle, int regen) {
+  private void setOffsets(int indexOffset, int end, boolean wiggle, int regen) {
     for (int i = 0; i < end; i++) {
       // figure out the offset for this heart, and store it for future renderers to check
       int offset = 0;
@@ -311,33 +359,6 @@ public class ExtraHeartRenderHandler {
         offset -= 2;
       }
       offsets[i + indexOffset] = offset;
-
-      int localX = x + i * 8;
-      int localY = y + offset;
-      if (highlight) {
-        graphics.blit(ICON_HEARTS, localX, localY, 247, typeOffset + 18, 9, 9);
-      } else {
-        graphics.blit(ICON_HEARTS, localX, localY, 247, typeOffset, 9, 9);
-      }
-    }
-    // draw extra half heart container
-    if (half) {
-      int offset = 0;
-      if (wiggle) {
-        offset = this.rand.nextInt(2);
-      }
-      if (end == regen) {
-        offset -= 2;
-      }
-      offsets[end + indexOffset] = offset;
-      // if health is changing, add the white border
-      int localX = x + end * 8;
-      int localY = y + offset;
-      if (highlight) {
-        graphics.blit(ICON_HEARTS, localX, localY, 247, typeOffset + 18 + 36, 9, 9);
-      } else {
-        graphics.blit(ICON_HEARTS, localX, localY, 247, typeOffset + 36, 9, 9);
-      }
     }
   }
 }
