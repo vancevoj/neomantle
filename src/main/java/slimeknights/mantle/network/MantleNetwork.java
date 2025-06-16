@@ -13,7 +13,7 @@ import slimeknights.mantle.network.packet.UpdateLecternPagePacket;
 
 public class MantleNetwork {
   /** Network instance */
-  public static final NetworkWrapper INSTANCE = new NetworkWrapper(Mantle.getResource("network"));
+  public static final NetworkWrapper INSTANCE = new NetworkWrapper(Mantle.getResource("network"), "1");
 
   /**
    * Registers packets into this network

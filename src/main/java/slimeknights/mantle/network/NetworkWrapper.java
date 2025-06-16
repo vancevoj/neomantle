@@ -15,6 +15,7 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
+import slimeknights.mantle.Mantle;
 import slimeknights.mantle.network.packet.ISimplePacket;
 
 import javax.annotation.Nullable;
@@ -32,18 +33,23 @@ public class NetworkWrapper {
   /** Network instance */
   public final SimpleChannel network;
   private int id = 0;
-  private static final String PROTOCOL_VERSION = Integer.toString(1);
 
   /**
    * Creates a new network wrapper
    * @param channelName  Unique packet channel name
+   * @deprecated Give your channel a version number.
    */
+  @Deprecated
   public NetworkWrapper(ResourceLocation channelName) {
+    this(channelName, "1");
+  }
+
+  public NetworkWrapper(ResourceLocation channelName, String version) {
     this.network = NetworkRegistry.ChannelBuilder
       .named(channelName)
-      .clientAcceptedVersions(PROTOCOL_VERSION::equals)
-      .serverAcceptedVersions(PROTOCOL_VERSION::equals)
-      .networkProtocolVersion(() -> PROTOCOL_VERSION)
+      .clientAcceptedVersions(version::equals)
+      .serverAcceptedVersions(version::equals)
+      .networkProtocolVersion(() -> version)
       .simpleChannel();
   }
 
@@ -67,7 +73,32 @@ public class NetworkWrapper {
    * @param <MSG>  Packet class type
    */
   public <MSG> void registerPacket(Class<MSG> clazz, BiConsumer<MSG, FriendlyByteBuf> encoder, Function<FriendlyByteBuf, MSG> decoder, BiConsumer<MSG,Supplier<NetworkEvent.Context>> consumer, @Nullable NetworkDirection direction) {
+    registerPacketNoLogger(clazz, encoder, wrapLogger(clazz, decoder), consumer, direction);
+  }
+
+  /**
+   * Registers a new packet without the automatic logging if the decoder fails
+   * @param clazz      Packet class
+   * @param encoder    Encodes a packet to the buffer
+   * @param decoder    Packet decoder, typically the constructor
+   * @param consumer   Logic to handle a packet
+   * @param direction  Network direction for validation. Pass null for no direction
+   * @param <MSG>  Packet class type
+   */
+  public <MSG> void registerPacketNoLogger(Class<MSG> clazz, BiConsumer<MSG, FriendlyByteBuf> encoder, Function<FriendlyByteBuf, MSG> decoder, BiConsumer<MSG,Supplier<NetworkEvent.Context>> consumer, @Nullable NetworkDirection direction) {
     this.network.registerMessage(this.id++, clazz, encoder, decoder, consumer, Optional.ofNullable(direction));
+  }
+
+  /** Wraps the given decoder function */
+  private static <MSG> Function<FriendlyByteBuf,MSG> wrapLogger(Class<MSG> clazz, Function<FriendlyByteBuf,MSG> decoder) {
+    return buffer -> {
+      try {
+        return decoder.apply(buffer);
+      } catch (Exception e) {
+        Mantle.logger.error("Exception while decoding packet of class {}", clazz.getName(), e);
+        throw e;
+      }
+    };
   }
 
 
