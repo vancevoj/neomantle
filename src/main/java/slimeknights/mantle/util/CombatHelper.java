@@ -1,13 +1,17 @@
 package slimeknights.mantle.util;
 
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.stats.Stats;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -21,6 +25,7 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.ToolActions;
@@ -37,6 +42,11 @@ public class CombatHelper {
   private static final float TO_RADIAN = (float)Math.PI / 180f;
 
   private CombatHelper() {}
+
+  /** Makes a damage source from the given key */
+  public static DamageSource damageSource(Level level, ResourceKey<DamageType> key) {
+    return new DamageSource(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(key));
+  }
 
   /** Gets the attribute for the offhand by subtracting mainhand attributes and adding in offhand stack attributes. */
   public static float getOffhandAttribute(ItemStack stack, LivingEntity entity, Attribute attribute) {
