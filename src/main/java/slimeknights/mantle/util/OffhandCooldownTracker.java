@@ -87,6 +87,7 @@ public class OffhandCooldownTracker implements ICapabilityProvider {
   }
 
   /** If true, the tracker is enabled despite a cooldown item not being held */
+  @Deprecated(forRemoval = true)
   public boolean isEnabled() {
     return enabled > 0;
   }
@@ -94,7 +95,9 @@ public class OffhandCooldownTracker implements ICapabilityProvider {
   /**
    * Call this method when your item causing offhand cooldown to be needed is enabled and disabled. If multiple placces call this, the tracker will automatically keep enabled until all places disable
    * @param enable  If true, enable. If false, disable
+   * @deprecated No longer used, so you can just remove calls.
    */
+  @Deprecated(forRemoval = true)
   public void setEnabled(boolean enable) {
     if (enable) {
       enabled++;

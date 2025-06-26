@@ -33,6 +33,7 @@ import net.minecraftforge.client.gui.overlay.NamedGuiOverlay;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.common.util.NonNullFunction;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fluids.FluidStack;
@@ -67,11 +68,10 @@ import slimeknights.mantle.util.RegistryHelper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
 @EventBusSubscriber(modid = Mantle.modId, value = Dist.CLIENT, bus = Bus.MOD)
 public class ClientEvents {
-  private static final Function<OffhandCooldownTracker,Float> COOLDOWN_TRACKER = OffhandCooldownTracker::getCooldown;
+  private static final NonNullFunction<OffhandCooldownTracker,Float> COOLDOWN_TRACKER = OffhandCooldownTracker::getCooldown;
 
   /** Called on construct to initiatlize things that need early entry */
   public static void onConstruct() {
@@ -148,7 +148,7 @@ public class ClientEvents {
     }
 
     // enabled if either in the tag, or if force enabled
-    float cooldown = minecraft.player.getCapability(OffhandCooldownTracker.CAPABILITY).filter(OffhandCooldownTracker::isEnabled).map(COOLDOWN_TRACKER).orElse(1.0f);
+    float cooldown = minecraft.player.getCapability(OffhandCooldownTracker.CAPABILITY).map(COOLDOWN_TRACKER).orElse(1.0f);
     if (cooldown >= 1.0f) {
       return;
     }
