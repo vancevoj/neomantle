@@ -1,5 +1,7 @@
 package slimeknights.mantle.util;
 
+import net.minecraft.core.Holder;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
@@ -43,10 +45,6 @@ public class CombatHelper {
 
   private CombatHelper() {}
 
-  /** Makes a damage source from the given key */
-  public static DamageSource damageSource(Level level, ResourceKey<DamageType> key) {
-    return new DamageSource(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(key));
-  }
 
   /** Gets the attribute for the offhand by subtracting mainhand attributes and adding in offhand stack attributes. */
   public static float getOffhandAttribute(ItemStack stack, LivingEntity entity, Attribute attribute) {
@@ -261,5 +259,33 @@ public class CombatHelper {
       return true;
     }
     return false;
+  }
+
+
+  /* Damage source creation */
+
+  /** Makes a damage source from the given key */
+  public static Holder<DamageType> damageType(RegistryAccess access, ResourceKey<DamageType> key) {
+    return access.registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(key);
+  }
+
+  /** Makes a damage source from the given key */
+  public static DamageSource damageSource(RegistryAccess access, ResourceKey<DamageType> key) {
+    return new DamageSource(damageType(access, key));
+  }
+
+  /** Makes a damage source from the given key */
+  public static DamageSource damageSource(Level level, ResourceKey<DamageType> key) {
+    return new DamageSource(damageType(level.registryAccess(), key));
+  }
+
+  /** Makes a damage source from the given key for direct damage from an entity. */
+  public static DamageSource damageSource(ResourceKey<DamageType> key, Entity entity) {
+    return new DamageSource(damageType(entity.level().registryAccess(), key), entity);
+  }
+
+  /** Makes a damage source from the given key for indirect damage, such as from a projectile. */
+  public static DamageSource damageSource(ResourceKey<DamageType> key, Entity direct, @Nullable Entity causing) {
+    return new DamageSource(damageType(direct.level().registryAccess(), key), direct, causing);
   }
 }
