@@ -24,14 +24,17 @@ import slimeknights.mantle.network.packet.SwingArmPacket;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import static slimeknights.mantle.util.LogicHelper.orElseNull;
+
 /**
  * Logic to handle offhand having its own cooldown
  */
 @RequiredArgsConstructor
 public class OffhandCooldownTracker implements ICapabilityProvider {
   public static final ResourceLocation KEY = Mantle.getResource("offhand_cooldown");
+  /** @deprecated use {@link #get(Player)} */
+  @Deprecated(forRemoval = true)
   public static final NonNullFunction<OffhandCooldownTracker,Float> COOLDOWN_TRACKER = OffhandCooldownTracker::getCooldown;
-  private static final NonNullFunction<OffhandCooldownTracker,Boolean> ATTACK_READY = OffhandCooldownTracker::isAttackReady;
 
   /**
    * Capability instance for offhand cooldown
@@ -138,13 +141,20 @@ public class OffhandCooldownTracker implements ICapabilityProvider {
 
   /* Helpers */
 
+  /** Gets the tracker instance for the target entity */
+  @Nullable
+  public static OffhandCooldownTracker get(Player player) {
+    return orElseNull(player.getCapability(OffhandCooldownTracker.CAPABILITY));
+  }
+
   /**
    * Gets the offhand cooldown for the given player
    * @param player  Player
    * @return  Offhand cooldown
    */
   public static float getCooldown(Player player) {
-    return player.getCapability(CAPABILITY).map(COOLDOWN_TRACKER).orElse(1.0f);
+    OffhandCooldownTracker tracker = get(player);
+    return tracker != null ? tracker.getCooldown() : 1.0f;
   }
 
   /**
@@ -153,7 +163,10 @@ public class OffhandCooldownTracker implements ICapabilityProvider {
    * @param cooldown  Cooldown to apply
    */
   public static void applyCooldown(Player player, int cooldown) {
-    player.getCapability(CAPABILITY).ifPresent(cap -> cap.applyCooldown(cooldown));
+    OffhandCooldownTracker tracker = get(player);
+    if (tracker != null) {
+      tracker.applyCooldown(cooldown);
+    }
   }
 
   /**
@@ -161,7 +174,8 @@ public class OffhandCooldownTracker implements ICapabilityProvider {
    * @param player  Player
    */
   public static boolean isAttackReady(Player player) {
-    return player.getCapability(CAPABILITY).map(ATTACK_READY).orElse(true);
+    OffhandCooldownTracker tracker = get(player);
+    return tracker == null || tracker.isAttackReady();
   }
 
   /**

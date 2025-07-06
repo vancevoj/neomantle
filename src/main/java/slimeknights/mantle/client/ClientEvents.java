@@ -33,7 +33,6 @@ import net.minecraftforge.client.gui.overlay.NamedGuiOverlay;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.NonNullFunction;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fluids.FluidStack;
@@ -71,11 +70,8 @@ import java.util.Optional;
 
 @EventBusSubscriber(modid = Mantle.modId, value = Dist.CLIENT, bus = Bus.MOD)
 public class ClientEvents {
-  private static final NonNullFunction<OffhandCooldownTracker,Float> COOLDOWN_TRACKER = OffhandCooldownTracker::getCooldown;
-
   /** Called on construct to initiatlize things that need early entry */
-  public static void onConstruct() {
-  }
+  public static void onConstruct() {}
 
   @SuppressWarnings("ConstantConditions")
   @SubscribeEvent
@@ -147,8 +143,12 @@ public class ClientEvents {
       return;
     }
 
-    // enabled if either in the tag, or if force enabled
-    float cooldown = minecraft.player.getCapability(OffhandCooldownTracker.CAPABILITY).map(COOLDOWN_TRACKER).orElse(1.0f);
+    // fetch the current cooldown
+    OffhandCooldownTracker tracker = OffhandCooldownTracker.get(minecraft.player);
+    if (tracker == null) {
+      return;
+    }
+    float cooldown = tracker.getCooldown();
     if (cooldown >= 1.0f) {
       return;
     }
