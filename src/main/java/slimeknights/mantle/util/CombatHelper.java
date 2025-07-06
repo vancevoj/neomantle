@@ -22,6 +22,7 @@ import net.minecraft.world.entity.MobType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
@@ -30,10 +31,12 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.common.ToolAction;
 import net.minecraftforge.common.ToolActions;
 import net.minecraftforge.entity.PartEntity;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.event.entity.player.CriticalHitEvent;
+import slimeknights.mantle.Mantle;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -42,6 +45,10 @@ import java.util.List;
 /** Helpers for attacking with weapons */
 public class CombatHelper {
   private static final float TO_RADIAN = (float)Math.PI / 180f;
+  /** Attribute modifier to disable knockback on a target */
+  private static final AttributeModifier ANTI_KNOCKBACK_MODIFIER = new AttributeModifier(Mantle.modId + ".anti_knockback", 1f, Operation.ADDITION);
+  /** Tool action to disable the base knockback of the weapon. Requires replacing left click behavior of your weapon. */
+  public static final ToolAction NO_BASE_KNOCKBACK = ToolAction.get("no_base_knockback");
 
   private CombatHelper() {}
 
@@ -120,7 +127,7 @@ public class CombatHelper {
         if (hand == InteractionHand.OFF_HAND) {
           knockback = getOffhandAttribute(stack, player, Attributes.ATTACK_KNOCKBACK);
         } else {
-          knockback = (float)player.getAttributeValue(Attributes.ATTACK_KNOCKBACK);
+          knockback = (float) player.getAttributeValue(Attributes.ATTACK_KNOCKBACK);
         }
 
         knockback += EnchantmentHelper.getKnockbackBonus(player);
@@ -159,7 +166,25 @@ public class CombatHelper {
 
         // hit the target
         Vec3 movement = target.getDeltaMovement();
-        if (target.hurt(player.damageSources().playerAttack(player), damage)) {
+        boolean hit;
+
+        // cancel knockback if requested
+        DamageSource damageSource = player.damageSources().playerAttack(player);
+        if (stack.canPerformAction(NO_BASE_KNOCKBACK) && targetLiving != null) {
+          AttributeInstance knockbackAttribute = targetLiving.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
+          if (knockbackAttribute != null && !knockbackAttribute.hasModifier(ANTI_KNOCKBACK_MODIFIER)) {
+            knockbackAttribute.addTransientModifier(ANTI_KNOCKBACK_MODIFIER);
+            hit = target.hurt(damageSource, damage);
+            knockbackAttribute.removeModifier(ANTI_KNOCKBACK_MODIFIER);
+          } else {
+            hit = target.hurt(damageSource, damage);
+          }
+        } else {
+          hit = target.hurt(damageSource, damage);
+        }
+
+        // apply hit effects
+        if (hit) {
           // apply knockback
           if (knockback > 0) {
             if (targetLiving != null) {
