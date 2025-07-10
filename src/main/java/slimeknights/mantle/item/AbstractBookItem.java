@@ -1,6 +1,7 @@
 package slimeknights.mantle.item;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
@@ -17,6 +18,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.SafeClientAccess;
+import slimeknights.mantle.client.book.BookScreenOpener;
 import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.util.RegistryHelper;
 
@@ -31,6 +33,9 @@ public abstract class AbstractBookItem extends LecternBookItem {
   public AbstractBookItem(Properties properties) {
     super(properties);
   }
+
+  /** Gets the book for the given item stack */
+  public abstract BookScreenOpener getBook(ItemStack stack);
 
   /** Checks if the given menu supports opening the menu */
   public static boolean isValidContainer(AbstractContainerMenu menu) {
@@ -64,7 +69,9 @@ public abstract class AbstractBookItem extends LecternBookItem {
   }
 
   /** Called on the client to open the screen when used on right click in the hand */
-  public abstract void openScreen(Player player, InteractionHand hand, ItemStack stack);
+  public void openScreen(Player player, InteractionHand hand, ItemStack stack) {
+    getBook(stack).openGui(hand, stack);
+  }
 
   @Override
   public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
@@ -76,7 +83,9 @@ public abstract class AbstractBookItem extends LecternBookItem {
   }
 
   /** Called on the client to open the screen when right-clicked in the GUI */
-  public abstract void openScreen(Player player, int slotIndex, ItemStack stack);
+  public void openScreen(Player player, int slotIndex, ItemStack stack) {
+    getBook(stack).openGui(slotIndex, stack);
+  }
 
   @Override
   public boolean overrideOtherStackedOnMe(ItemStack stack, ItemStack held, Slot slot, ClickAction action, Player player, SlotAccess access) {
@@ -90,5 +99,10 @@ public abstract class AbstractBookItem extends LecternBookItem {
       return true;
     }
     return false;
+  }
+
+  @Override
+  public void openLecternScreenClient(BlockPos pos, ItemStack book) {
+    getBook(book).openGui(pos, book);
   }
 }
