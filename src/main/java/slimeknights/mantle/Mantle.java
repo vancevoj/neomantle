@@ -49,6 +49,7 @@ import slimeknights.mantle.datagen.MantleBlockTagProvider;
 import slimeknights.mantle.datagen.MantleFluidTagProvider;
 import slimeknights.mantle.datagen.MantleFluidTooltipProvider;
 import slimeknights.mantle.datagen.MantleFluidTransferProvider;
+import slimeknights.mantle.datagen.MantleMenuTagProvider;
 import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.fluid.transfer.EmptyFluidContainerTransfer;
 import slimeknights.mantle.fluid.transfer.EmptyFluidWithNBTTransfer;
@@ -216,6 +217,7 @@ public class Mantle {
     ExistingFileHelper existingFileHelper = event.getExistingFileHelper();
     generator.addProvider(server, new MantleBlockTagProvider(packOutput, lookupProvider, existingFileHelper));
     generator.addProvider(server, new MantleFluidTagProvider(packOutput, lookupProvider, existingFileHelper));
+    generator.addProvider(server, new MantleMenuTagProvider(packOutput, lookupProvider, existingFileHelper));
     generator.addProvider(server, new MantleFluidTransferProvider(packOutput));
     generator.addProvider(client, new MantleFluidTooltipProvider(packOutput));
   }

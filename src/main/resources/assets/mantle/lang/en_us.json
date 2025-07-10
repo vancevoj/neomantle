@@ -57,5 +57,7 @@
   "gui.mantle.fluid.sip": "%s sips",
 
   "block.mantle.tank.drained": "Drained %s mb %s",
-  "block.mantle.tank.filled": "Filled %s mb %s"
+  "block.mantle.tank.filled": "Filled %s mb %s",
+
+  "item.mantle.book.click_to_open": "Right click to open"
 }
