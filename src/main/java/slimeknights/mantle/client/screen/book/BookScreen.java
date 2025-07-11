@@ -274,7 +274,7 @@ public class BookScreen extends Screen {
 
       matrixStack.pushPose();
 
-      int width = fontRenderer.width(this.book.appearance.title);
+      int width = this.font.width(this.book.appearance.title);
       float scale = Mth.clamp((float)PAGE_WIDTH / width, 0F, 2.5F);
 
       matrixStack.scale(scale, scale, 1F);
@@ -286,7 +286,7 @@ public class BookScreen extends Screen {
     if (!this.book.appearance.subtitle.isEmpty()) {
       matrixStack.pushPose();
 
-      int width = fontRenderer.width(this.book.appearance.subtitle);
+      int width = this.font.width(this.book.appearance.subtitle);
       float scale = Mth.clamp((float)PAGE_WIDTH / width, 0F, 1.5F);
 
       matrixStack.scale(scale, scale, 1F);
