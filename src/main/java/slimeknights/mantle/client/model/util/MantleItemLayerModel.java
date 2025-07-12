@@ -494,7 +494,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
    * Class holding details about a single layer in the model
    */
   public record LayerData(int color, int luminosity, boolean noTint, @Nullable ResourceLocation renderType) {
-    private static final LayerData DEFAULT = new LayerData(-1, 0, false, null);
+    public static final LayerData DEFAULT = new LayerData(-1, 0, false, null);
     public static final RecordLoadable<LayerData> LOADABLE = RecordLoadable.create(
       ColorLoadable.ALPHA.defaultField("color", false, LayerData::color),
       // TODO: rename this field?
