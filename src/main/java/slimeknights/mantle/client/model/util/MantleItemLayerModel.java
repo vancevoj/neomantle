@@ -529,6 +529,6 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
 
   /** Deserializes this model from JSON */
   public static MantleItemLayerModel deserialize(JsonObject json, JsonDeserializationContext context) {
-    return new MantleItemLayerModel(LayerData.LIST_LOADABLE.getIfPresent(json, "layers"));
+    return new MantleItemLayerModel(LayerData.LIST_LOADABLE.getOrDefault(json, "layers", List.of()));
   }
 }
