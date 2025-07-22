@@ -213,7 +213,7 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
     }
   }
 
-  /** Loadable logic for an ItemOutput */
+  /** Loadable logic for an FluidOutput */
   public enum Loadable implements RecordLoadable<FluidOutput> {
     /** Loadable for an output that may be empty with any size */
     OPTIONAL(false),
@@ -247,7 +247,7 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
     @Override
     public void serialize(FluidOutput output, JsonObject json) {
       if (nonEmpty && output.isEmpty()) {
-        throw new IllegalArgumentException("ItemOutput cannot be empty for this recipe");
+        throw new IllegalArgumentException("FluidOutput cannot be empty for this recipe");
       }
       output.serialize(json);
     }
