@@ -9,7 +9,6 @@ import slimeknights.mantle.client.book.data.SectionData;
 import slimeknights.mantle.client.book.data.content.ContentPadding.ContentRightPadding;
 import slimeknights.mantle.client.screen.book.BookScreen;
 import slimeknights.mantle.client.screen.book.element.BookElement;
-import slimeknights.mantle.client.screen.book.element.ItemElement;
 import slimeknights.mantle.client.screen.book.element.PageIconLinkElement;
 import slimeknights.mantle.client.screen.book.element.SizedBookElement;
 
@@ -117,9 +116,7 @@ public class ContentPageIconList extends PageContent {
 
       element.width = scaledWidth;
       element.height = scaledHeight;
-      if (element.displayElement instanceof ItemElement) {
-        ((ItemElement) element.displayElement).scale = scale;
-      }
+      element.displayElement.scale(scale);
 
       list.add(element);
 
