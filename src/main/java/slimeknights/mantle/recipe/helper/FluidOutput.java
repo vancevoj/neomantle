@@ -54,6 +54,12 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
     return getAmount() <= 0;
   }
 
+  /** Gets the tag for this output. Will be {@code null} if this is not a tag output. */
+  @Nullable
+  public TagKey<Fluid> getTag() {
+    return null;
+  }
+
   /**
    * Writes this output to JSON
    * @return  Json element
@@ -177,6 +183,7 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
   /** Class for an output from a tag preference */
   @RequiredArgsConstructor
   private static class OfTagPreference extends FluidOutput {
+    @Getter
     private final TagKey<Fluid> tag;
     @Getter
     private final int amount;
