@@ -78,6 +78,18 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
     return requires(Ingredient.of(tag));
   }
 
+  /** Sets the XP gain from this recipe */
+  public T experience(float experience) {
+    this.experience = experience;
+    return (T) this;
+  }
+
+  /** Sets the cooking time for this recipe relative to smelting. Note its halved for {@link CookingType#BLASTING} and {@link CookingType#SMOKING} and tripled for {@link CookingType#CAMPFIRE} */
+  public T cookingTime(int cookingTime) {
+    this.cookingTime = cookingTime;
+    return (T) this;
+  }
+
 
   /** Helper to save a recipe */
   @SuppressWarnings("unchecked")
