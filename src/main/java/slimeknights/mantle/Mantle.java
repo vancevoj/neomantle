@@ -10,7 +10,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.MobType;
-import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
@@ -61,16 +60,14 @@ import slimeknights.mantle.item.LecternBookItem;
 import slimeknights.mantle.loot.LootTableInjector;
 import slimeknights.mantle.loot.MantleLoot;
 import slimeknights.mantle.network.MantleNetwork;
+import slimeknights.mantle.recipe.MantleRecipes;
 import slimeknights.mantle.recipe.condition.TagCombinationCondition;
 import slimeknights.mantle.recipe.condition.TagEmptyCondition;
 import slimeknights.mantle.recipe.condition.TagFilledCondition;
-import slimeknights.mantle.recipe.crafting.ShapedFallbackRecipe;
-import slimeknights.mantle.recipe.crafting.ShapedRetexturedRecipe;
 import slimeknights.mantle.recipe.helper.TagPreference;
 import slimeknights.mantle.recipe.ingredient.FluidContainerIngredient;
 import slimeknights.mantle.recipe.ingredient.PotionIngredient;
 import slimeknights.mantle.registration.adapter.BlockEntityTypeRegistryAdapter;
-import slimeknights.mantle.registration.adapter.RegistryAdapter;
 import slimeknights.mantle.util.OffhandCooldownTracker;
 
 import java.util.Objects;
@@ -108,6 +105,7 @@ public class Mantle {
     bus.addListener(EventPriority.NORMAL, false, RegisterCapabilitiesEvent.class, this::registerCapabilities);
     bus.addListener(EventPriority.NORMAL, false, GatherDataEvent.class, this::gatherData);
     bus.addListener(EventPriority.NORMAL, false, RegisterEvent.class, this::register);
+    MantleRecipes.init(bus);
     MinecraftForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, PlayerInteractEvent.RightClickBlock.class, LecternBookItem::interactWithBlock);
 
     if (FMLEnvironment.dist == Dist.CLIENT) {
@@ -130,10 +128,6 @@ public class Mantle {
   private void register(RegisterEvent event) {
     ResourceKey<?> key = event.getRegistryKey();
     if (key == Registries.RECIPE_SERIALIZER) {
-      RegistryAdapter<RecipeSerializer<?>> adapter = new RegistryAdapter<>(Objects.requireNonNull(event.getForgeRegistry()));
-      adapter.register(new ShapedFallbackRecipe.Serializer(), "crafting_shaped_fallback");
-      adapter.register(new ShapedRetexturedRecipe.Serializer(), "crafting_shaped_retextured");
-
       CraftingHelper.register(TagEmptyCondition.SERIALIZER);
       CraftingHelper.register(TagFilledCondition.SERIALIZER);
       CraftingHelper.register(TagCombinationCondition.SERIALIZER);
