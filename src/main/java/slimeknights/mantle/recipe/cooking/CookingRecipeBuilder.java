@@ -2,8 +2,6 @@ package slimeknights.mantle.recipe.cooking;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.mojang.datafixers.util.Function7;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -22,7 +20,6 @@ import java.util.function.Consumer;
 /** Builder for {@link SmeltingResultRecipe}, {@link BlastingResultRecipe}, {@link SmokingResultRecipe}, and {@link CampfireResultRecipe} */
 @SuppressWarnings({"unchecked", "unused"})
 @CanIgnoreReturnValue
-@RequiredArgsConstructor(access = AccessLevel.PROTECTED, staticName = "builder")
 public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends AbstractRecipeBuilder<T> {
   protected final ItemOutput result;
   protected float experience = 1.0f;
@@ -30,6 +27,15 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
   protected Ingredient ingredient = Ingredient.EMPTY;
   protected CookingBookCategory category = CookingBookCategory.MISC;
   protected CookingType type = CookingType.SMELTING;
+
+  protected CookingRecipeBuilder(ItemOutput result) {
+    this.result = result;
+  }
+
+  /** Creates a new builder instance */
+  public static CookingRecipeBuilder<?> builder(ItemOutput result) {
+    return new CookingRecipeBuilder<>(result);
+  }
 
   /** Creates a new builder instance */
   public static CookingRecipeBuilder<?> builder(ItemLike output, int amount) {
