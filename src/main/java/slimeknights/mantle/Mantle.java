@@ -252,4 +252,15 @@ public class Mantle {
   public static MutableComponent makeComponent(String base, String name) {
     return Component.translatable(makeDescriptionId(base, name));
   }
+
+  /**
+   * Makes a translation text component for the given name
+   * @param base  Base name, such as "block" or "gui"
+   * @param name  Object name
+   * @param args  Additional arguments to format strings
+   * @return  Translation key
+   */
+  public static MutableComponent makeComponent(String base, String name, Object... args) {
+    return Component.translatable(makeDescriptionId(base, name), args);
+  }
 }

@@ -2,6 +2,7 @@ package slimeknights.mantle.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -63,6 +64,7 @@ public class MantleCommand {
   /** Event listener to register the Mantle command */
   private static void registerCommand(RegisterCommandsEvent event) {
     LiteralArgumentBuilder<CommandSourceStack> builder = Commands.literal("mantle");
+    CommandBuildContext context = event.getBuildContext();
 
     // sub commands
     register(builder, "view_tag", ViewTagCommand::register);
@@ -72,6 +74,7 @@ public class MantleCommand {
     register(builder, "tags_for", TagsForCommand::register);
     register(builder, "harvest_tiers", HarvestTiersCommand::register);
     register(builder, "tag_preference", TagPreferenceCommand::register);
+    register(builder, "remove_recipes", b -> RemoveRecipesCommand.register(b, context));
 
     // register final command
     event.getDispatcher().register(builder);
