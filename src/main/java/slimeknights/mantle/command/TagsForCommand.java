@@ -30,6 +30,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -54,6 +56,7 @@ import java.util.Objects;
 /**
  * Command to list all tags for an entry
  */
+@SuppressWarnings("deprecation")
 public class TagsForCommand {
   /** Tag type cannot be found */
   protected static final Dynamic2CommandExceptionType VALUE_NOT_FOUND = new Dynamic2CommandExceptionType((type, name) -> Component.translatable("command.mantle.tags_for.not_found", type, name));
@@ -64,6 +67,8 @@ public class TagsForCommand {
   private static final Component NO_HELD_POTION = Component.translatable("command.mantle.tags_for.no_held_potion");
   private static final Component NO_HELD_FLUID = Component.translatable("command.mantle.tags_for.no_held_fluid");
   private static final Component NO_HELD_ENCHANTMENT = Component.translatable("command.mantle.tags_for.no_held_enchantment");
+  private static final Component NO_TARGETED_BLOCK = Component.translatable("command.mantle.tags_for.no_targeted_block");
+  private static final Component NO_TARGETED_FLUID = Component.translatable("command.mantle.tags_for.no_targeted_fluid");
   private static final Component NO_TARGETED_ENTITY = Component.translatable("command.mantle.tags_for.no_targeted_entity");
   private static final Component NO_TARGETED_BLOCK_ENTITY = Component.translatable("command.mantle.tags_for.no_targeted_block_entity");
   /** Value has no tags */
@@ -87,7 +92,9 @@ public class TagsForCommand {
         .then(Commands.literal("potion").executes(TagsForCommand::heldPotion)))
       // targeted
       .then(Commands.literal("targeted")
+        .then(Commands.literal("block").executes(TagsForCommand::targetedBlock))
         .then(Commands.literal("block_entity").executes(TagsForCommand::targetedTileEntity))
+        .then(Commands.literal("fluid").executes(TagsForCommand::targetedFluid))
         .then(Commands.literal("entity").executes(TagsForCommand::targetedEntity)));
   }
 
@@ -227,7 +234,48 @@ public class TagsForCommand {
   }
 
 
-  /* Targeted, based on look vector. Leaves out anything on the debug screen */
+  /* Targeted, based on look vector */
+
+  /**
+   * Gets the tags for the block being looked at
+   * @param context  Context
+   * @return  Tags for the looked at block or entity
+   * @throws CommandSyntaxException  For command errors
+   */
+  private static int targetedBlock(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+    CommandSourceStack source = context.getSource();
+    Player player = source.getPlayerOrException();
+    Level level = source.getLevel();
+    BlockHitResult blockTrace = Item.getPlayerPOVHitResult(level, player, ClipContext.Fluid.NONE);
+    if (blockTrace.getType() == HitResult.Type.BLOCK) {
+      return printOwningTags(context, BuiltInRegistries.BLOCK, level.getBlockState(blockTrace.getBlockPos()).getBlock());
+    }
+    // failed
+    source.sendSuccess(() -> NO_TARGETED_BLOCK, true);
+    return 0;
+  }
+
+  /**
+   * Gets the tags for the block being looked at
+   * @param context  Context
+   * @return  Tags for the looked at block or entity
+   * @throws CommandSyntaxException  For command errors
+   */
+  private static int targetedFluid(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+    CommandSourceStack source = context.getSource();
+    Player player = source.getPlayerOrException();
+    Level level = source.getLevel();
+    BlockHitResult blockTrace = Item.getPlayerPOVHitResult(level, player, ClipContext.Fluid.ANY);
+    if (blockTrace.getType() == HitResult.Type.BLOCK) {
+      FluidState fluid = level.getFluidState(blockTrace.getBlockPos());
+      if (fluid.getType() != Fluids.EMPTY) {
+        return printOwningTags(context, BuiltInRegistries.FLUID, fluid.getType());
+      }
+    }
+    // failed
+    source.sendSuccess(() -> NO_TARGETED_FLUID, true);
+    return 0;
+  }
 
   /**
    * Gets the tags for the fluid being looked at
