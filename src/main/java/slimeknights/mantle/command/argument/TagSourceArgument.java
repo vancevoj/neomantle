@@ -41,7 +41,7 @@ public class TagSourceArgument {
   /** Suggestion provider for all valid tags in a tag source */
   public static SuggestionProvider<CommandSourceStack> TAG;
   /** Suggestion provider for all values in a registry */
-  public static SuggestionProvider<CommandSourceStack> ENTRY;
+  public static SuggestionProvider<CommandSourceStack> VALUE;
 
   /** Creates and registers all suggestion providers */
   @Internal
@@ -52,9 +52,9 @@ public class TagSourceArgument {
       TagSource<?> result = get(context);
       return SharedSuggestionProvider.suggestResource(result.tagKeys().map(TagKey::location), builder);
     });
-    ENTRY = register(getResource("tag_source_entry"), (context, builder) -> {
+    VALUE = register(getResource("tag_source_value"), (context, builder) -> {
       TagSource<?> result = get(context);
-      return SharedSuggestionProvider.suggestResource(result.entryKeys(), builder);
+      return SharedSuggestionProvider.suggestResource(result.valueKeys(), builder);
     });
   }
 
@@ -87,8 +87,8 @@ public class TagSourceArgument {
   }
 
   /** Creates an argument builder with the given name */
-  public static RequiredArgumentBuilder<CommandSourceStack,ResourceLocation> entryArgument(String key) {
-    return Commands.argument(key, ResourceLocationArgument.id()).suggests(ENTRY);
+  public static RequiredArgumentBuilder<CommandSourceStack,ResourceLocation> valueArgument(String key) {
+    return Commands.argument(key, ResourceLocationArgument.id()).suggests(VALUE);
   }
 
   /** Gets a stream of all tag source keys */

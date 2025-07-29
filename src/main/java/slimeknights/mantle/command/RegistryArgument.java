@@ -35,7 +35,7 @@ public class RegistryArgument {
   /** Suggestion provider for all valid tags in a registry */
   public static SuggestionProvider<CommandSourceStack> TAG;
   /** Suggestion provider for all values in a registry */
-  public static SuggestionProvider<CommandSourceStack> ENTRY;
+  public static SuggestionProvider<CommandSourceStack> VALUE;
 
   /** Creates and registers all suggestion providers */
   @Internal
@@ -47,7 +47,7 @@ public class RegistryArgument {
       Registry<?> result = get(context);
       return SharedSuggestionProvider.suggestResource(result.getTagNames().map(TagKey::location), builder);
     });
-    ENTRY = register(getResource("registry_values"), (context, builder) -> {
+    VALUE = register(getResource("registry_values"), (context, builder) -> {
       Registry<?> result = get(context);
       return SharedSuggestionProvider.suggestResource(result.keySet(), builder);
     });

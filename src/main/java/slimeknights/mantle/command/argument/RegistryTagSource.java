@@ -41,7 +41,7 @@ public record RegistryTagSource<T>(Registry<T> registry) implements TagSource<T>
 
   @Nullable
   @Override
-  public List<T> entriesInTag(TagKey<T> tag) {
+  public List<T> valuesInTag(TagKey<T> tag) {
     HolderSet.Named<T> holder = registry.getTag(tag).orElse(null);
     if (holder == null) {
       return null;
@@ -65,7 +65,7 @@ public record RegistryTagSource<T>(Registry<T> registry) implements TagSource<T>
 
   @Nullable
   @Override
-  public T getEntry(ResourceLocation key) {
+  public T getValue(ResourceLocation key) {
     // prevent defaulting registries from returning their default
     if (registry.containsKey(key)) {
       return registry.get(key);
@@ -74,12 +74,12 @@ public record RegistryTagSource<T>(Registry<T> registry) implements TagSource<T>
   }
 
   @Override
-  public Stream<TagKey<T>> tagsFor(T entry) {
-    return registry.getHolder(registry.getId(entry)).stream().flatMap(Holder::getTagKeys);
+  public Stream<TagKey<T>> tagsFor(T value) {
+    return registry.getHolder(registry.getId(value)).stream().flatMap(Holder::getTagKeys);
   }
 
   @Override
-  public Stream<ResourceLocation> entryKeys() {
+  public Stream<ResourceLocation> valueKeys() {
     return registry.keySet().stream();
   }
 }

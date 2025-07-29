@@ -34,16 +34,16 @@ public interface TagSource<T> {
   Stream<TagKey<T>> tagKeys();
 
 
-  /* Tag entries */
+  /* Tag values */
 
-  /** Gets a collection of entries in the given tag, or null if the tag is missing */
+  /** Gets a collection of values in the given tag, or null if the tag is missing */
   @Nullable
-  List<T> entriesInTag(TagKey<T> tag);
+  List<T> valuesInTag(TagKey<T> tag);
 
-  /** Gets a stream of entries in the given tag, or null if the tag is missing */
+  /** Gets a stream of values in the given tag, or null if the tag is missing */
   @Nullable
-  default List<T> entriesInTag(ResourceLocation tag) {
-    return entriesInTag(TagKey.create(key(), tag));
+  default List<T> valuesInTag(ResourceLocation tag) {
+    return valuesInTag(TagKey.create(key(), tag));
   }
 
   /** Gets a collection of keys in the given tag, or null if the tag is missing */
@@ -57,15 +57,15 @@ public interface TagSource<T> {
   }
 
 
-  /* Entries */
+  /* Values */
 
-  /** Gets the entry with the given key */
+  /** Gets the value with the given key */
   @Nullable
-  T getEntry(ResourceLocation key);
+  T getValue(ResourceLocation key);
 
-  /** Gets all tag keys for the given entry in the registry */
-  Stream<TagKey<T>> tagsFor(T entry);
+  /** Gets all tag keys for the given value in the registry */
+  Stream<TagKey<T>> tagsFor(T value);
 
-  /** Gets a stream of all entry keys in the registry */
-  Stream<ResourceLocation> entryKeys();
+  /** Gets a stream of all value keys in the registry */
+  Stream<ResourceLocation> valueKeys();
 }

@@ -28,7 +28,7 @@ public class MantleCommand {
   /** @deprecated use {@link RegistryArgument#TAG} or {@link TagSourceArgument#TAG} */
   @Deprecated(forRemoval = true)
   public static SuggestionProvider<CommandSourceStack> VALID_TAGS;
-  /** @deprecated use {@link RegistryArgument#ENTRY} or {@link TagSourceArgument#ENTRY} */
+  /** @deprecated use {@link RegistryArgument#VALUE} or {@link TagSourceArgument#VALUE} */
   @Deprecated(forRemoval = true)
   public static SuggestionProvider<CommandSourceStack> REGISTRY_VALUES;
   /** @deprecated use {@link RegistryArgument#REGISTRY} or {@link TagSourceArgument#SOURCE} */
@@ -39,7 +39,7 @@ public class MantleCommand {
   public static void init() {
     RegistryArgument.registerSuggestions();
     VALID_TAGS = RegistryArgument.TAG;
-    REGISTRY_VALUES = RegistryArgument.ENTRY;
+    REGISTRY_VALUES = RegistryArgument.VALUE;
     REGISTRY = RegistryArgument.REGISTRY;
     TagSourceArgument.registerSuggestions();
 

@@ -81,7 +81,7 @@ public class TagsForCommand {
   public static void register(LiteralArgumentBuilder<CommandSourceStack> subCommand) {
     subCommand.requires(source -> MantleCommand.requiresDebugInfoOrOp(source, MantleCommand.PERMISSION_GAME_COMMANDS))
       // by registry ID
-      .then(Commands.literal("id").then(TagSourceArgument.argument().then(TagSourceArgument.entryArgument("name").executes(TagsForCommand::runForId))))
+      .then(Commands.literal("id").then(TagSourceArgument.argument().then(TagSourceArgument.valueArgument("name").executes(TagsForCommand::runForId))))
       // held item
       .then(Commands.literal("held")
         .then(Commands.literal("item").executes(TagsForCommand::heldItem))
@@ -145,7 +145,7 @@ public class TagsForCommand {
   private static <T> int runForIdGeneric(CommandContext<CommandSourceStack> context, TagSource<T> registry) throws CommandSyntaxException {
     ResourceLocation name = context.getArgument("name", ResourceLocation.class);
     // first, fetch value
-    T value = registry.getEntry(name);
+    T value = registry.getValue(name);
     if (value == null) {
       throw VALUE_NOT_FOUND.create(registry.key().location(), name);
     }
