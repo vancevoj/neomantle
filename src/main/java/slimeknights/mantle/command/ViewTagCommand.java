@@ -14,7 +14,10 @@ import slimeknights.mantle.command.argument.TagSourceArgument;
 import java.util.Collection;
 import java.util.Objects;
 
-/** Command that lists all values in a tag */
+/**
+ * Command that lists all values in a tag.
+ * TODO 1.21: rename to {@code TagValuesCommand}.
+ */
 public class ViewTagCommand {
   /** Tag has no values */
   private static final Component EMPTY = Component.translatable("command.mantle.tag.empty");

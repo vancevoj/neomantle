@@ -3,6 +3,7 @@ package slimeknights.mantle.command;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -32,7 +33,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Command that dumps a tag into a JSON object */
+/**
+ * Command that dumps a tag into a JSON object.
+ * TODO 1.21: rename to {@code TagEntriesCommand}.
+ */
 public class DumpTagCommand {
   protected static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
   private static final Dynamic2CommandExceptionType ERROR_READING_TAG = new Dynamic2CommandExceptionType((type, name) -> Component.translatable("command.mantle.dump_tag.read_error", type, name));
@@ -44,11 +48,20 @@ public class DumpTagCommand {
    */
   public static void register(LiteralArgumentBuilder<CommandSourceStack> subCommand) {
     subCommand.requires(sender -> sender.hasPermission(MantleCommand.PERMISSION_EDIT_SPAWN))
-      .then(TagSourceArgument.argument().then(TagSourceArgument.tagArgument("name")
-        .executes(context -> run(context, Action.LOG))
-        .then(Commands.literal("log").executes(context -> run(context, Action.LOG)))
-        .then(Commands.literal("save").executes(context -> run(context, Action.SAVE)))
-        .then(Commands.literal("sources").executes(context -> run(context, Action.SOURCES)))));
+      .then(Action.LOG.build())
+      .then(Action.SAVE.build())
+      .then(Action.SOURCES.build());
+  }
+
+  private enum Action {
+    SAVE, LOG, SOURCES;
+
+    /** Builds the command for this action */
+    public ArgumentBuilder<CommandSourceStack, ?> build() {
+      return Commands.literal(name().toLowerCase())
+        .then(TagSourceArgument.argument().then(TagSourceArgument.tagArgument("name")
+          .executes(context -> run(context, this))));
+    }
   }
 
   /**
@@ -106,8 +119,6 @@ public class DumpTagCommand {
       Mantle.logger.error("Couldn't save tag to {}", path, ex);
     }
   }
-
-  private enum Action { SAVE, LOG, SOURCES }
 
   /**
    * Runs the view-tag command, with the generic for the registry so those don't get mad

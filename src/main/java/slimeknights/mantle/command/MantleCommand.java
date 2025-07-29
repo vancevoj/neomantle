@@ -60,13 +60,15 @@ public class MantleCommand {
     CommandBuildContext context = event.getBuildContext();
 
     // sub commands
-    register(builder, "view_tag", ViewTagCommand::register);
-    register(builder, "dump_tag", DumpTagCommand::register);
+    register(builder, "tags", b -> {
+      register(b, "view", ViewTagCommand::register);
+      register(b, "entries", DumpTagCommand::register);
+      register(b, "dump", DumpAllTagsCommand::register);
+      register(b, "for", TagsForCommand::register);
+      register(b, "preference", TagPreferenceCommand::register);
+    });
     register(builder, "dump_loot_modifiers", DumpLootModifiers::register);
-    register(builder, "dump_all_tags", DumpAllTagsCommand::register);
-    register(builder, "tags_for", TagsForCommand::register);
     register(builder, "harvest_tiers", HarvestTiersCommand::register);
-    register(builder, "tag_preference", TagPreferenceCommand::register);
     register(builder, "remove_recipes", b -> RemoveRecipesCommand.register(b, context));
 
     // register final command
