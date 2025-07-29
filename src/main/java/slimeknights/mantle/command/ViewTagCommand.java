@@ -47,9 +47,9 @@ public class ViewTagCommand {
       if (values.isEmpty()) {
         output.append("\n* ").append(EMPTY);
       } else {
-        values.stream()
-              .sorted((a, b) -> Objects.requireNonNull(a).compareNamespaced(Objects.requireNonNull(b)))
-              .forEach(value -> output.append("\n* " + Objects.requireNonNull(value)));
+        for (ResourceLocation value : values) {
+          output.append("\n* " + Objects.requireNonNull(value));
+        }
       }
       context.getSource().sendSuccess(() -> output, true);
       return values.size();
