@@ -5,15 +5,11 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
-import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
-import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
+import slimeknights.mantle.command.argument.TagSource;
+import slimeknights.mantle.command.argument.TagSourceArgument;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -31,9 +27,7 @@ public class ViewTagCommand {
    */
   public static void register(LiteralArgumentBuilder<CommandSourceStack> subCommand) {
     subCommand.requires(source -> MantleCommand.requiresDebugInfoOrOp(source, MantleCommand.PERMISSION_GAME_COMMANDS))
-              .then(Commands.argument("type", RegistryArgument.registry()).suggests(MantleCommand.REGISTRY)
-                            .then(Commands.argument("name", ResourceLocationArgument.id()).suggests(MantleCommand.VALID_TAGS)
-                                          .executes(ViewTagCommand::run)));
+      .then(TagSourceArgument.argument().then(TagSourceArgument.tagArgument("name").executes(ViewTagCommand::run)));
   }
 
   /**
@@ -42,20 +36,18 @@ public class ViewTagCommand {
    * @return  Integer return
    * @throws CommandSyntaxException  If invalid values are passed
    */
-  private static <T> int runGeneric(CommandContext<CommandSourceStack> context, Registry<T> registry) throws CommandSyntaxException {
+  private static <T> int runGeneric(CommandContext<CommandSourceStack> context, TagSource<T> registry) throws CommandSyntaxException {
     ResourceLocation name = context.getArgument("name", ResourceLocation.class);
-    HolderSet.Named<T> holder = registry.getTag(TagKey.create(registry.key(), name)).orElse(null);
-    if (holder != null) {
+    Collection<ResourceLocation> values = registry.keysInTag(name);
+    if (values != null) {
       // start building output message
       MutableComponent output = Component.translatable("command.mantle.view_tag.success", registry.key().location(), name);
-      Collection<T> values = holder.stream().filter(Holder::isBound).map(Holder::value).toList();
 
       // if no values, print empty
       if (values.isEmpty()) {
         output.append("\n* ").append(EMPTY);
       } else {
         values.stream()
-              .map(registry::getKey)
               .sorted((a, b) -> Objects.requireNonNull(a).compareNamespaced(Objects.requireNonNull(b)))
               .forEach(value -> output.append("\n* " + Objects.requireNonNull(value)));
       }
@@ -72,6 +64,6 @@ public class ViewTagCommand {
    * @throws CommandSyntaxException  If invalid values are passed
    */
   private static int run(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-    return runGeneric(context, RegistryArgument.getResult(context, "type"));
+    return runGeneric(context, TagSourceArgument.get(context));
   }
 }

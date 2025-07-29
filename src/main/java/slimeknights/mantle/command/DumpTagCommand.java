@@ -11,19 +11,17 @@ import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
-import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagFile;
-import net.minecraft.tags.TagKey;
 import net.minecraft.tags.TagLoader;
 import net.minecraft.tags.TagLoader.EntryWithSource;
-import net.minecraft.tags.TagManager;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.command.argument.TagSource;
+import slimeknights.mantle.command.argument.TagSourceArgument;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -46,12 +44,11 @@ public class DumpTagCommand {
    */
   public static void register(LiteralArgumentBuilder<CommandSourceStack> subCommand) {
     subCommand.requires(sender -> sender.hasPermission(MantleCommand.PERMISSION_EDIT_SPAWN))
-              .then(Commands.argument("type", RegistryArgument.registry()).suggests(MantleCommand.REGISTRY)
-                            .then(Commands.argument("name", ResourceLocationArgument.id()).suggests(MantleCommand.VALID_TAGS)
-                                          .executes(context -> run(context, Action.LOG))
-                                          .then(Commands.literal("log").executes(context -> run(context, Action.LOG)))
-                                          .then(Commands.literal("save").executes(context -> run(context, Action.SAVE)))
-                                          .then(Commands.literal("sources").executes(context -> run(context, Action.SOURCES)))));
+      .then(TagSourceArgument.argument().then(TagSourceArgument.tagArgument("name")
+        .executes(context -> run(context, Action.LOG))
+        .then(Commands.literal("log").executes(context -> run(context, Action.LOG)))
+        .then(Commands.literal("save").executes(context -> run(context, Action.SAVE)))
+        .then(Commands.literal("sources").executes(context -> run(context, Action.SOURCES)))));
   }
 
   /**
@@ -62,7 +59,7 @@ public class DumpTagCommand {
    * @throws CommandSyntaxException  If invalid values are passed
    */
   private static int run(CommandContext<CommandSourceStack> context, Action action) throws CommandSyntaxException {
-    return runGeneric(context, RegistryArgument.getResult(context, "type"), action);
+    return runGeneric(context, TagSourceArgument.get(context), action);
   }
 
   /** Parses a tag from the resource list */
@@ -114,17 +111,17 @@ public class DumpTagCommand {
    * @return  Integer return
    * @throws CommandSyntaxException  If invalid values are passed
    */
-  private static <T> int runGeneric(CommandContext<CommandSourceStack> context, Registry<T> registry, Action action) throws CommandSyntaxException {
+  private static <T> int runGeneric(CommandContext<CommandSourceStack> context, TagSource<T> registry, Action action) throws CommandSyntaxException {
     ResourceLocation regName = registry.key().location();
     ResourceLocation name = context.getArgument("name", ResourceLocation.class);
     ResourceManager manager = context.getSource().getServer().getResourceManager();
 
-    ResourceLocation path = new ResourceLocation(name.getNamespace(), TagManager.getTagDir(registry.key()) + "/" + name.getPath() + ".json");
+    ResourceLocation path = new ResourceLocation(name.getNamespace(), registry.folder() + "/" + name.getPath() + ".json");
 
     // if the tag file does not exist, only error if the tag is unknown
     List<Resource> resources = manager.getResourceStack(path);
     // if the tag does not exist in the collection, probably an invalid tag name
-    if (resources.isEmpty() && registry.getTag(TagKey.create(registry.key(), name)).isEmpty()) {
+    if (resources.isEmpty() && !registry.hasTag(name)) {
       throw ViewTagCommand.TAG_NOT_FOUND.create(regName, name);
     }
 

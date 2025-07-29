@@ -42,6 +42,7 @@
   "command.mantle.tag.empty": "Empty",
   "command.mantle.item.not_found": "Unknown item '%s'",
   "command.mantle.registry.not_found": "Unknown registry '%s'",
+  "command.mantle.tag_source.not_found": "Unknown tag source '%s'",
   "command.mantle.tag.not_found": "Unknown %s tag '%s'",
 
   "command.mantle.tag_preference.empty_tag": "No preference for %s tag %s",

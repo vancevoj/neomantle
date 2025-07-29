@@ -5,14 +5,10 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.commands.synchronization.SuggestionProviders;
-import net.minecraft.core.Registry;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.GameRules;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
-import slimeknights.mantle.Mantle;
+import slimeknights.mantle.command.argument.TagSourceArgument;
 
 import java.util.function.Consumer;
 
@@ -29,26 +25,23 @@ public class MantleCommand {
   /** Permission level for the server owner, server console, or the player in single player */
   public static final int PERMISSION_OWNER = 4;
 
-  /** Suggestion provider that lists tags for this type */
+  /** @deprecated use {@link RegistryArgument#TAG} or {@link TagSourceArgument#TAG} */
+  @Deprecated(forRemoval = true)
   public static SuggestionProvider<CommandSourceStack> VALID_TAGS;
-  /** Suggestion provider that lists tags values for this registry */
+  /** @deprecated use {@link RegistryArgument#ENTRY} or {@link TagSourceArgument#ENTRY} */
+  @Deprecated(forRemoval = true)
   public static SuggestionProvider<CommandSourceStack> REGISTRY_VALUES;
-  /** Suggestion provider that lists registered book ids **/
+  /** @deprecated use {@link RegistryArgument#REGISTRY} or {@link TagSourceArgument#SOURCE} */
+  @Deprecated(forRemoval = true)
   public static SuggestionProvider<CommandSourceStack> REGISTRY;
 
   /** Registers all Mantle command related content */
   public static void init() {
-    // register arguments
-    VALID_TAGS = SuggestionProviders.register(Mantle.getResource("valid_tags"), (context, builder) -> {
-      Registry<?> result = RegistryArgument.getResult(context, "type");
-      return SharedSuggestionProvider.suggestResource(result.getTagNames().map(TagKey::location), builder);
-    });
-    REGISTRY_VALUES = SuggestionProviders.register(Mantle.getResource("registry_values"), (context, builder) -> {
-      Registry<?> result = RegistryArgument.getResult(context, "type");
-      return SharedSuggestionProvider.suggestResource(result.keySet(), builder);
-    });
-    REGISTRY = SuggestionProviders.register(Mantle.getResource("registry"), (context, builder) ->
-      SharedSuggestionProvider.suggestResource(context.getSource().registryAccess().registries().map(entry -> entry.key().location()), builder));
+    RegistryArgument.registerSuggestions();
+    VALID_TAGS = RegistryArgument.TAG;
+    REGISTRY_VALUES = RegistryArgument.ENTRY;
+    REGISTRY = RegistryArgument.REGISTRY;
+    TagSourceArgument.registerSuggestions();
 
     // add command listener
     MinecraftForge.EVENT_BUS.addListener(MantleCommand::registerCommand);
