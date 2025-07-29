@@ -96,7 +96,6 @@ public class DumpAllTagsCommand {
     for (Entry<ResourceLocation, List<TagLoader.EntryWithSource>> entry : foundTags.entrySet()) {
       ResourceLocation location = entry.getKey();
       Path path = output.toPath().resolve(location.getNamespace() + "/" + location.getPath());
-      // TODO: is it worth including the sources anywhere in the dump?
       DumpTagCommand.saveTag(entry.getValue(), path);
     }
 
