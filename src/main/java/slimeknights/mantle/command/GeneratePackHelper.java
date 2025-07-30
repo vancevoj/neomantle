@@ -6,6 +6,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.ClickEvent.Action;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.world.level.storage.LevelResource;
@@ -102,7 +103,16 @@ public class GeneratePackHelper {
    * @return  Clickable text component
    */
   public static Component getOutputComponent(String path) {
-    return Component.literal(path)
-      .withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent(Action.OPEN_FILE, path)));
+    return getPathComponent(Component.literal(path), path);
+  }
+
+  /**
+   * Makes a clickable text component for the output folder
+   * @param text  Text to display
+   * @param path  Path to log
+   * @return  Clickable text component
+   */
+  public static MutableComponent getPathComponent(MutableComponent text, String path) {
+    return text.withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent(Action.OPEN_FILE, path)));
   }
 }

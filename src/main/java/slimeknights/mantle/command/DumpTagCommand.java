@@ -2,14 +2,10 @@ package slimeknights.mantle.command;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
-import com.mojang.serialization.Dynamic;
-import com.mojang.serialization.JsonOps;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -19,10 +15,10 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagFile;
 import net.minecraft.tags.TagLoader;
 import net.minecraft.tags.TagLoader.EntryWithSource;
-import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.command.argument.TagSource;
 import slimeknights.mantle.command.argument.TagSourceArgument;
+import slimeknights.mantle.util.JsonHelper;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -35,11 +31,10 @@ import java.util.List;
 /**
  * Command that dumps a tag into a JSON object.
  * TODO 1.21: rename to {@code TagEntriesCommand}.
+ * TODO 1.21: move to {@link slimeknights.mantle.command.tags}.
  */
 public class DumpTagCommand {
   protected static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-  private static final Dynamic2CommandExceptionType ERROR_READING_TAG = new Dynamic2CommandExceptionType((type, name) -> Component.translatable("command.mantle.dump_tag.read_error", type, name));
-  private static final Component SUCCESS_LOG = Component.translatable("command.mantle.dump_tag.success_log");
 
   /**
    * Registers this sub command with the root command
@@ -79,8 +74,7 @@ public class DumpTagCommand {
     for (Resource resource : resources) {
       String packId = resource.sourcePackId();
       try (Reader reader = resource.openAsReader()) {
-        JsonObject json = GsonHelper.fromJson(GSON, reader, JsonObject.class);
-        TagFile tagfile = TagFile.CODEC.parse(new Dynamic<>(JsonOps.INSTANCE, json)).getOrThrow(false, Mantle.logger::error);
+        TagFile tagfile = JsonHelper.parse(TagFile.CODEC, reader);
         if (tagfile.replace()) {
           list.clear();
         }
@@ -95,16 +89,12 @@ public class DumpTagCommand {
 
   /** Converts the given entry list to a string tag file */
   public static String tagToJson(List<TagLoader.EntryWithSource> entries) {
-    return GSON.toJson(
-      TagFile.CODEC.encodeStart(
-        JsonOps.INSTANCE,
-        new TagFile(
-          // TODO: cancel out matching entries
-          entries.stream().filter(e -> !e.remove()).map(EntryWithSource::entry).toList(),
-          true,
-          entries.stream().filter(EntryWithSource::remove).map(EntryWithSource::entry).toList()
-        )
-      ).getOrThrow(false, Mantle.logger::error));
+    return GSON.toJson(JsonHelper.serialize(TagFile.CODEC, new TagFile(
+      // TODO: cancel out matching entries?
+      entries.stream().filter(e -> !e.remove()).map(EntryWithSource::entry).toList(),
+      true,
+      entries.stream().filter(EntryWithSource::remove).map(EntryWithSource::entry).toList()
+    )));
   }
 
   /** Saves the tag to the given path */

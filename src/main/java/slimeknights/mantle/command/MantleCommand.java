@@ -9,6 +9,7 @@ import net.minecraft.world.level.GameRules;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import slimeknights.mantle.command.argument.TagSourceArgument;
+import slimeknights.mantle.command.tags.ModifyTagCommand;
 
 import java.util.function.Consumer;
 
@@ -66,6 +67,7 @@ public class MantleCommand {
       register(b, "dump", DumpAllTagsCommand::register);
       register(b, "for", TagsForCommand::register);
       register(b, "preference", TagPreferenceCommand::register);
+      ModifyTagCommand.register(b);
     });
     register(builder, "dump_loot_modifiers", DumpLootModifiers::register);
     register(builder, "harvest_tiers", HarvestTiersCommand::register);

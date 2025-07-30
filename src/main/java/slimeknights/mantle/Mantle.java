@@ -1,6 +1,7 @@
 package slimeknights.mantle;
 
 import net.minecraft.Util;
+import net.minecraft.commands.synchronization.ArgumentTypeInfos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.DataGenerator;
@@ -26,6 +27,7 @@ import net.minecraftforge.fml.config.ModConfig.Type;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,6 +35,7 @@ import slimeknights.mantle.block.entity.MantleHangingSignBlockEntity;
 import slimeknights.mantle.block.entity.MantleSignBlockEntity;
 import slimeknights.mantle.client.ClientEvents;
 import slimeknights.mantle.command.MantleCommand;
+import slimeknights.mantle.command.argument.ResourceOrTagKeyArgument;
 import slimeknights.mantle.config.Config;
 import slimeknights.mantle.data.predicate.block.BlockPredicate;
 import slimeknights.mantle.data.predicate.block.BlockPropertiesPredicate;
@@ -67,6 +70,7 @@ import slimeknights.mantle.recipe.condition.TagFilledCondition;
 import slimeknights.mantle.recipe.helper.TagPreference;
 import slimeknights.mantle.recipe.ingredient.FluidContainerIngredient;
 import slimeknights.mantle.recipe.ingredient.PotionIngredient;
+import slimeknights.mantle.registration.RegistrationHelper;
 import slimeknights.mantle.registration.adapter.BlockEntityTypeRegistryAdapter;
 import slimeknights.mantle.util.OffhandCooldownTracker;
 
@@ -125,6 +129,7 @@ public class Mantle {
     LootTableInjector.init();
   }
 
+  @SuppressWarnings("deprecation")
   private void register(RegisterEvent event) {
     ResourceKey<?> key = event.getRegistryKey();
     if (key == Registries.RECIPE_SERIALIZER) {
@@ -195,6 +200,11 @@ public class Mantle {
       if (!signs.isEmpty()) {
         adapter.register(MantleHangingSignBlockEntity::new, signs, "hanging_sign");
       }
+    }
+    else if (key == Registries.COMMAND_ARGUMENT_TYPE) {
+      ResourceOrTagKeyArgument.Info<?> info = new ResourceOrTagKeyArgument.Info<>();
+      ForgeRegistries.COMMAND_ARGUMENT_TYPES.register(getResource("resource_or_tag_key"), info);
+      ArgumentTypeInfos.registerByClass(RegistrationHelper.genericArgumentType(ResourceOrTagKeyArgument.class), info);
     }
     else {
       MantleLoot.registerGlobalLootModifiers(event);

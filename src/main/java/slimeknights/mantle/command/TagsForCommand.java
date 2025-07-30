@@ -54,7 +54,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Command to list all tags for an entry
+ * Command to list all tags for an entry.
+ * TODO 1.21: move to {@link slimeknights.mantle.command.tags}.
  */
 @SuppressWarnings("deprecation")
 public class TagsForCommand {

@@ -23,10 +23,15 @@
   "command.mantle.book.export.error_io": "Failed to create directory for book images '%s'",
 
   "command.mantle.dump_tag.success": "Printed combined %s tag '%s' to console log",
-  "command.mantle.dump_tag.read_error": "Error reading %s tag '%s':",
   "command.mantle.dump_tag.success_log": "Dumped combined %s tag '%s' to '%s'",
   "command.mantle.dump_all_tags.success": "Dumped all tags to '%s'",
   "command.mantle.dump_all_tags.type_success": "Dumped all %s tags to '%s'",
+
+  "command.mantle.modify_tag.success.add": "Successfully added '%s' to %s tag '%s'. Run /reload to activate pack at %s.",
+  "command.mantle.modify_tag.success.remove": "Successfully removed '%s' from %s tag '%s'. Run /reload to activate pack at %s.",
+  "command.mantle.modify_tag.success.clear": "Successfully cleared %s tag '%s'. Run /reload to activate pack at %s.",
+  "command.mantle.modify_tag.read_error": "Error reading %s tag '%s'",
+  "command.mantle.modify_tag.write_error": "Error reading %s tag '%s'",
 
   "command.mantle.dump_loot_modifiers.success_log": "Printed combined global loot modifiers to console log",
   "command.mantle.dump_loot_modifiers.success_save": "Dumped combined global loot modifiers to '%s'",

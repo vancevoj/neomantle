@@ -42,6 +42,8 @@ public class TagSourceArgument {
   public static SuggestionProvider<CommandSourceStack> TAG;
   /** Suggestion provider for all values in a registry */
   public static SuggestionProvider<CommandSourceStack> VALUE;
+  /** Suggestion provider for all tags or values in a registry */
+  public static SuggestionProvider<CommandSourceStack> ENTRY;
 
   /** Creates and registers all suggestion providers */
   @Internal
@@ -55,6 +57,14 @@ public class TagSourceArgument {
     VALUE = register(getResource("tag_source_value"), (context, builder) -> {
       TagSource<?> result = get(context);
       return SharedSuggestionProvider.suggestResource(result.valueKeys(), builder);
+    });
+    ENTRY = register(getResource("tag_source_entry"), (context, builder) -> {
+      TagSource<?> result = get(context);
+      // entries
+      SharedSuggestionProvider.suggestResource(result.valueKeys(), builder);
+      // tags
+      SharedSuggestionProvider.suggestResource(result.tagKeys().map(TagKey::location), builder, "#");
+      return builder.buildFuture();
     });
   }
 
@@ -81,14 +91,19 @@ public class TagSourceArgument {
     return Commands.argument("type", source()).suggests(SOURCE);
   }
 
-  /** Creates an argument builder with the given name */
+  /** Creates a tag argument builder with the given name */
   public static RequiredArgumentBuilder<CommandSourceStack,ResourceLocation> tagArgument(String key) {
     return Commands.argument(key, ResourceLocationArgument.id()).suggests(TAG);
   }
 
-  /** Creates an argument builder with the given name */
+  /** Creates a value argument builder with the given name */
   public static RequiredArgumentBuilder<CommandSourceStack,ResourceLocation> valueArgument(String key) {
     return Commands.argument(key, ResourceLocationArgument.id()).suggests(VALUE);
+  }
+
+  /** Creates an entry (tag or value) argument builder with the given name */
+  public static RequiredArgumentBuilder<CommandSourceStack,ResourceOrTagKeyArgument.Result> entryArgument(String key) {
+    return Commands.argument(key, ResourceOrTagKeyArgument.key()).suggests(ENTRY);
   }
 
   /** Gets a stream of all tag source keys */

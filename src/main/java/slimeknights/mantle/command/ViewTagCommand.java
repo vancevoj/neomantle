@@ -17,6 +17,7 @@ import java.util.Objects;
 /**
  * Command that lists all values in a tag.
  * TODO 1.21: rename to {@code TagValuesCommand}.
+ * TODO 1.21: move to {@link slimeknights.mantle.command.tags}.
  */
 public class ViewTagCommand {
   /** Tag has no values */

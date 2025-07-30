@@ -23,7 +23,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * Dumps all tags to a folder
+ * Dumps all tags to a folder.
+ * TODO 1.21: move to {@link slimeknights.mantle.command.tags}.
  */
 public class DumpAllTagsCommand {
   private static final String TAG_DUMP_PATH = "./mantle_data_dump";
