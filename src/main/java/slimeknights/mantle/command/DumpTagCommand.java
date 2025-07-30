@@ -25,7 +25,6 @@ import slimeknights.mantle.command.argument.TagSource;
 import slimeknights.mantle.command.argument.TagSourceArgument;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
@@ -151,9 +150,9 @@ public class DumpTagCommand {
     switch (action) {
       case SAVE -> {
         // save creates a file in the data dump location of the tag at the proper path
-        File output = new File(DumpAllTagsCommand.getOutputFile(context), path.getNamespace() + "/" + path.getPath());
-        saveTag(list, output.toPath());
-        context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_tag.success_log", regName, name, DumpAllTagsCommand.getOutputComponent(output)), true);
+        Path output = DumpAllTagsCommand.getOutputFile(context).toPath().resolve(path.getNamespace() + "/" + path.getPath());
+        saveTag(list, output);
+        context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_tag.success_log", regName, name, GeneratePackHelper.getOutputComponent(output)), true);
       }
       case LOG -> {
         // log writes the merged JSON to the console

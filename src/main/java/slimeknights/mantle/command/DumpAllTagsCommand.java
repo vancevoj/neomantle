@@ -5,8 +5,6 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.ClickEvent.Action;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -45,13 +43,10 @@ public class DumpAllTagsCommand {
     return context.getSource().getServer().getFile(TAG_DUMP_PATH);
   }
 
-  /**
-   * Makes a clickable text component for the output folder
-   * @param file  File
-   * @return  Clickable text component
-   */
+  /** @deprecated use {@link GeneratePackHelper#getOutputComponent(File)} */
+  @Deprecated(forRemoval = true)
   protected static Component getOutputComponent(File file) {
-    return Component.literal(file.getAbsolutePath()).withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent(Action.OPEN_FILE, file.getAbsolutePath())));
+    return GeneratePackHelper.getOutputComponent(file);
   }
 
   /** Dumps all tags to the game directory */
@@ -59,7 +54,7 @@ public class DumpAllTagsCommand {
     File output = getOutputFile(context);
     int tagsDumped = TagSourceArgument.allSources(context).mapToInt(reg -> runForFolder(context, reg, output)).sum();
     // print the output path
-    context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_all_tags.success", getOutputComponent(output)), true);
+    context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_all_tags.success", GeneratePackHelper.getOutputComponent(output)), true);
     return tagsDumped;
   }
 
@@ -69,7 +64,7 @@ public class DumpAllTagsCommand {
     TagSource<?> registry = TagSourceArgument.get(context);
     int result = runForFolder(context, registry, output);
     // print result
-    context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_all_tags.type_success", registry.key().location(), getOutputComponent(output)), true);
+    context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_all_tags.type_success", registry.key().location(), GeneratePackHelper.getOutputComponent(output)), true);
     return result;
   }
 
