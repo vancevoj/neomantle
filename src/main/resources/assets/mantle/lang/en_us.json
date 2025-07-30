@@ -46,6 +46,9 @@
   "command.mantle.remove_recipes": "Successfully removed %s recipes in %s seconds. Run /reload to activate pack at %s",
   "command.mantle.remove_recipes.preset_not_found": "Recipe removal preset '%s' was missing or invalid. Check the log for more information.",
 
+  "command.mantle.sources.success": "Sources for %s:",
+  "command.mantle.sources.not_found": "'%s' not found:",
+
   "command.mantle.tag.empty": "Empty",
   "command.mantle.item.not_found": "Unknown item '%s'",
   "command.mantle.registry.not_found": "Unknown registry '%s'",

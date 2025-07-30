@@ -5,7 +5,9 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.storage.loot.LootDataType;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import slimeknights.mantle.command.argument.TagSourceArgument;
@@ -44,6 +46,12 @@ public class MantleCommand {
     REGISTRY = RegistryArgument.REGISTRY;
     TagSourceArgument.registerSuggestions();
 
+    // register interesting sources
+    SourcesCommand.register(LootDataType.TABLE.directory(), (context, builder)
+      -> SharedSuggestionProvider.suggestResource(context.getSource().getServer().getLootData().getKeys(LootDataType.TABLE), builder));
+    SourcesCommand.register("recipes", (context, builder)
+      -> SharedSuggestionProvider.suggestResource(context.getSource().getRecipeNames(), builder));
+
     // add command listener
     MinecraftForge.EVENT_BUS.addListener(MantleCommand::registerCommand);
   }
@@ -72,6 +80,10 @@ public class MantleCommand {
     register(builder, "dump_loot_modifiers", DumpLootModifiers::register);
     register(builder, "harvest_tiers", HarvestTiersCommand::register);
     register(builder, "remove_recipes", b -> RemoveRecipesCommand.register(b, context));
+    // sources assets is registered as a client command
+    register(builder, "sources", b -> {
+      register(b, "data", SourcesCommand::register);
+    });
 
     // register final command
     event.getDispatcher().register(builder);

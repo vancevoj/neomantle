@@ -78,8 +78,7 @@ public class RemoveRecipesCommand {
   private static final SuggestionProvider<CommandSourceStack> SUGGESTS_RECIPES = (context, builder)
     -> SharedSuggestionProvider.suggestResource(context.getSource().getRecipeManager().getRecipeIds(), builder);
   /** Suggests presets for the command */
-  private static final SuggestionProvider<CommandSourceStack> SUGGEST_PRESETS = (context, builder)
-    -> SharedSuggestionProvider.suggestResource(PRESETS.listMatchingResources(context.getSource().getServer().getResourceManager()).keySet().stream().map(PRESETS::fileToId), builder);
+  private static final SuggestionProvider<CommandSourceStack> SUGGEST_PRESETS = SourcesCommand.suggestFolder(PRESETS);
 
   /**
    * Registers this sub command with the root command
