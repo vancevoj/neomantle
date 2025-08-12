@@ -1,10 +1,13 @@
 package slimeknights.mantle.fluid.texture;
 
+import com.mojang.blaze3d.shaders.FogShape;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.FogRenderer.FogMode;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
@@ -70,5 +73,24 @@ public class ClientTextureFluidType implements IClientFluidTypeExtensions {
       fluidFogColor.z *= fogColor.z;
     }
     return fluidFogColor;
+  }
+
+  @Override
+  public void modifyFogRender(Camera camera, FogMode mode, float renderDistance, float partialTick, float nearDistance, float farDistance, FogShape shape) {
+    FluidTexture data = FluidTextureManager.getData(type);
+    FogShape overrideShape = data.fogShape();
+    if (overrideShape != null) {
+      if (overrideShape != shape) {
+        RenderSystem.setShaderFogShape(overrideShape);
+      }
+      float start = data.fogStart();
+      if (start < nearDistance) {
+        RenderSystem.setShaderFogStart(start);
+      }
+      float end = data.fogEnd();
+      if (end < farDistance) {
+        RenderSystem.setShaderFogEnd(end);
+      }
+    }
   }
 }
