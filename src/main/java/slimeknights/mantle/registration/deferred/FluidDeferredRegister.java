@@ -118,9 +118,19 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
       return type(() -> new TextureFluidType(properties));
     }
 
+    /** Registers a fluid with the given properties, using the inverted fluid type */
+    public Builder invertedType(FluidType.Properties properties) {
+      return type(() -> new InvertedFluidType(properties));
+    }
+
     /** Registers a fluid with the given properties, using the texture fluid type */
     public Builder type() {
       return type(FluidType.Properties.create());
+    }
+
+    /** Registers a fluid with the given properties, using the inverted fluid type */
+    public Builder invertedType() {
+      return invertedType(FluidType.Properties.create());
     }
 
 
