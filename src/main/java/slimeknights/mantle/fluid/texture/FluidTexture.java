@@ -1,11 +1,12 @@
 package slimeknights.mantle.fluid.texture;
 
 import com.google.gson.JsonObject;
-import lombok.Getter;
+import com.google.gson.JsonSyntaxException;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
 import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.registries.ForgeRegistries;
 import slimeknights.mantle.data.loadable.common.ColorLoadable;
@@ -15,7 +16,12 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 /** Record representing a fluid texture */
-public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nullable ResourceLocation overlay, @Nullable ResourceLocation camera, int color) {
+public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nullable ResourceLocation overlay, @Nullable ResourceLocation camera, float cameraOpacity, int color) {
+  /** @deprecated use {@link #FluidTexture(ResourceLocation, ResourceLocation, ResourceLocation, ResourceLocation, float, int)} */
+  @Deprecated(forRemoval = true)
+  public FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nullable ResourceLocation overlay, @Nullable ResourceLocation camera, int color) {
+    this(still, flowing, overlay, camera, 0.1f, color);
+  }
 
   /** Serializes this to JSON */
   public JsonObject serialize() {
@@ -27,7 +33,11 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
     }
     // during datagen, we just write the texture directly, we will include the needed prefix/suffix on read
     if (camera != null) {
+      if (cameraOpacity <= 0 || cameraOpacity > 1) {
+        throw new IllegalStateException("Camera opacity must be between 0 (exclusive) and 1 (inclusive)");
+      }
       json.addProperty("camera", camera.toString());
+      json.addProperty("camera_opacity", cameraOpacity);
     }
     json.addProperty("color", String.format("%08X", color));
     return json;
@@ -39,11 +49,16 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
     ResourceLocation flowing = JsonHelper.getResourceLocation(json, "flowing");
     ResourceLocation overlay = JsonHelper.getResourceLocation(json, "overlay", null);
     ResourceLocation camera = null;
+    float cameraOpacity = 0;
     if (json.has("camera")) {
       camera = JsonHelper.wrap(JsonHelper.getResourceLocation(json, "camera"), "textures/", ".png");
+      cameraOpacity = GsonHelper.getAsFloat(json, "camera_opacity");
+      if (cameraOpacity <= 0 || cameraOpacity > 1) {
+        throw new JsonSyntaxException("Camera opacity must be between 0 (exclusive) and 1 (inclusive)");
+      }
     }
     int color = ColorLoadable.ALPHA.getOrWhite(json, "color");
-    return new FluidTexture(still, flowing, overlay, camera, color);
+    return new FluidTexture(still, flowing, overlay, camera, cameraOpacity, color);
   }
 
   /** Builder for this object */
@@ -61,6 +76,7 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
     private ResourceLocation overlay = null;
     @Nullable
     private ResourceLocation camera = null;
+    private float cameraOpacity = 0.1f;
     private int color = -1;
 
     /**
@@ -132,7 +148,7 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
       if (still == null || flowing == null) {
         throw new IllegalStateException("Must set both still and flowing");
       }
-      return new FluidTexture(still, flowing, overlay, camera, color);
+      return new FluidTexture(still, flowing, overlay, camera, cameraOpacity, color);
     }
 
     /* Getters for other datagen */

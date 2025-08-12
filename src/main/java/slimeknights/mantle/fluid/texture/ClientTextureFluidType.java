@@ -1,15 +1,16 @@
 package slimeknights.mantle.fluid.texture;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.minecraftforge.fluids.FluidType;
+import slimeknights.mantle.client.render.FluidRenderer;
 
 import javax.annotation.Nullable;
 
 /** Implementation of {@link IClientFluidTypeExtensions} using {@link FluidTexture} */
-@SuppressWarnings("ClassCanBeRecord") // Want to allow extending to override other properties
 @RequiredArgsConstructor
 public class ClientTextureFluidType implements IClientFluidTypeExtensions {
   protected final FluidType type;
@@ -39,5 +40,14 @@ public class ClientTextureFluidType implements IClientFluidTypeExtensions {
   @Override
   public ResourceLocation getRenderOverlayTexture(Minecraft mc) {
     return FluidTextureManager.getCameraTexture(type);
+  }
+
+  @Override
+  public void renderOverlay(Minecraft mc, PoseStack poseStack) {
+    FluidTexture data = FluidTextureManager.getData(type);
+    ResourceLocation camera = data.camera();
+    if (camera != null) {
+      FluidRenderer.renderCamera(mc, poseStack, camera, data.cameraOpacity());
+    }
   }
 }
