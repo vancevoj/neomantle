@@ -19,6 +19,8 @@ import net.minecraftforge.fluids.ForgeFlowingFluid;
 import net.minecraftforge.fluids.ForgeFlowingFluid.Properties;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import slimeknights.mantle.fluid.InvertedFluid;
+import slimeknights.mantle.fluid.InvertedFluidType;
 import slimeknights.mantle.fluid.TextureFluidType;
 import slimeknights.mantle.fluid.UnplaceableFluid;
 import slimeknights.mantle.registration.DelayedSupplier;
@@ -183,6 +185,11 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
     /** Builds a flowing fluid with the default constructors */
     public FlowingFluidObject<ForgeFlowingFluid> flowing() {
       return flowing(ForgeFlowingFluid.Source::new, ForgeFlowingFluid.Flowing::new);
+    }
+
+    /** Builds a flowing fluid with the default constructors */
+    public FlowingFluidObject<ForgeFlowingFluid> invertedFlowing() {
+      return flowing(InvertedFluid.Source::new, InvertedFluid.Flowing::new);
     }
 
     /**
