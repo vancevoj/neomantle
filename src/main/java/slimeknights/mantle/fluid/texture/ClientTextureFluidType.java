@@ -2,10 +2,14 @@ package slimeknights.mantle.fluid.texture;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.RequiredArgsConstructor;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FastColor;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.minecraftforge.fluids.FluidType;
+import org.joml.Vector3f;
 import slimeknights.mantle.client.render.FluidRenderer;
 
 import javax.annotation.Nullable;
@@ -14,6 +18,7 @@ import javax.annotation.Nullable;
 @RequiredArgsConstructor
 public class ClientTextureFluidType implements IClientFluidTypeExtensions {
   protected final FluidType type;
+  private Vector3f fogColor;
 
   @Override
   public int getTintColor() {
@@ -49,5 +54,21 @@ public class ClientTextureFluidType implements IClientFluidTypeExtensions {
     if (camera != null) {
       FluidRenderer.renderCamera(mc, poseStack, camera, data.cameraOpacity());
     }
+  }
+
+  @Override
+  public Vector3f modifyFogColor(Camera camera, float partialTick, ClientLevel level, int renderDistance, float darkenWorldAmount, Vector3f fluidFogColor) {
+    // nothing to do if fog color is white
+    int fluidColor = FluidTextureManager.getData(type).fogColor();
+    if (fluidColor != -1) {
+      // cache the vector for fog color to reduce computation time
+      if (fogColor == null) {
+        fogColor = new Vector3f(FastColor.ARGB32.red(fluidColor) / 255f, FastColor.ARGB32.green(fluidColor) / 255f, FastColor.ARGB32.blue(fluidColor) / 255f);
+      }
+      fluidFogColor.x *= fogColor.x;
+      fluidFogColor.y *= fogColor.y;
+      fluidFogColor.z *= fogColor.z;
+    }
+    return fluidFogColor;
   }
 }
