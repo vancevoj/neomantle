@@ -52,6 +52,8 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
   @RequiredArgsConstructor
   public static class Builder {
     private final FluidType fluid;
+    /** Base path, make sure to include the trailing "_" or "/" */
+    private ResourceLocation root;
     private ResourceLocation still;
     private ResourceLocation flowing;
     @Nullable
@@ -72,21 +74,54 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
       return textures(JsonHelper.wrap(Objects.requireNonNull(ForgeRegistries.FLUID_TYPES.get().getKey(fluid)), prefix, suffix), overlay, camera);
     }
 
+    /** Sets the still texture from {@link #root} */
+    public Builder still() {
+      if (root == null) {
+        throw new IllegalStateException("Automatic still texture requires root to be set");
+      }
+      return still(root.withSuffix("still"));
+    }
+
+    /** Sets the flowing texture from {@link #root} */
+    public Builder flowing() {
+      if (root == null) {
+        throw new IllegalStateException("Automatic flowing texture requires root to be set");
+      }
+      return flowing(root.withSuffix("flowing"));
+    }
+
+    /** Sets the overlay texture from {@link #root} */
+    public Builder overlay() {
+      if (root == null) {
+        throw new IllegalStateException("Automatic overlay texture requires root to be set");
+      }
+      return overlay(root.withSuffix("overlay"));
+    }
+
+    /** Sets the camera texture from {@link #root} */
+    public Builder camera() {
+      if (root == null) {
+        throw new IllegalStateException("Automatic camera texture requires root to be set");
+      }
+      return camera(root.withSuffix("camera"));
+    }
+
     /**
      * Sets all textures by suffixing the given path
      * @param path     Base path, make sure to include the trailing "_" or "/"
      * @param overlay  If true, include an overlay texture
      * @param camera   If true, include a camera texture
      * @return  Builder instance
+     * @deprecated use {@link #root(ResourceLocation)}, {@link #still()}, {@link #flowing()}, {@link #camera()}, and {@link #overlay()}
      */
+    @Deprecated
     public Builder textures(ResourceLocation path, boolean overlay, boolean camera) {
-      still(path.withSuffix("still"));
-      flowing(path.withSuffix("flowing"));
+      root(path).still().flowing();
       if (overlay) {
-        overlay(path.withSuffix("overlay"));
+        overlay();
       }
       if (camera) {
-        camera(path.withSuffix("camera"));
+        camera();
       }
       return this;
     }
@@ -94,7 +129,7 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
     /** Builds the fluid texture instance */
     public FluidTexture build() {
       if (still == null || flowing == null) {
-        throw new IllegalStateException("Must set both stll and flowing");
+        throw new IllegalStateException("Must set both still and flowing");
       }
       return new FluidTexture(still, flowing, overlay, camera, color);
     }
