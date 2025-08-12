@@ -3,6 +3,7 @@ package slimeknights.mantle.registration.deferred;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -19,6 +20,8 @@ import net.minecraftforge.fluids.ForgeFlowingFluid;
 import net.minecraftforge.fluids.ForgeFlowingFluid.Properties;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import slimeknights.mantle.block.fluid.BurningLiquidBlock;
+import slimeknights.mantle.block.fluid.MobEffectLiquidBlock;
 import slimeknights.mantle.fluid.InvertedFluid;
 import slimeknights.mantle.fluid.InvertedFluidType;
 import slimeknights.mantle.fluid.TextureFluidType;
@@ -164,6 +167,16 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
     /** Creates the default block from the given material and light level */
     public Builder block(MapColor color, int lightLevel) {
       return block(sup -> new LiquidBlock(sup, createProperties(color, lightLevel)));
+    }
+
+    /** Creates a block that lights entities on fire and damages them over time */
+    public Builder burningBlock(MapColor color, int lightLevel, int burnTime, float damage) {
+      return block(BurningLiquidBlock.createBurning(color, lightLevel, burnTime, damage));
+    }
+
+    /** Creates a block that applies an effect to the target entity */
+    public Builder mobEffectBlock(MapColor color, int lightLevel, Supplier<MobEffectInstance> effect) {
+      return block(MobEffectLiquidBlock.createEffect(color, lightLevel, effect));
     }
 
 
