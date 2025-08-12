@@ -1,6 +1,7 @@
 package slimeknights.mantle.fluid.texture;
 
 import com.google.gson.JsonObject;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -132,6 +133,30 @@ public record FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nu
         throw new IllegalStateException("Must set both still and flowing");
       }
       return new FluidTexture(still, flowing, overlay, camera, color);
+    }
+
+    /* Getters for other datagen */
+
+    /** Gets the still texture for the builder */
+    public ResourceLocation getStill() {
+      return Objects.requireNonNull(still, "Still must be set");
+    }
+
+    /** Gets the flowing texture for the builder */
+    public ResourceLocation getFlowing() {
+      return Objects.requireNonNull(flowing, "Flowing must be set");
+    }
+
+    /** Gets the camera texture for the builder */
+    @Nullable
+    public ResourceLocation getCamera() {
+      return camera;
+    }
+
+    /** Gets the overlay texture for the builder */
+    @Nullable
+    public ResourceLocation getOverlay() {
+      return overlay;
     }
   }
 }
