@@ -346,8 +346,8 @@ public class FluidRenderer {
     renderCuboid(matrices, buffer.getBuffer(MantleRenderTypes.FLUID), cube, still, flowing, from, to, color, light, isGas);
   }
 
-  /** Same as {@link net.minecraft.client.renderer.ScreenEffectRenderer#renderFluid(Minecraft, PoseStack, ResourceLocation)} but with opacity control */
-  public static void renderCamera(Minecraft minecraft, PoseStack poseStack, ResourceLocation texture, float opacity) {
+  /** Same as {@link net.minecraft.client.renderer.ScreenEffectRenderer#renderFluid(Minecraft, PoseStack, ResourceLocation)} but with opacity and color control */
+  public static void renderCamera(Minecraft minecraft, PoseStack poseStack, ResourceLocation texture, float opacity, int color) {
     assert minecraft.player != null;
     RenderSystem.setShader(GameRenderer::getPositionTexShader);
     RenderSystem.setShaderTexture(0, texture);
@@ -356,7 +356,16 @@ public class FluidRenderer {
     Level level = minecraft.player.level();
     float brightness = LightTexture.getBrightness(level.dimensionType(), level.getMaxLocalRawBrightness(pos));
     RenderSystem.enableBlend();
-    RenderSystem.setShaderColor(brightness, brightness, brightness, opacity);
+    // apply fluid tint if one is set
+    if (color != -1) {
+      RenderSystem.setShaderColor(
+        brightness * (color >> 16 & 255) / 255f,
+        brightness * (color >> 8 & 255) / 255f,
+        brightness * (color & 255) / 255f,
+        opacity * (color >>> 24) / 255f);
+    } else {
+      RenderSystem.setShaderColor(brightness, brightness, brightness, opacity);
+    }
     float yRot = -minecraft.player.getYRot() / 64;
     float xRot = minecraft.player.getXRot() / 64;
     Matrix4f matrix = poseStack.last().pose();

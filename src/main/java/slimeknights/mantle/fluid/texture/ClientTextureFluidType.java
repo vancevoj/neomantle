@@ -55,7 +55,7 @@ public class ClientTextureFluidType implements IClientFluidTypeExtensions {
     FluidTexture data = FluidTextureManager.getData(type);
     ResourceLocation camera = data.camera();
     if (camera != null) {
-      FluidRenderer.renderCamera(mc, poseStack, camera, data.cameraOpacity());
+      FluidRenderer.renderCamera(mc, poseStack, camera, data.cameraOpacity(), data.color());
     }
   }
 
