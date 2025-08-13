@@ -211,7 +211,7 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
     }
 
     /** Builds a flowing fluid with the default constructors */
-    public FlowingFluidObject<ForgeFlowingFluid> invertedFlowing() {
+    public FlowingFluidObject<InvertedFluid> invertedFlowing() {
       return flowing(InvertedFluid.Source::new, InvertedFluid.Flowing::new);
     }
 
