@@ -157,7 +157,7 @@ public class Mantle {
         BlockPredicate.LOADER.register(getResource("block_properties"), BlockPropertiesPredicate.LOADER);
 
         // item predicates
-        ItemPredicate.LOADER.register(getResource("has_container"), ItemPredicate.MAY_HAVE_TRANSFER.getLoader());
+        ItemPredicate.LOADER.register(getResource("has_container"), ItemPredicate.HAS_CONTAINER.getLoader());
         ItemPredicate.LOADER.register(getResource("may_have_transfer"), ItemPredicate.MAY_HAVE_TRANSFER.getLoader());
 
         // entity predicates
