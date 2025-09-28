@@ -71,6 +71,7 @@ import slimeknights.mantle.recipe.condition.TagEmptyCondition;
 import slimeknights.mantle.recipe.condition.TagFilledCondition;
 import slimeknights.mantle.recipe.helper.TagPreference;
 import slimeknights.mantle.recipe.ingredient.FluidContainerIngredient;
+import slimeknights.mantle.recipe.ingredient.PotionDisplayIngredient;
 import slimeknights.mantle.recipe.ingredient.PotionIngredient;
 import slimeknights.mantle.registration.RegistrationHelper;
 import slimeknights.mantle.registration.adapter.BlockEntityTypeRegistryAdapter;
@@ -140,6 +141,7 @@ public class Mantle {
       CraftingHelper.register(TagCombinationCondition.SERIALIZER);
       CraftingHelper.register(FluidContainerIngredient.ID, FluidContainerIngredient.SERIALIZER);
       CraftingHelper.register(getResource("potion"), PotionIngredient.SERIALIZER);
+      CraftingHelper.register(getResource("potion_display"), PotionDisplayIngredient.SERIALIZER);
 
       // fluid container transfer
       FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(EmptyFluidContainerTransfer.ID, EmptyFluidContainerTransfer.DESERIALIZER);
