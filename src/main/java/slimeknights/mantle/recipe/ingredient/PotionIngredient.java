@@ -49,7 +49,7 @@ public class PotionIngredient extends AbstractIngredient {
       Stream.ofNullable(itemTag).map(tag -> new PotionTagValue(tag, potion)))
     );
     this.items = items;
-    this.itemTag = null;
+    this.itemTag = itemTag;
     this.potion = potion;
   }
 
@@ -103,7 +103,7 @@ public class PotionIngredient extends AbstractIngredient {
 
     @Override
     public void serialize(PotionIngredient parent, JsonObject json) {
-      if (parent.items.isEmpty()) {
+      if (!parent.items.isEmpty()) {
         json.add("item", ITEM_LIST.serialize(parent.items));
       }
     }
