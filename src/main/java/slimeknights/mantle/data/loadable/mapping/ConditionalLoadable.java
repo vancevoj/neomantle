@@ -15,6 +15,7 @@ import javax.annotation.Nullable;
 
 /**
  * Loadable allowing a load time condition check to change which object is used.
+ * Automatically used in {@link GenericLoaderRegistry} for all types, though you will have to manually provide datagen using {@link ConditionalObject}.
  * @param registry  Loader registry to fetch nested objects.
  * @param defaultIfFalse  Value to use if the condition fails and no false object is provided, typically should be an empty object. If null, a false object must be specified.
  */
