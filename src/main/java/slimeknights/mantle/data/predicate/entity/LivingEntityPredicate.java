@@ -47,6 +47,8 @@ public interface LivingEntityPredicate extends IJsonPredicate<LivingEntity> {
   LivingEntityPredicate CROUCHING = simple(Entity::isCrouching);
   /** Entities that are currently sprinting */
   LivingEntityPredicate SPRINTING = simple(Entity::isSprinting);
+  /** Entities blocking with a valid shield */
+  LivingEntityPredicate BLOCKING = simple(LivingEntity::isBlocking);
 
 
   // water
