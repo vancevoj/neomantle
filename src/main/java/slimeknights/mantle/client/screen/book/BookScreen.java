@@ -711,10 +711,10 @@ public class BookScreen extends Screen {
     }
 
     for (BookElement element : this.leftElements) {
-      element.parent = this;
+      element.setParent(this);
     }
     for (BookElement element : this.rightElements) {
-      element.parent = this;
+      element.setParent(this);
     }
   }
 

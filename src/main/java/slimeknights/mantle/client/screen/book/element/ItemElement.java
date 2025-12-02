@@ -85,7 +85,7 @@ public class ItemElement extends SizedBookElement {
     long nano = Util.getNanos();
 
     // don't cycle items during export
-    if (parent.enableAnimations) {
+    if (parent == null || parent.enableAnimations) {
       if (nano > lastTime + ITEM_SWITCH_TIME){
         this.lastTime = nano;
         this.currentItem++;
