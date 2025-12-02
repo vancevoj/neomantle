@@ -94,6 +94,8 @@ public class ItemElement extends SizedBookElement {
           this.currentItem = 0;
         }
       }
+    } else {
+      this.currentItem = 0;
     }
 
     if (this.currentItem < this.itemCycle.size()) {
