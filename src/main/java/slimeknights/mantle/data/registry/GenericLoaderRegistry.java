@@ -50,7 +50,7 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements RecordLoada
     this.compact = compact;
     this.loaders = new NamedComponentRegistry<>("Unknown " + name + " loader");
     this.conditionalLoader = new ConditionalLoadable<>(this, falseInstance);
-    register(Mantle.getResource("conditional"), conditionalLoader);
+    register(Mantle.getResource("load_condition"), conditionalLoader);
   }
 
   /**
