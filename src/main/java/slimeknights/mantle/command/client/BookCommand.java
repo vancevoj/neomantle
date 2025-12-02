@@ -102,7 +102,7 @@ public class BookCommand {
   private static int exportImages(CommandContext<CommandSourceStack> context) {
     ResourceLocation book = ResourceLocationArgument.getId(context, "id");
 
-    return doExportImages(book, 1);
+    return doExportImages(book, 2);
   }
 
   /**
