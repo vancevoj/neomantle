@@ -56,11 +56,10 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
     for (int i = 0; i < craftMatrix.getContainerSize(); i++) {
       ItemStack stack = craftMatrix.getItem(i);
       if (!stack.isEmpty() && texture.test(stack)) {
-        // if the item is the same as the result, copy the texture over
-        Block block;
-        if (stack.getItem() == result.getItem()) {
-          block = RetexturedHelper.getTexture(stack);
-        } else {
+        // fetch texture from the block if it has one
+        Block block = RetexturedHelper.getTexture(stack);
+        // assuming it does not, use the block itself as the texture (provided it is not the result that is)
+        if (block == Blocks.AIR && stack.getItem() != result.getItem()) {
           block = Block.byItem(stack.getItem());
         }
         // if no texture, skip
