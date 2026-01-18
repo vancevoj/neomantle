@@ -1,26 +1,36 @@
 package slimeknights.mantle.client.book.data.element;
 
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import net.minecraft.network.chat.Component;
 
+import javax.annotation.Nullable;
+
+@Accessors(fluent = true)
+@Setter
 public class TextComponentData {
+  /** @deprecated use {@link #linebreak} */
+  @Deprecated
+  public static final TextComponentData LINEBREAK = new TextComponentData((Component) null).linebreak(true);
 
-  public static final TextComponentData LINEBREAK = new TextComponentData("\n");
-
+  @Nullable
   public Component text;
 
+  /** Adds 2 linebreaks before the text */
   public boolean isParagraph = false;
+  /** If true, adds a line break after the text */
+  public boolean linebreak = false;
   public boolean dropShadow = false;
-  public float scale = 1.F;
+  public float scale = 1;
   public String action = "";
+  @Nullable
   public Component[] tooltips = null;
+
+  public TextComponentData(@Nullable Component text) {
+    this.text = text;
+  }
 
   public TextComponentData(String text) {
     this(Component.literal(text));
   }
-
-  public TextComponentData(Component text) {
-    this.text = text;
-  }
-
-
 }
