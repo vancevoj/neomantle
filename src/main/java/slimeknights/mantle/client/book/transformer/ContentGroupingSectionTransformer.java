@@ -126,7 +126,8 @@ public class ContentGroupingSectionTransformer extends SectionTransformer {
 
     /** Increases the number of entries in the column */
     private void incrementColumns(String text, boolean bold) {
-      // entriesInColumn += section.parent.fontRenderer.wordWrapHeight(text, COLUMN_WIDTH) / 9;
+      // TODO: if this produces more entries than fit in the column, this might produce wrong results
+      // in that case, should we force the too large entry to next column?
       if (bold) {
         entriesInColumn += TextDataRenderer.getLinesForString(text, ChatFormatting.BOLD.toString(), COLUMN_WIDTH, "", section.parent.fontRenderer);
       } else {
@@ -170,7 +171,7 @@ public class ContentGroupingSectionTransformer extends SectionTransformer {
 
     /** Adds a page to the current group in the listing */
     public void addPage(String name, PageData data) {
-      if (entriesInColumn == maxInColumn) {
+      if (entriesInColumn >= maxInColumn) {
         startNewColumn(false);
       }
       incrementColumns(name, false);
