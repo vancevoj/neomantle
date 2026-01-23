@@ -140,8 +140,8 @@ public class ContentListing extends PageContent {
           x += width;
           y = 0;
         }
-        String text = data.text;
-        if (text == null || text.isEmpty()) {
+        String text = data.getText();
+        if (text.isEmpty()) {
           y += LINE_HEIGHT;
         } else {
           int height;

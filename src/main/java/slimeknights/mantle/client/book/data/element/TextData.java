@@ -13,6 +13,7 @@ public class TextData {
   @Deprecated(forRemoval = true)
   public static final TextData LINEBREAK = new TextData().linebreak(true);
 
+  // TODO 1.21: make no longer nullable
   @Nullable
   public String text = "";
   public String color = "black";
@@ -40,5 +41,10 @@ public class TextData {
 
   public TextData() {
     this("");
+  }
+
+  /** Null safe method to get text, as its possible its null due to book parsing. */
+  public String getText() {
+    return text == null ? "" : text;
   }
 }
