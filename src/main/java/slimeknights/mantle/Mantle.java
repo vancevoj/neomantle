@@ -48,6 +48,8 @@ import slimeknights.mantle.data.predicate.entity.HasEnchantmentEntityPredicate;
 import slimeknights.mantle.data.predicate.entity.HasMobEffectPredicate;
 import slimeknights.mantle.data.predicate.entity.LivingEntityPredicate;
 import slimeknights.mantle.data.predicate.entity.MobTypePredicate;
+import slimeknights.mantle.data.predicate.fluid.FluidPredicate;
+import slimeknights.mantle.data.predicate.fluid.FluidTypePredicate;
 import slimeknights.mantle.data.predicate.item.ItemPredicate;
 import slimeknights.mantle.datagen.MantleBlockTagProvider;
 import slimeknights.mantle.datagen.MantleFluidTagProvider;
@@ -132,7 +134,6 @@ public class Mantle {
     LootTableInjector.init();
   }
 
-  @SuppressWarnings("deprecation")
   private void register(RegisterEvent event) {
     ResourceKey<?> key = event.getRegistryKey();
     if (key == Registries.RECIPE_SERIALIZER) {
@@ -161,6 +162,12 @@ public class Mantle {
         // item predicates
         ItemPredicate.LOADER.register(getResource("has_container"), ItemPredicate.HAS_CONTAINER.getLoader());
         ItemPredicate.LOADER.register(getResource("may_have_transfer"), ItemPredicate.MAY_HAVE_TRANSFER.getLoader());
+
+        // fluid predicates
+        FluidPredicate.LOADER.register(getResource("fluid_type"), FluidTypePredicate.LOADER);
+        FluidPredicate.LOADER.register(getResource("is_source"), FluidPredicate.SOURCE.getLoader());
+        FluidPredicate.LOADER.register(getResource("has_bucket"), FluidPredicate.HAS_BUCKET.getLoader());
+        FluidPredicate.LOADER.register(getResource("lighter_than_air"), FluidPredicate.LIGHTER_THAN_AIR.getLoader());
 
         // entity predicates
         // simple
