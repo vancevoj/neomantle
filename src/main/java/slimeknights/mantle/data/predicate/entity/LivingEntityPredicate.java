@@ -54,6 +54,8 @@ public interface LivingEntityPredicate extends IJsonPredicate<LivingEntity> {
   LivingEntityPredicate SPRINTING = simple(Entity::isSprinting);
   /** Entities blocking with a valid shield */
   LivingEntityPredicate BLOCKING = simple(LivingEntity::isBlocking);
+  /** Entities actively flying with an elytra */
+  LivingEntityPredicate ELYTRA_FLYING = simple(LivingEntity::isFallFlying);
 
 
   // water
