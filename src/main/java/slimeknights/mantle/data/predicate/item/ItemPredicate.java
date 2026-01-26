@@ -52,7 +52,7 @@ public interface ItemPredicate extends IJsonPredicate<Item> {
 
   /* Helper methods */
 
-  /** Creates am item set predicate */
+  /** Creates an item set predicate */
   static IJsonPredicate<Item> set(Item... items) {
     return LOADER.setOf(items);
   }
