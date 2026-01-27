@@ -88,6 +88,7 @@ public class MantleCommand {
     register(builder, "sources", b -> {
       register(b, "data", SourcesCommand::register);
     });
+    register(builder, "hunger", HungerCommand::register);
 
     // register final command
     event.getDispatcher().register(builder);
