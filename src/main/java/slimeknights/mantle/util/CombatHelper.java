@@ -39,6 +39,7 @@ import net.minecraftforge.event.entity.player.CriticalHitEvent;
 import slimeknights.mantle.Mantle;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -58,7 +59,9 @@ public class CombatHelper {
     AttributeInstance instance = entity.getAttribute(attribute);
     if (instance != null) {
       // remove main hand damage
-      ItemStack mainStack = entity.getMainHandItem();
+      // serverside, use the last item stack instead of the current. Should be the same, but if they mismatch then last has correct attributes
+      // clientside does not use last item stack
+      ItemStack mainStack = entity.level().isClientSide ? entity.getMainHandItem() : entity.getLastHandItem(EquipmentSlot.MAINHAND);
       Collection<AttributeModifier> mainModifiers = List.of();
       if (!mainStack.isEmpty()) {
         mainModifiers = mainStack.getAttributeModifiers(EquipmentSlot.MAINHAND).get(attribute);
@@ -69,7 +72,14 @@ public class CombatHelper {
 
       // add in offhand damage and compute
       Collection<AttributeModifier> offhandModifiers = stack.getAttributeModifiers(EquipmentSlot.MAINHAND).get(attribute);
+      List<AttributeModifier> duplicate = new ArrayList<>(offhandModifiers.size());
       for (AttributeModifier modifier : offhandModifiers) {
+        // if we already have the UUID, remove and store the old one to prevent a crash. Works around client side potentially being outdated
+        AttributeModifier existing = instance.getModifier(modifier.getId());
+        if (existing != null) {
+          duplicate.add(existing);
+          instance.removeModifier(existing);
+        }
         instance.addTransientModifier(modifier);
       }
       float damage = (float) instance.getValue();
@@ -79,6 +89,9 @@ public class CombatHelper {
         instance.removeModifier(modifier);
       }
       for (AttributeModifier modifier : mainModifiers) {
+        instance.addTransientModifier(modifier);
+      }
+      for (AttributeModifier modifier : duplicate) {
         instance.addTransientModifier(modifier);
       }
 
