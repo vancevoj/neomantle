@@ -151,6 +151,21 @@ public class CombatHelper {
    * @param hand          Hand used for attacking.
    */
   public static boolean attack(ItemStack stack, Player player, Entity target, @Nullable LivingEntity targetLiving, InteractionHand hand) {
+    return attack(stack, player, target, targetLiving, hand, player.damageSources().playerAttack(player));
+  }
+
+  /**
+   * Performs an attack, mimicking {@link Player#attack(Entity)} but allowing the damage source to be swapped.
+   * For use in {@link net.minecraft.world.item.Item#interactLivingEntity(ItemStack, Player, LivingEntity, InteractionHand)} primarily,
+   * but can also be used to fake an attack similar to {@link net.minecraftforge.common.extensions.IForgeItem#onLeftClickEntity(ItemStack, Player, Entity)}.
+   *
+   * @param stack         Stack used for attacking.
+   * @param target        Entity target
+   * @param targetLiving  Living entity target. May be different in the case of multipart entities.
+   * @param hand          Hand used for attacking.
+   * @param damageSource  Damage source to apply
+   */
+  public static boolean attack(ItemStack stack, Player player, Entity target, @Nullable LivingEntity targetLiving, InteractionHand hand, DamageSource damageSource) {
     if (isAttackable(player, target)) {
       // find damage to deal
       float damage;
@@ -222,7 +237,6 @@ public class CombatHelper {
         boolean hit;
 
         // cancel knockback if requested
-        DamageSource damageSource = player.damageSources().playerAttack(player);
         if (stack.canPerformAction(NO_BASE_KNOCKBACK) && targetLiving != null) {
           AttributeInstance knockbackAttribute = targetLiving.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
           if (knockbackAttribute != null && !knockbackAttribute.hasModifier(ANTI_KNOCKBACK_MODIFIER)) {
