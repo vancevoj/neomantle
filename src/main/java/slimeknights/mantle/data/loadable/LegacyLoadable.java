@@ -78,7 +78,7 @@ public abstract class LegacyLoadable<T> implements RecordLoadable<T> {
 
     @Override
     public T deserialize(JsonObject json, TypedMap context) {
-      Mantle.logger.warn("{}", message);
+      Mantle.logger.warn("Encountered Deprecated Loadable{}: {}", whileParsing(context), message);
       return base.deserialize(json, context);
     }
   }
