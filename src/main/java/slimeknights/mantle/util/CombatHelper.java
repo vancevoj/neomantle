@@ -135,8 +135,13 @@ public class CombatHelper {
     return attribute.sanitizeValue(value);
   }
 
+  /** Checks if the given entity can be attacked. */
+  public static boolean isAttackable(Entity attacker, Entity target) {
+    return target.isAttackable() && !target.skipAttackInteraction(attacker);
+  }
+
   /**
-   * Performs an attack, mimicing  {@link Player#attack(Entity)}.
+   * Performs an attack, mimicking  {@link Player#attack(Entity)}.
    * For use in {@link net.minecraft.world.item.Item#interactLivingEntity(ItemStack, Player, LivingEntity, InteractionHand)} primarily,
    * but can also be used to fake an attack similar to {@link net.minecraftforge.common.extensions.IForgeItem#onLeftClickEntity(ItemStack, Player, Entity)}.
    *
@@ -146,7 +151,7 @@ public class CombatHelper {
    * @param hand          Hand used for attacking.
    */
   public static boolean attack(ItemStack stack, Player player, Entity target, @Nullable LivingEntity targetLiving, InteractionHand hand) {
-    if (target.isAttackable() && !target.skipAttackInteraction(player)) {
+    if (isAttackable(player, target)) {
       // find damage to deal
       float damage;
       if (hand == InteractionHand.OFF_HAND) {
