@@ -162,6 +162,7 @@ public class ClientEvents {
         if (!isHotbar && minecraft.options.getCameraType().isFirstPerson()) {
           if (!settings.renderDebug || settings.hideGui || minecraft.player.isReducedDebugInfo() || settings.reducedDebugInfo().get()) {
             // mostly cloned from vanilla attack indicator
+            RenderSystem.enableBlend();
             RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.ONE_MINUS_DST_COLOR, GlStateManager.DestFactor.ONE_MINUS_SRC_COLOR, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
             int scaledHeight = minecraft.getWindow().getGuiScaledHeight();
             // integer division makes this a pain to line up, there might be a simplier version of this formula but I cannot think of one
@@ -170,6 +171,7 @@ public class ClientEvents {
             int width = (int)(cooldown * 17.0F);
             graphics.blit(Gui.GUI_ICONS_LOCATION, x, y, 36, 94, 16, 4);
             graphics.blit(Gui.GUI_ICONS_LOCATION, x, y, 52, 94, width, 4);
+            RenderSystem.defaultBlendFunc();
           }
         }
         break;
