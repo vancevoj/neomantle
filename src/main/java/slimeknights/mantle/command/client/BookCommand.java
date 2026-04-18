@@ -231,6 +231,7 @@ public class BookCommand {
 
         GuiGraphics gui = new GuiGraphics(Minecraft.getInstance(), buffer);
 
+        String bookKey = book.getPath() + "_" + version;
         do {
           RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
 
@@ -267,10 +268,10 @@ public class BookCommand {
             throw new CommandRuntimeException(Component.translatable(EXPORT_FAIL));
           }
 
-          if (html && page >= 0) {
-            File file = Paths.get(screenshotDir.toString(), "page-" + page + ".html").toFile();
+          if (html) {
+            File file = Paths.get(screenshotDir.toString(), page < 0 ? "index.html" : "page-" + page + ".html").toFile();
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-              writer.write(screen.toHTML(book.getPath() + "_" + version));
+              writer.write(page < 0 ? screen.coverToHtml(bookKey) : screen.pageToHtml(bookKey));
             } catch (IOException e) {
               Mantle.logger.error("Failed to export HTML", e);
               throw new CommandRuntimeException(Component.translatable(EXPORT_FAIL));
