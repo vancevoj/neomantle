@@ -41,4 +41,9 @@ public class ContentTextImage extends PageContent {
       list.add(new ImageElement(0, y + BookScreen.PAGE_HEIGHT - 100, BookScreen.PAGE_WIDTH, 100 - y, ImageData.MISSING));
     }
   }
+
+  @Override
+  public String toHTML(BookData book) {
+    return getTitleHTML() + TextData.toHTML(text, book);
+  }
 }

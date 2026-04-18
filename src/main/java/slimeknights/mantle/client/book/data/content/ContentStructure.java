@@ -110,4 +110,9 @@ public class ContentStructure extends PageContent {
       }
     }
   }
+
+  @Override
+  public String toHTML(BookData book) {
+    return getTitleHTML();
+  }
 }

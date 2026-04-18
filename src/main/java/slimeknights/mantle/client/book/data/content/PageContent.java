@@ -2,6 +2,8 @@ package slimeknights.mantle.client.book.data.content;
 
 import lombok.Getter;
 import lombok.Setter;
+import slimeknights.mantle.client.book.HTMLUtils;
+import slimeknights.mantle.client.book.IHTML;
 import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.book.data.PageData;
 import slimeknights.mantle.client.book.data.element.TextData;
@@ -14,7 +16,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 
 /** Base for all page content */
-public abstract class PageContent {
+public abstract class PageContent implements IHTML {
 
   public static final transient int TITLE_HEIGHT = 16;
   public static final transient int LARGE_TITLE_HEIGHT = 20;
@@ -46,7 +48,7 @@ public abstract class PageContent {
   public abstract void build(BookData book, ArrayList<BookElement> list, boolean rightSide);
 
   /** Returns true if the title should be large */
-  private boolean isLarge() {
+  protected boolean isLarge() {
     if (largeTitle != null) {
       return largeTitle;
     }
@@ -57,7 +59,7 @@ public abstract class PageContent {
   }
 
   /** Returns true if the title should be centered */
-  private boolean isCentered() {
+  protected boolean isCentered() {
     if (centerTitle != null) {
       return centerTitle;
     }
@@ -164,4 +166,22 @@ public abstract class PageContent {
     list.add(new TextElement(5, y, BookScreen.PAGE_WIDTH, height, subText));
     return height;
   }
+
+  /** Helper to create title in HTML */
+  public String getTitleHTML(@Nullable String classes, @Nullable String styles) {
+    StringBuilder classesBuilder = new StringBuilder("underline");
+    if (isLarge()) classesBuilder.append(" large");
+    if (classes != null) classesBuilder.append(" ").append(classes);
+
+    StringBuilder stylesBuilder = new StringBuilder();
+    if (isCentered()) stylesBuilder.append("align-self: center;");
+    if (styles != null) stylesBuilder.append(styles);
+
+    return HTMLUtils.p(getTitle(), parent.parent.name +  "." + parent.name, classesBuilder.toString(), null, stylesBuilder.isEmpty() ? null : stylesBuilder.toString());
+  }
+
+  public String getTitleHTML() {
+    return getTitleHTML(null, null);
+  }
+
 }

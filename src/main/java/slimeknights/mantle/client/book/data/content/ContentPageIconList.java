@@ -3,6 +3,8 @@ package slimeknights.mantle.client.book.data.content;
 import com.google.common.collect.Lists;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
+import slimeknights.mantle.client.book.HTMLUtils;
+import slimeknights.mantle.client.book.action.StringActionProcessor;
 import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.book.data.PageData;
 import slimeknights.mantle.client.book.data.SectionData;
@@ -16,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Index page where each link in the index is an icon rather than text. Used notably for material pages in Tinkers' Construct.
@@ -30,6 +33,7 @@ public class ContentPageIconList extends PageContent {
   public String title;
   public String subText;
   public float maxScale = 2.5f;
+  public static final int xOff = 15;
 
   protected List<PageIconLinkElement> elements = Lists.newArrayList();
 
@@ -89,24 +93,12 @@ public class ContentPageIconList extends PageContent {
       yOff = height + 16;
     }
 
-    int offset = 15;
-    int x = offset;
+    int x = xOff;
     int y = yOff;
-    int pageW = BookScreen.PAGE_WIDTH - 2 * offset;
-    int pageH = BookScreen.PAGE_HEIGHT - yOff;
 
-    float scale = this.maxScale;
-    int scaledWidth = this.width;
-    int scaledHeight = this.height;
-    boolean fits = false;
-    while (!fits && scale > 1f) {
-      scale -= 0.25f;
-      scaledWidth = (int) (this.width * scale);
-      scaledHeight = (int) (this.height * scale);
-      int rows = pageW / scaledWidth;
-      int cols = pageH / scaledHeight;
-      fits = rows * cols >= this.elements.size();
-    }
+    float scale = getScale(yOff);
+    int scaledWidth = (int) (this.width * scale);
+    int scaledHeight = (int) (this.height * scale);
 
     for (PageIconLinkElement element : this.elements) {
       element.x = x;
@@ -122,8 +114,8 @@ public class ContentPageIconList extends PageContent {
 
       x += scaledWidth;
 
-      if (x > BookScreen.PAGE_WIDTH - offset - scaledWidth) {
-        x = offset;
+      if (x > BookScreen.PAGE_WIDTH - xOff - scaledWidth) {
+        x = xOff;
         y += scaledHeight;
         // do not draw over the page
         if (y > BookScreen.PAGE_HEIGHT - scaledHeight) {
@@ -219,5 +211,43 @@ public class ContentPageIconList extends PageContent {
    */
   public static void addPages(SectionData data, List<ContentPageIconList> indexList, Collection<PageWithIcon> pages) {
     addPages(data, indexList, pages, indexList.size());
+  }
+
+  /** Calculates the largest possible icon scale that will fit all the contents on the page */
+  protected float getScale(int yOff) {
+    int pageW = BookScreen.PAGE_WIDTH - 2 * xOff;
+    int pageH = BookScreen.PAGE_HEIGHT - yOff;
+
+    float scale = this.maxScale;
+    boolean fits = false;
+    while (!fits && scale > 1f) {
+      scale -= 0.25f;
+      int rows = pageW / (int) (this.width * scale);
+      int cols = pageH / (int) (this.height * scale);
+      fits = rows * cols >= this.elements.size();
+    }
+    return scale;
+  }
+
+  @Override
+  public String toHTML(BookData book) {
+    int yOff = 0;
+    if (this.title != null) yOff = getTitleHeight();
+    if (this.subText != null) yOff = book.fontRenderer.wordWrapHeight(this.subText, 182) * 12 / 9 + 16;
+
+    return String.format(
+      """
+      %s
+      %s
+      <div class="grid-icon-list grid-icon-list-%d" style="top: %dpx">
+      %s
+      </div>
+      """,
+      getTitleHTML(),
+      HTMLUtils.p(subText, "padding-left: 10px"),
+      (BookScreen.PAGE_WIDTH - 2 * xOff) / (int) (this.width * getScale(yOff)),
+      yOff * 2,
+      elements.stream().map(e -> e.toHTML(book)).collect(Collectors.joining("\n"))
+    );
   }
 }

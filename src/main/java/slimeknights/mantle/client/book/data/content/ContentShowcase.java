@@ -45,4 +45,18 @@ public class ContentShowcase extends PageContent {
       list.add(new TextElement(0, y, BookScreen.PAGE_WIDTH, BookScreen.PAGE_HEIGHT - y, this.text));
     }
   }
+
+  @Override
+  public String toHTML(BookData book) {
+    return String.format(
+      """
+      %s
+      <div class="column" style="padding-top: 80px">
+      %s
+      </div>
+      """,
+      getTitleHTML(),
+      TextData.toHTML(text, book)
+    );
+  }
 }

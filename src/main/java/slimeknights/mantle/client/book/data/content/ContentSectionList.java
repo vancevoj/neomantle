@@ -7,6 +7,7 @@ import slimeknights.mantle.client.screen.book.element.BookElement;
 import slimeknights.mantle.client.screen.book.element.SelectionElement;
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 public class ContentSectionList extends PageContent {
 
@@ -35,5 +36,14 @@ public class ContentSectionList extends PageContent {
 
       list.add(new SelectionElement(x, y, this.sections.get(i)));
     }
+  }
+
+  @Override
+  public String toHTML(BookData book) {
+    return "<div class=\"grid-content-" + (sections.size() >= 9 ? 4 : 3) + " mc-font-gray\">\n" +
+      sections.stream()
+        .map(s -> s.toHTML(book))
+        .collect(Collectors.joining()) +
+      "</div>";
   }
 }

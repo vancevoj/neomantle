@@ -34,4 +34,9 @@ public class ContentImage extends PageContent {
       list.add(new ImageElement(ImageData.MISSING));
     }
   }
+
+  @Override
+  public String toHTML(BookData book) {
+    return getTitleHTML();
+  }
 }

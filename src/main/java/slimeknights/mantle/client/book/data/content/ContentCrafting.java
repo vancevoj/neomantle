@@ -23,6 +23,7 @@ import slimeknights.mantle.client.screen.book.element.ImageElement;
 import slimeknights.mantle.client.screen.book.element.ItemElement;
 import slimeknights.mantle.client.screen.book.element.TextElement;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 
 import static slimeknights.mantle.client.screen.book.Textures.TEX_CRAFTING;
@@ -48,6 +49,7 @@ public class ContentCrafting extends PageContent {
   public String grid_size = "auto";
   public IngredientData[][] grid;
   public IngredientData result;
+  @Nullable
   public TextData[] description;
   public String recipe;
 
@@ -153,5 +155,20 @@ public class ContentCrafting extends PageContent {
         }
       }
     }
+  }
+
+  @Override
+  public String toHTML(BookData book) {
+    return String.format(
+      """
+      %s
+      <div class="%s">
+      %s
+      </div>
+      """,
+      getTitleHTML(),
+      grid_size.equalsIgnoreCase("small") ? "spacing" : "spacing-lg",
+      TextData.toHTML(description, book)
+    );
   }
 }

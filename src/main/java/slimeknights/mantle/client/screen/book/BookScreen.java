@@ -65,6 +65,8 @@ public class BookScreen extends Screen {
   public boolean mouseInput = true;
   /** If true, animated elements can animate. Set to false during export to ensure first element consistently shows. */
   public boolean enableAnimations = true;
+  /** If true, text elements are drawn. Set to false during export of book html */
+  public boolean drawText = true;
 
   private ArrowButton previousArrow, nextArrow, backArrow, indexArrow;
 
@@ -320,7 +322,8 @@ public class BookScreen extends Screen {
 
     Font font = getFontRenderer();
 
-    for(BookElement element : elements) {
+    for (BookElement element : elements) {
+      if (!drawText && element.isText()) continue;
       RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
       layerFunc.draw(element, graphics, mouseX, mouseY, partialTicks, font);
     }
@@ -562,9 +565,9 @@ public class BookScreen extends Screen {
     if (pageUpdater != null) {
       String pageStr = "";
       if (this.page >= 0) {
-        PageData page = this.page == 0 ? this.book.findPage(0, this.advancementCache) : this.book.findPage((this.page - 1) * 2 + 1, this.advancementCache);
+        PageData page = this.page == 0 ? this.book.findPage(0, this.advancementCache) : getLeftPage();
         if (page == null) {
-          page = this.book.findPage((this.page - 1) * 2 + 2, this.advancementCache);
+          page = getRightPage();
         }
         if (page != null && page.parent != null) {
           pageStr = page.parent.name + "." + page.name;
@@ -699,8 +702,8 @@ public class BookScreen extends Screen {
         page.content.build(this.book, this.rightElements, false);
       }
     } else {
-      PageData leftPage = this.book.findPage((this.page - 1) * 2 + 1, this.advancementCache);
-      PageData rightPage = this.book.findPage((this.page - 1) * 2 + 2, this.advancementCache);
+      PageData leftPage = getLeftPage();
+      PageData rightPage = getRightPage();
 
       if (leftPage != null) {
         leftPage.content.build(this.book, this.leftElements, false);
@@ -716,6 +719,46 @@ public class BookScreen extends Screen {
     for (BookElement element : this.rightElements) {
       element.setParent(this);
     }
+  }
+
+  /** {@return PageData from the left page } */
+  @Nullable
+  private PageData getLeftPage() {
+    return this.book.findPage((this.page - 1) * 2 + 1, this.advancementCache);
+  }
+
+  /** {@return PageData from the right page } */
+  @Nullable
+  private PageData getRightPage() {
+    return this.book.findPage((this.page - 1) * 2 + 2, this.advancementCache);
+  }
+
+  /**
+   * Converts the left and right page to HTML including the Jekyll front matter
+   */
+  public String toHTML(String bookName) {
+    PageData leftData = getLeftPage();
+    PageData rightData = getRightPage();
+
+//    String left = leftData != null ? HTMLUtils.p(leftData.content.getClass().toString()) : null;
+//    String right = rightData != null ? HTMLUtils.p(rightData.content.getClass().toString()) : null;
+    String left = leftData != null ? leftData.content.toHTML(book) : null;
+    String right = rightData != null ? rightData.content.toHTML(book) : null;
+
+    StringBuilder builder = new StringBuilder();
+
+    if (left != null || right != null) {
+      builder.append("---\n")
+        .append("layout: book-html\n")
+        .append("book: ").append(bookName).append("\n")
+        .append("page_num: ").append(this.page).append("\n")
+        .append("---\n\n");
+    }
+
+    if (left != null) builder.append("<div class=\"left\">\n").append(left).append("\n</div>");
+    if (right != null) builder.append("<div class=\"right\">\n").append(right).append("\n</div>");
+
+    return builder.toString();
   }
 
   public static class AdvancementCache implements ClientAdvancements.Listener {

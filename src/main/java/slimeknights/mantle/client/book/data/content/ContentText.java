@@ -31,4 +31,9 @@ public class ContentText extends PageContent {
       list.add(new TextElement(0, y, BookScreen.PAGE_WIDTH, BookScreen.PAGE_HEIGHT - y, this.text));
     }
   }
+
+  @Override
+  public String toHTML(BookData book) {
+    return getTitleHTML() + TextData.toHTML(text, book);
+  }
 }

@@ -9,6 +9,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.ChatFormatting;
@@ -33,6 +34,10 @@ import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.screen.book.BookScreen;
 import slimeknights.mantle.command.MantleCommand;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -43,6 +48,8 @@ public class BookCommand {
   private static final String EXPORT_SUCCESS = "command.mantle.book.export.success";
   private static final String EXPORT_FAIL = "command.mantle.book.export.error_generic";
   private static final String EXPORT_FAIL_IO = "command.mantle.book.export.error_io";
+
+  private static final String DEFAULT_BOOK_VERSION = "20";
 
   /**
    * Registers this sub command with the root command
@@ -57,7 +64,16 @@ public class BookCommand {
         .then(Commands.argument("id", ResourceLocationArgument.id()).suggests(MantleClientCommand.REGISTERED_BOOKS)
           .then(Commands.argument("scale", IntegerArgumentType.integer(1, 16))
             .executes(BookCommand::exportImagesWithScale))
-          .executes(BookCommand::exportImages)));
+          .executes(BookCommand::exportImages)))
+      .then(Commands.literal("export_html")
+        .then(Commands.argument("id", ResourceLocationArgument.id()).suggests(MantleClientCommand.REGISTERED_BOOKS)
+          .then(Commands.argument("version", StringArgumentType.word())
+            .executes(BookCommand::exportHTMLWithVersion))
+          .executes(BookCommand::exportHTML)))
+      .then(Commands.literal("export_all_html")
+        .then(Commands.argument("version", StringArgumentType.word())
+          .executes(BookCommand::exportAllHTMLWithVersion))
+        .executes(BookCommand::exportAllHTML));
   }
 
   /**
@@ -91,7 +107,7 @@ public class BookCommand {
     ResourceLocation book = ResourceLocationArgument.getId(context, "id");
     int scale = context.getArgument("scale", Integer.class);
 
-    return doExportImages(book, scale);
+    return doExport(book, scale, false);
   }
 
   /**
@@ -102,16 +118,77 @@ public class BookCommand {
   private static int exportImages(CommandContext<CommandSourceStack> context) {
     ResourceLocation book = ResourceLocationArgument.getId(context, "id");
 
-    return doExportImages(book, 2);
+    return doExport(book, 2, false);
+  }
+
+  /**
+   * Exports all pages in the book to HTML and png
+   * @param context Command context
+   * @return Integer return
+   */
+  private static int exportHTML(CommandContext<CommandSourceStack> context) {
+    ResourceLocation book = ResourceLocationArgument.getId(context, "id");
+
+    return doExport(book, 2, true);
+  }
+
+  /**
+   * Exports all pages in the book to HTML and png
+   * @param context Command context
+   * @return Integer return
+   */
+  private static int exportHTMLWithVersion(CommandContext<CommandSourceStack> context) {
+    ResourceLocation book = ResourceLocationArgument.getId(context, "id");
+
+    return doExport(book, 2, true, StringArgumentType.getString(context, "version"));
+  }
+
+  /**
+   * Exports all pages in all books to HTML and png
+   * @param context Command context
+   * @return Integer return
+   */
+  private static int exportAllHTML(CommandContext<CommandSourceStack> context) {
+    for (ResourceLocation book : BookLoader.getRegisteredBooks()) {
+      int code = doExport(book, 2, true);
+      if (code != 0) return code;
+    }
+    return 0;
+  }
+
+  /**
+   * Exports all pages in all books to HTML and png
+   * @param context Command context
+   * @return Integer return
+   */
+  private static int exportAllHTMLWithVersion(CommandContext<CommandSourceStack> context) {
+    for (ResourceLocation book : BookLoader.getRegisteredBooks()) {
+      int code = doExport(book, 2, true, StringArgumentType.getString(context, "version"));
+      if (code != 0) return code;
+    }
+    return 0;
   }
 
   /**
    * Renders all images in the book to files
    * @param book  Book to export
    * @param scale  Scale to export at
+   * @param html  Include HTML
    * @return  Integer return
    */
-  private static int doExportImages(ResourceLocation book, int scale) {
+  private static int doExport(ResourceLocation book, int scale, boolean html) {
+    return doExport(book, scale, html, DEFAULT_BOOK_VERSION);
+  }
+
+  /**
+   * Renders all images in the book to files
+   * @param book  Book to export
+   * @param scale  Scale to export at
+   * @param html  Include HTML
+   * @param version  version in each files header
+   * @return  Integer return
+   */
+  private static int doExport(ResourceLocation book, int scale, boolean html, String version) {
     BookData bookData = BookLoader.getBook(book);
 
     Path gameDirectory = Minecraft.getInstance().gameDirectory.toPath();
@@ -131,6 +208,7 @@ public class BookCommand {
       screen.init(Minecraft.getInstance(), width / scale, height / scale);
       screen.drawArrows = false;
       screen.mouseInput = false;
+      screen.drawText = !html;
       screen.enableAnimations = false;
 
       Matrix4f matrix = (new Matrix4f()).setOrtho(0.0F, width, height, 0.0F, 1000.0F, zFar);
@@ -166,9 +244,10 @@ public class BookCommand {
           gui.flush();
           gui.pose().popPose();
 
+          int page = screen.getPage_();
+
           try (NativeImage image = takeScreenshot(target)) {
-            int page = screen.getPage_();
-            String pageFormat = page < 0 ? "cover" : "page_" + page;
+            String pageFormat = page < 0 ? "cover" :  (html ? "clean_" : "page_") + page;
             Path path = Paths.get(screenshotDir.toString(), pageFormat + ".png");
 
             if (page == -1) { // the cover is half the width
@@ -187,6 +266,16 @@ public class BookCommand {
             Mantle.logger.error("Failed to save screenshot", e);
             throw new CommandRuntimeException(Component.translatable(EXPORT_FAIL));
           }
+
+          if (html && page >= 0) {
+            File file = Paths.get(screenshotDir.toString(), "page-" + page + ".html").toFile();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+              writer.write(screen.toHTML(book.getPath() + "_" + version));
+            } catch (IOException e) {
+              Mantle.logger.error("Failed to export HTML", e);
+              throw new CommandRuntimeException(Component.translatable(EXPORT_FAIL));
+            }
+          }
         } while (screen.nextPage());
       } finally {
         stack.popPose();
@@ -200,13 +289,18 @@ public class BookCommand {
       return 1;
     }
 
+    sendFileMessage(screenshotDir, EXPORT_SUCCESS);
+    return 0;
+  }
+
+  /** Send a message to the player linking the directory */
+  private static void sendFileMessage(Path screenshotDir, String key) {
     Player player = Minecraft.getInstance().player;
     if (player != null) {
       Component fileComponent = Component.literal(screenshotDir.toString()).withStyle(ChatFormatting.UNDERLINE)
         .withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, screenshotDir.toAbsolutePath().toString())));
-      player.displayClientMessage(Component.translatable(EXPORT_SUCCESS, fileComponent), false);
+      player.displayClientMessage(Component.translatable(key, fileComponent), false);
     }
-    return 0;
   }
 
   /**

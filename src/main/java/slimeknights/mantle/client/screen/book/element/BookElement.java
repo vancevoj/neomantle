@@ -121,4 +121,12 @@ public abstract class BookElement {
     // render the tooltip
     graphics.renderTooltipInternal(font, components, mouseX, mouseY, POSITIONER);
   }
+
+  /**
+   * True if this element contains any text,
+   * will not be included for HTML export
+   */
+  public boolean isText() {
+    return false;
+  }
 }
