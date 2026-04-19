@@ -138,7 +138,7 @@ public class HtmlElement extends HtmlGroup {
 
   /** Adds a color element to the style */
   public HtmlElement color(String name, int color) {
-    return style("color", '#' + ColorLoadable.NO_ALPHA.getString(color));
+    return style(name, '#' + ColorLoadable.NO_ALPHA.getString(color));
   }
 
   /** Adds the color element to the style */
