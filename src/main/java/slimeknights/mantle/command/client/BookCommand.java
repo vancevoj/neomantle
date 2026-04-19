@@ -288,6 +288,17 @@ public class BookCommand {
             }
           }
         } while (screen.nextPage());
+
+        // add gallery page
+        if (html) {
+          File file = Paths.get(htmlDir.toString(), "gallery.html").toFile();
+          try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write(galleryHtml(bookKey, exportTitle, modName));
+          } catch (IOException e) {
+            Mantle.logger.error("Failed to export HTML", e);
+            throw new CommandRuntimeException(Component.translatable(EXPORT_FAIL));
+          }
+        }
       } finally {
         stack.popPose();
         RenderSystem.applyModelViewMatrix();
@@ -304,6 +315,19 @@ public class BookCommand {
     return 0;
   }
 
+
+  /** Creates the gallery HTML page */
+  private static String galleryHtml(String bookName, String title, String mod) {
+    return "---\n" +
+      "layout: book-gallery\n" +
+      "title: " + title + " (" + VERSION_FULL + ") - Gallery" + '\n' +
+      "breadcrumb: Gallery\n" +
+      "description: Gallery of all pages for " + title + " from " + mod + " in Minecraft " + VERSION_FULL + ".\n" +
+      "book: " + bookName + '\n' +
+      "link_prefix: ../\n" +
+      "link_suffix: /gallery\n" +
+      "---\n\n";
+  }
 
   /** Send a message to the player linking the directory */
   private static void sendFileMessage(Path screenshotDir, @Nullable Path htmlDir) {
