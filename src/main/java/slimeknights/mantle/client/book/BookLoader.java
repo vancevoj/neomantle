@@ -44,6 +44,7 @@ import slimeknights.mantle.network.packet.UpdateLecternPagePacket;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.HashMap;
 
 public class BookLoader implements ResourceManagerReloadListener {
@@ -173,10 +174,14 @@ public class BookLoader implements ResourceManagerReloadListener {
     return books.getOrDefault(id, null);
   }
 
-  /**
-   * Gets the resource location of all registered books
-   */
+  /** @deprecated use {@link #getAllBooks()} */
+  @Deprecated(forRemoval = true)
   public static Iterable<ResourceLocation> getRegisteredBooks() {
+    return books.keySet();
+  }
+
+  /** Gets the resource locations of all registered books */
+  public static Collection<ResourceLocation> getAllBooks() {
     return books.keySet();
   }
 

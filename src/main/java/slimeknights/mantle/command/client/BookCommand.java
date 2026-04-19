@@ -52,6 +52,7 @@ public class BookCommand {
   private static final String EXPORT_FAIL_IO = "command.mantle.book.export.error_io";
 
   private static final String DEFAULT_BOOK_VERSION = "20";
+  private static final int DEFAULT_SCALE = 2;
 
   /**
    * Registers this sub command with the root command
@@ -62,20 +63,30 @@ public class BookCommand {
       .then(Commands.literal("open")
         .then(Commands.argument("id", ResourceLocationArgument.id()).suggests(MantleClientCommand.REGISTERED_BOOKS)
           .executes(BookCommand::openBook)))
+
       .then(Commands.literal("export_images")
+        // mantle book export_images <domain> [version]
+        .then(Commands.argument("domain", StringArgumentType.word()).suggests(MantleClientCommand.REGISTERED_BOOK_DOMAINS)
+          .then(Commands.argument("scale", IntegerArgumentType.integer(1, 16))
+            .executes(context -> exportDomainImages(context, IntegerArgumentType.getInteger(context, "scale"))))
+          .executes(context -> exportDomainImages(context, DEFAULT_SCALE)))
+        // mantle book export_images <domain> [version]
         .then(Commands.argument("id", ResourceLocationArgument.id()).suggests(MantleClientCommand.REGISTERED_BOOKS)
           .then(Commands.argument("scale", IntegerArgumentType.integer(1, 16))
-            .executes(BookCommand::exportImagesWithScale))
-          .executes(BookCommand::exportImages)))
+            .executes(context -> exportImages(context, IntegerArgumentType.getInteger(context, "scale"))))
+          .executes(context -> exportImages(context, DEFAULT_SCALE))))
+
       .then(Commands.literal("export_html")
+        // mantle book export_html <domain> [version]
+        .then(Commands.argument("domain", StringArgumentType.word()).suggests(MantleClientCommand.REGISTERED_BOOK_DOMAINS)
+          .then(Commands.argument("version", StringArgumentType.word())
+            .executes(context -> exportDomainHtml(context, StringArgumentType.getString(context, "version"))))
+          .executes(context -> exportDomainHtml(context, DEFAULT_BOOK_VERSION)))
+        // mantle book export_html <id> [version]
         .then(Commands.argument("id", ResourceLocationArgument.id()).suggests(MantleClientCommand.REGISTERED_BOOKS)
           .then(Commands.argument("version", StringArgumentType.word())
-            .executes(BookCommand::exportHTMLWithVersion))
-          .executes(BookCommand::exportHTML)))
-      .then(Commands.literal("export_all_html")
-        .then(Commands.argument("version", StringArgumentType.word())
-          .executes(BookCommand::exportAllHTMLWithVersion))
-        .executes(BookCommand::exportAllHTML));
+            .executes(context -> exportHTML(context, StringArgumentType.getString(context, "version"))))
+          .executes(context -> exportHTML(context, DEFAULT_BOOK_VERSION))));
   }
 
   /**
@@ -101,26 +112,29 @@ public class BookCommand {
   }
 
   /**
-   * Renders all images in the book to files at specified scale
-   * @param context  Command context
-   * @return  Integer return
-   */
-  private static int exportImagesWithScale(CommandContext<CommandSourceStack> context) {
-    ResourceLocation book = ResourceLocationArgument.getId(context, "id");
-    int scale = context.getArgument("scale", Integer.class);
-
-    return doExport(book, scale, false);
-  }
-
-  /**
    * Renders all images in the book to files
    * @param context  Command context
    * @return  Integer return
    */
-  private static int exportImages(CommandContext<CommandSourceStack> context) {
+  private static int exportImages(CommandContext<CommandSourceStack> context, int scale) {
     ResourceLocation book = ResourceLocationArgument.getId(context, "id");
+    return doExport(book, scale, false, DEFAULT_BOOK_VERSION);
+  }
 
-    return doExport(book, 2, false);
+  /**
+   * Renders all images in the books in the given domain to files
+   * @param context  Command context
+   * @return  Integer return
+   */
+  private static int exportDomainImages(CommandContext<CommandSourceStack> context, int scale) {
+    String domain = StringArgumentType.getString(context, "domain");
+    for (ResourceLocation book : BookLoader.getAllBooks()) {
+      if (domain.equals(book.getNamespace())) {
+        int code = doExport(book, scale, false, DEFAULT_BOOK_VERSION);
+        if (code != 0) return code;
+      }
+    }
+    return 0;
   }
 
   /**
@@ -128,21 +142,9 @@ public class BookCommand {
    * @param context Command context
    * @return Integer return
    */
-  private static int exportHTML(CommandContext<CommandSourceStack> context) {
+  private static int exportHTML(CommandContext<CommandSourceStack> context, String version) {
     ResourceLocation book = ResourceLocationArgument.getId(context, "id");
-
-    return doExport(book, 2, true);
-  }
-
-  /**
-   * Exports all pages in the book to HTML and png
-   * @param context Command context
-   * @return Integer return
-   */
-  private static int exportHTMLWithVersion(CommandContext<CommandSourceStack> context) {
-    ResourceLocation book = ResourceLocationArgument.getId(context, "id");
-
-    return doExport(book, 2, true, StringArgumentType.getString(context, "version"));
+    return doExport(book, 2, true, version);
   }
 
   /**
@@ -150,36 +152,15 @@ public class BookCommand {
    * @param context Command context
    * @return Integer return
    */
-  private static int exportAllHTML(CommandContext<CommandSourceStack> context) {
-    for (ResourceLocation book : BookLoader.getRegisteredBooks()) {
-      int code = doExport(book, 2, true);
-      if (code != 0) return code;
+  private static int exportDomainHtml(CommandContext<CommandSourceStack> context, String version) {
+    String domain = StringArgumentType.getString(context, "domain");
+    for (ResourceLocation book : BookLoader.getAllBooks()) {
+      if (domain.equals(book.getNamespace())) {
+        int code = doExport(book, 2, true, version);
+        if (code != 0) return code;
+      }
     }
     return 0;
-  }
-
-  /**
-   * Exports all pages in all books to HTML and png
-   * @param context Command context
-   * @return Integer return
-   */
-  private static int exportAllHTMLWithVersion(CommandContext<CommandSourceStack> context) {
-    for (ResourceLocation book : BookLoader.getRegisteredBooks()) {
-      int code = doExport(book, 2, true, StringArgumentType.getString(context, "version"));
-      if (code != 0) return code;
-    }
-    return 0;
-  }
-
-  /**
-   * Renders all images in the book to files
-   * @param book  Book to export
-   * @param scale  Scale to export at
-   * @param html  Include HTML
-   * @return  Integer return
-   */
-  private static int doExport(ResourceLocation book, int scale, boolean html) {
-    return doExport(book, scale, html, DEFAULT_BOOK_VERSION);
   }
 
   /**
