@@ -22,7 +22,6 @@ import net.minecraft.commands.CommandRuntimeException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
-import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -32,8 +31,10 @@ import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.book.BookLoader;
 import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.screen.book.BookScreen;
+import slimeknights.mantle.command.GeneratePackHelper;
 import slimeknights.mantle.command.MantleCommand;
 
+import javax.annotation.Nullable;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -46,6 +47,7 @@ public class BookCommand {
   private static final String BOOK_NOT_FOUND = "command.mantle.book_test.not_found";
 
   private static final String EXPORT_SUCCESS = "command.mantle.book.export.success";
+  private static final String EXPORT_SUCCESS_HTML = "command.mantle.book.export.html.success";
   private static final String EXPORT_FAIL = "command.mantle.book.export.error_generic";
   private static final String EXPORT_FAIL_IO = "command.mantle.book.export.error_io";
 
@@ -192,11 +194,17 @@ public class BookCommand {
     BookData bookData = BookLoader.getBook(book);
 
     Path gameDirectory = Minecraft.getInstance().gameDirectory.toPath();
+    // images go in screenshots
     Path screenshotDir = Paths.get(gameDirectory.toString(), Screenshot.SCREENSHOT_DIR, "mantle_book", book.getNamespace(), book.getPath());
-
-    if(bookData != null) {
-      if(!screenshotDir.toFile().mkdirs() && !screenshotDir.toFile().exists()) {
-        throw new CommandRuntimeException(Component.translatable(EXPORT_FAIL_IO));
+    // html goes in root folder
+    Path htmlDir = html ? Paths.get(gameDirectory.toString(), "mantle_book", book.getNamespace(), book.getPath().replace('_', '-')) : null;
+    if (bookData != null) {
+      // ensure outputs exist
+      if (!screenshotDir.toFile().mkdirs() && !screenshotDir.toFile().exists()) {
+        throw new CommandRuntimeException(Component.translatable(EXPORT_FAIL_IO, screenshotDir));
+      }
+      if (htmlDir != null && !htmlDir.toFile().mkdirs() && !htmlDir.toFile().exists()) {
+        throw new CommandRuntimeException(Component.translatable(EXPORT_FAIL_IO, htmlDir));
       }
 
       int width = BookScreen.PAGE_WIDTH_UNSCALED * 2 * scale;
@@ -269,7 +277,7 @@ public class BookCommand {
           }
 
           if (html) {
-            File file = Paths.get(screenshotDir.toString(), page < 0 ? "index.html" : "page-" + page + ".html").toFile();
+            File file = Paths.get(htmlDir.toString(), page < 0 ? "index.html" : "page-" + page + ".html").toFile();
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
               writer.write(page < 0 ? screen.coverToHtml(bookKey) : screen.pageToHtml(bookKey));
             } catch (IOException e) {
@@ -290,17 +298,21 @@ public class BookCommand {
       return 1;
     }
 
-    sendFileMessage(screenshotDir, EXPORT_SUCCESS);
+    sendFileMessage(screenshotDir, htmlDir);
     return 0;
   }
 
+
   /** Send a message to the player linking the directory */
-  private static void sendFileMessage(Path screenshotDir, String key) {
+  private static void sendFileMessage(Path screenshotDir, @Nullable Path htmlDir) {
     Player player = Minecraft.getInstance().player;
     if (player != null) {
-      Component fileComponent = Component.literal(screenshotDir.toString()).withStyle(ChatFormatting.UNDERLINE)
-        .withStyle(style -> style.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, screenshotDir.toAbsolutePath().toString())));
-      player.displayClientMessage(Component.translatable(key, fileComponent), false);
+      Component fileComponent = GeneratePackHelper.getOutputComponent(screenshotDir);
+      if (htmlDir != null) {
+        player.displayClientMessage(Component.translatable(EXPORT_SUCCESS_HTML, fileComponent, GeneratePackHelper.getOutputComponent(htmlDir)), false);
+      } else {
+        player.displayClientMessage(Component.translatable(EXPORT_SUCCESS, fileComponent), false);
+      }
     }
   }
 
