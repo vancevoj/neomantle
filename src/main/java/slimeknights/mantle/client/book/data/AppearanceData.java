@@ -18,6 +18,8 @@ public class AppearanceData implements IDataItem {
   public String title = "";
   /** Smaller subtitle, typically author information */
   public String subtitle = "";
+  /** Title used on export, not rendered. If empty, defaults to {@link #title} */
+  public String exportTitle = "";
   /** Color to tint the cover background */
   public int coverColor = 0x8B4631;
   /** Color of the cover text */

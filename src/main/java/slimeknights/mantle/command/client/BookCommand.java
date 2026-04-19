@@ -25,6 +25,7 @@ import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import org.apache.commons.lang3.text.WordUtils;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 import slimeknights.mantle.Mantle;
@@ -52,6 +53,7 @@ public class BookCommand {
   private static final String EXPORT_FAIL_IO = "command.mantle.book.export.error_io";
 
   private static final String DEFAULT_BOOK_VERSION = "20";
+  private static final String VERSION_SUFFIX = " (1.20)";
   private static final int DEFAULT_SCALE = 2;
 
   /**
@@ -221,6 +223,14 @@ public class BookCommand {
         GuiGraphics gui = new GuiGraphics(Minecraft.getInstance(), buffer);
 
         String bookKey = book.getPath() + "_" + version;
+        // title goes export title -> regular title -> path
+        String exportTitle = bookData.appearance.exportTitle;
+        if (exportTitle.isEmpty()) {
+          exportTitle = bookData.appearance.title;
+          if (exportTitle.isEmpty()) {
+            exportTitle = WordUtils.capitalize(book.getPath().replace('_', ' '));
+          }
+        }
         do {
           RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
 
@@ -264,7 +274,7 @@ public class BookCommand {
           if (html) {
             File file = Paths.get(htmlDir.toString(), page < 0 ? "index.html" : "page-" + page + ".html").toFile();
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-              writer.write(page < 0 ? screen.coverToHtml(bookKey) : screen.pageToHtml(bookKey));
+              writer.write(page < 0 ? screen.coverToHtml(bookKey, exportTitle, VERSION_SUFFIX) : screen.pageToHtml(bookKey, exportTitle + VERSION_SUFFIX));
             } catch (IOException e) {
               Mantle.logger.error("Failed to export HTML", e);
               throw new CommandRuntimeException(Component.translatable(EXPORT_FAIL));

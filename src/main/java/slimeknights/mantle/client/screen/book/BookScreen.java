@@ -738,13 +738,11 @@ public class BookScreen extends Screen {
    * Converts the cover to HTML.
    * Preconditon: {@link #getPage_()} is -1.
    */
-  public String coverToHtml(String bookName) {
-    // TODO: breadcrumb
-    // TODO: title
-    // TODO: description
-    // TODO: cover contents?
+  public String coverToHtml(String bookName, String title, String version) {
     return "---\n" +
       "layout: book-cover\n" +
+      "title: " + title + version + "\n" +
+      "breadcrumb: " + title + "\n" +
       "book: " + bookName + "\n" +
       "---\n\n";
   }
@@ -753,7 +751,7 @@ public class BookScreen extends Screen {
    * Converts the current left and right page to HTML including the Jekyll front matter.
    * Preconditon: {@link #getPage_()} is not -1.
    */
-  public String pageToHtml(String bookName) {
+  public String pageToHtml(String bookName, String title) {
     PageData leftData = getLeftPage();
     PageData rightData = getRightPage();
 
@@ -765,9 +763,10 @@ public class BookScreen extends Screen {
     if (left != null || right != null) {
       builder.append("---\n")
         .append("layout: book-page\n")
+        .append("title: ").append(title).append(" - page ").append(this.page).append('\n')
+        .append("breadcrumb: ").append(this.page).append('\n')
         .append("book: ").append(bookName).append('\n')
         .append("page_num: ").append(this.page).append('\n')
-        .append("breadcrumb: ").append(this.page).append('\n')
         .append("---\n\n");
     }
 
