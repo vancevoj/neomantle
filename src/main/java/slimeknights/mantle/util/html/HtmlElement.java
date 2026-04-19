@@ -43,11 +43,24 @@ public class HtmlElement extends HtmlGroup {
   }
 
   @Override
-  public HtmlGroup add(HtmlSerializable element) {
+  public HtmlElement add(HtmlSerializable element) {
     if (selfClosing) {
       throw new IllegalStateException("Cannot add children to self-closing elements");
     }
-    return super.add(element);
+    super.add(element);
+    return this;
+  }
+
+  @Override
+  public HtmlElement add(HtmlSerializable... elements) {
+    super.add(elements);
+    return this;
+  }
+
+  @Override
+  public HtmlElement add(String text) {
+    super.add(text);
+    return this;
   }
 
 
