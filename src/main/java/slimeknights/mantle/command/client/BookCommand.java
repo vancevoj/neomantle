@@ -248,12 +248,16 @@ public class BookCommand {
           RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
             GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE);
 
+          int page = screen.getPage_();
+          // draw text on the cover; we just want it as an image
+          if (html) {
+            screen.drawText = page < 0;
+          }
+
           gui.pose().pushPose();
           screen.render(gui, 0, 0, 0);
           gui.flush();
           gui.pose().popPose();
-
-          int page = screen.getPage_();
 
           try (NativeImage image = takeScreenshot(target)) {
             String pageFormat = page < 0 ? "cover" :  (html ? "clean_" : "page_") + page;
