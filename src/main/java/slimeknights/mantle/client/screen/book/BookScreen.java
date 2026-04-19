@@ -738,11 +738,12 @@ public class BookScreen extends Screen {
    * Converts the cover to HTML.
    * Preconditon: {@link #getPage_()} is -1.
    */
-  public String coverToHtml(String bookName, String title, String version) {
+  public String coverToHtml(String bookName, String title, String version, String mod) {
     return "---\n" +
       "layout: book-cover\n" +
-      "title: " + title + version + "\n" +
+      "title: " + title + " (" + version + ")\n" +
       "breadcrumb: " + title + "\n" +
+      "description: Interactive " + title + " from " + mod + " in Minecraft " + version + ".\n" +
       "book: " + bookName + "\n" +
       "---\n\n";
   }
@@ -751,7 +752,7 @@ public class BookScreen extends Screen {
    * Converts the current left and right page to HTML including the Jekyll front matter.
    * Preconditon: {@link #getPage_()} is not -1.
    */
-  public String pageToHtml(String bookName, String title) {
+  public String pageToHtml(String bookName, String title, String version, String mod) {
     PageData leftData = getLeftPage();
     PageData rightData = getRightPage();
 
@@ -763,8 +764,9 @@ public class BookScreen extends Screen {
     if (left != null || right != null) {
       builder.append("---\n")
         .append("layout: book-page\n")
-        .append("title: ").append(title).append(" - page ").append(this.page).append('\n')
+        .append("title: ").append(title).append(" (").append(version).append(") - page ").append(this.page).append('\n')
         .append("breadcrumb: ").append(this.page).append('\n')
+        .append("description: Interactive ").append(title).append(" from ").append(mod).append(" in Minecraft ").append(version).append(".\n")
         .append("book: ").append(bookName).append('\n')
         .append("page_num: ").append(this.page).append('\n')
         .append("---\n\n");
