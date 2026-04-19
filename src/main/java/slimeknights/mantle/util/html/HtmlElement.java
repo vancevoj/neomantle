@@ -102,6 +102,21 @@ public class HtmlElement extends HtmlGroup {
     return attribute("data-minetip-title", text);
   }
 
+  /** Sets the link target */
+  public HtmlElement href(String target) {
+    return attribute("href", target);
+  }
+
+  /** Sets the image location */
+  public HtmlElement src(String target) {
+    return attribute("src", target);
+  }
+
+  /** Sets the alt text on an image */
+  public HtmlElement alt(String text) {
+    return attribute("alt", text);
+  }
+
 
   /* Style */
 
@@ -241,6 +256,11 @@ public class HtmlElement extends HtmlGroup {
     return inline("p");
   }
 
+  /** Creates a new link element */
+  public static HtmlElement a() {
+    return inline("a");
+  }
+
   /** Creates a span element */
   public static HtmlElement span() {
     return inline("span");
@@ -254,6 +274,11 @@ public class HtmlElement extends HtmlGroup {
   /** Creates an italic element */
   public static HtmlElement i() {
     return inline("i");
+  }
+
+  /** Creates an italic element */
+  public static HtmlElement img() {
+    return inline("img").alt("");
   }
 
   /** Creates a line break element. Different return type ensures no children or attributes are added by accident. */
