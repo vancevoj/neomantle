@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** Represents a group containing 1 or more nested child elements. Used for the final page layout and for text spans within a complex element type. */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
@@ -59,10 +60,17 @@ public class HtmlGroup implements HtmlSerializable {
   @Override
   public void toHtml(StringBuilder builder, String indent) {
     if (indentChildren) {
-      for (HtmlSerializable element : children) {
-        builder.append(indent);
-        element.toHtml(builder, indent);
-        builder.append('\n');
+      int max = children.size() - 1;
+      for (int i = 0; i <= max; i++) {
+        // nested groups may apply the starting indent multiple times
+        if (i != 0) {
+          builder.append(indent);
+        }
+        children.get(i).toHtml(builder, indent);
+        // nested groups may apply the newline multiple times
+        if (i != max) {
+          builder.append('\n');
+        }
       }
     } else {
       for (HtmlSerializable element : children) {

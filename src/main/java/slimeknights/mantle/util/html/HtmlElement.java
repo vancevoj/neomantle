@@ -192,7 +192,7 @@ public class HtmlElement extends HtmlGroup {
       // close opening tag
       builder.append('>');
       if (indentChildren) {
-        builder.append('\n');
+        builder.append('\n').append(indent).append("  ");
       }
 
       // add all nested elements, indent if requested
@@ -200,7 +200,7 @@ public class HtmlElement extends HtmlGroup {
 
       // close tag
       if (indentChildren) {
-        builder.append(indent);
+        builder.append('\n').append(indent);
       }
       builder.append("</").append(tag).append('>');
     }
