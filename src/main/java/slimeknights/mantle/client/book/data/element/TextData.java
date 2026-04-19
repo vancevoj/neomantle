@@ -16,8 +16,8 @@ public class TextData implements IHTML {
   /** @deprecated use {@link #linebreak} */
   @Deprecated(forRemoval = true)
   public static final TextData LINEBREAK = new TextData().linebreak(true);
-  public static final String LIST_PREFIX = "• ";
-  public static final String LIST_PREFIX_2 = "•\u00a0";
+  private static final String LEGACY_LIST_PREFIX = "• ";
+  public static final String LIST_PREFIX = "•\u00a0";
 
   // TODO 1.21: make no longer nullable
   @Nullable
@@ -126,7 +126,7 @@ public class TextData implements IHTML {
     StringBuilder builder = new StringBuilder();
 
     for (TextData data : array) {
-      if (data.getText().startsWith(LIST_PREFIX) || data.getText().startsWith(LIST_PREFIX_2)) {
+      if (data.getText().startsWith(LEGACY_LIST_PREFIX) || data.getText().startsWith(LIST_PREFIX)) {
         if (pOpen) {
           pOpen = false;
           builder.append("</p>\n");
@@ -137,7 +137,7 @@ public class TextData implements IHTML {
         }
 
         // removes the bullet point character
-        data.text = data.getText().replaceFirst(LIST_PREFIX, "").replaceFirst(LIST_PREFIX_2, "");
+        data.text = data.getText().replaceFirst(LEGACY_LIST_PREFIX, "").replaceFirst(LIST_PREFIX, "");
         builder.append(HTMLUtils.li(data.toHTML(book).replaceAll("<(/?)p>", "<$1span>")));
       } else {
         if (ulOpen) {
