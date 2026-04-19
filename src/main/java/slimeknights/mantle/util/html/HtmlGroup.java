@@ -38,6 +38,12 @@ public class HtmlGroup implements HtmlSerializable {
     return this;
   }
 
+  /** Adds a list of nested elements */
+  public HtmlGroup add(Stream<? extends HtmlSerializable> elements) {
+    elements.forEachOrdered(this::add);
+    return this;
+  }
+
   /** Nests a string */
   public HtmlGroup add(String text) {
     return add(new HtmlString(text));

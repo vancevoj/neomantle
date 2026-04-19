@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** Represents an opening and closing Html tag containing some contents. */
 public class HtmlElement extends HtmlGroup {
@@ -53,6 +54,12 @@ public class HtmlElement extends HtmlGroup {
 
   @Override
   public HtmlElement add(HtmlSerializable... elements) {
+    super.add(elements);
+    return this;
+  }
+
+  @Override
+  public HtmlElement add(Stream<? extends HtmlSerializable> elements) {
     super.add(elements);
     return this;
   }
