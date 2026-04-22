@@ -10,6 +10,8 @@ import slimeknights.mantle.util.html.HtmlGroup;
 import slimeknights.mantle.util.html.HtmlSerializable;
 import slimeknights.mantle.util.html.HtmlString;
 
+import java.util.Arrays;
+
 /**
  * Helpers for converting to HTML.
  * @see HtmlSerializable
@@ -122,8 +124,15 @@ public class HTMLUtils {
     }
 
     // add contents
-    group.add(MutableComponent.create(component.getContents()).getString())
-      .add(component.getSiblings().stream().map(HTMLUtils::toHtml));
+    String contents = MutableComponent.create(component.getContents()).getString();
+    // if we have newlines, put each element in its own span
+    if (contents.indexOf('\n') != -1) {
+      group.add(HtmlGroup.indent().add(Arrays.stream(contents.split("\n")).map(str -> HtmlElement.span().add(str))));
+    } else {
+      group.add(contents);
+    }
+    // add children
+    group.add(component.getSiblings().stream().map(HTMLUtils::toHtml));
 
     return group;
   }
