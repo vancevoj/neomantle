@@ -3,8 +3,6 @@ package slimeknights.mantle.client.book.data.content;
 import com.google.common.collect.Lists;
 import lombok.Getter;
 import net.minecraft.network.chat.Component;
-import slimeknights.mantle.client.book.HTMLUtils;
-import slimeknights.mantle.client.book.action.StringActionProcessor;
 import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.book.data.PageData;
 import slimeknights.mantle.client.book.data.SectionData;
@@ -13,12 +11,14 @@ import slimeknights.mantle.client.screen.book.BookScreen;
 import slimeknights.mantle.client.screen.book.element.BookElement;
 import slimeknights.mantle.client.screen.book.element.PageIconLinkElement;
 import slimeknights.mantle.client.screen.book.element.SizedBookElement;
+import slimeknights.mantle.util.html.HtmlElement;
+import slimeknights.mantle.util.html.HtmlGroup;
+import slimeknights.mantle.util.html.HtmlSerializable;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Index page where each link in the index is an icon rather than text. Used notably for material pages in Tinkers' Construct.
@@ -230,24 +230,18 @@ public class ContentPageIconList extends PageContent {
   }
 
   @Override
-  public String toHTML(BookData book) {
+  public HtmlSerializable toHTML(BookData book) {
     int yOff = 0;
     if (this.title != null) yOff = getTitleHeight();
     if (this.subText != null) yOff = book.fontRenderer.wordWrapHeight(this.subText, 182) * 12 / 9 + 16;
 
-    return String.format(
-      """
-      %s
-      %s
-      <div class="grid-icon-list grid-icon-list-%d" style="top: %dpx">
-      %s
-      </div>
-      """,
-      getTitleHTML(),
-      HTMLUtils.p(subText, "padding-left: 10px"),
-      (BookScreen.PAGE_WIDTH - 2 * xOff) / (int) (this.width * getScale(yOff)),
-      yOff * 2,
-      elements.stream().map(e -> e.toHTML(book)).collect(Collectors.joining("\n"))
+    return HtmlGroup.indent().add(
+      makeTitleHTML(),
+      HtmlElement.p().add(subText).style("padding-left", 10),
+      HtmlElement.div()
+        .classes("grid-icon-list", "grid-icon-list-" + (BookScreen.PAGE_WIDTH - 2 * xOff) / (int) (this.width * getScale(yOff)))
+        .style("top", yOff * 2)
+        .add(elements.stream().map(e -> e.toHTML(book)).toArray(HtmlSerializable[]::new))
     );
   }
 }

@@ -7,6 +7,9 @@ import slimeknights.mantle.client.book.HTMLUtils;
 import slimeknights.mantle.client.book.IHTML;
 import slimeknights.mantle.client.book.action.StringActionProcessor;
 import slimeknights.mantle.client.book.data.BookData;
+import slimeknights.mantle.util.html.HtmlElement;
+import slimeknights.mantle.util.html.HtmlGroup;
+import slimeknights.mantle.util.html.HtmlSerializable;
 
 import javax.annotation.Nullable;
 
@@ -54,59 +57,50 @@ public class TextData implements IHTML {
     return text == null ? "" : text;
   }
 
-  /**
-   * Do not use this when working with TextData[] that represents a bulleted list
-   * Use {@link #toHTML(TextData[], BookData)} instead
-   */
-  @Override
-  public String toHTML(BookData book) {
-    boolean styled = (rgbColor & 0xFFFFFF) != 0 || bold || italic || strikethrough;
-    boolean anyStyle = styled || underlined || dropshadow;
-    boolean link = !action.isEmpty();
+  private HtmlSerializable toHTML(BookData book, String rawText) {
+    // contains the text, but may be wrapped once or twice
+    HtmlSerializable text = HTMLUtils.parse(rawText);
 
-    StringBuilder builder = new StringBuilder();
-
-    if (link) {
+    // apply link
+    HtmlElement element = null;
+    if (!action.isEmpty()) {
       String location = action.substring(action.indexOf(StringActionProcessor.PROTOCOL_SEPARATOR) + StringActionProcessor.PROTOCOL_SEPARATOR.length());
-      builder.append("<a href=\"../page-")
-        .append(book.findPageNumber(location) / 2)
-        .append("/#")
-        .append(location)
-        .append("\">");
+      element = HtmlElement.a();
+      element.add(text);
+      element.href("../page-" + book.findPageNumber(location) / 2 + "/#" + location);
+      text = element;
     }
 
-    if (anyStyle) {
-      builder.append("<p");
-
-      // underlined and dropshadow checked separately because we use a class for it
-      if (underlined || dropshadow) builder.append(" class=\"");
-      if (underlined) builder.append("underline ");
-      if (dropshadow) builder.append("shadow");
-      if (underlined || dropshadow) builder.append("\"");
-
-      if (styled) {
-        builder.append(" style=\"");
-
-        if ((rgbColor & 0xFFFFFF) != 0)
-          builder.append("color: ")
-            .append(HTMLUtils.hexRGB(rgbColor))
-            .append(";");
-        if (bold) builder.append("font-weight: bold;");
-        if (italic) builder.append("font-style: italic;");
-        if (strikethrough) builder.append("text-decoration: line-through;");
-
-        builder.append("\"");
+    // apply styles
+    boolean hasColor = (rgbColor & 0xFFFFFF) != 0;
+    if (hasColor || bold || italic || strikethrough || underlined || dropshadow) {
+      if (element == null) {
+        // create new element for the style if no link or list item
+        element = HtmlElement.span();
+        element.add(text);
+        text = element;
       }
 
-      builder.append(">");
+      // apply styles to the found element
+      if (underlined) element.classes("underline");
+      if (dropshadow) element.classes("shadow");
+      if (hasColor) element.color(rgbColor);
+      if (bold) element.style("font-weight", "bold");
+      if (italic) element.style("font-style", "italic");
+      if (strikethrough) element.style("text-decoration", "line-through");
     }
 
-    builder.append(HTMLUtils.parse(getText()));
+    return text;
+  }
 
-    if (anyStyle) builder.append("</p>");
-    if (link) builder.append("</a>");
-
-    return builder.toString();
+  /**
+   * Do not use this when working with TextData[] that represents a bulleted list
+   * Use {@link #toHtml(TextData[], BookData)} instead
+   */
+  @Override
+  public HtmlSerializable toHTML(BookData book) {
+    // TODO: should this have a wrapping p?
+    return toHTML(book, getText());
   }
 
   /**
@@ -117,60 +111,55 @@ public class TextData implements IHTML {
    * @param book parent BookData
    * @return HTML p and ul tags
    */
-  public static String toHTML(@Nullable TextData[] array, BookData book) {
-    if (array == null) return "";
+  public static HtmlGroup toHtml(@Nullable TextData[] array, BookData book) {
+    HtmlGroup group = HtmlGroup.indent();
+    if (array == null) return group;
 
-    boolean ulOpen = false;
-    boolean pOpen = false;
     boolean prevBreak = false;
-    StringBuilder builder = new StringBuilder();
+    @Nullable
+    HtmlElement ul = null;
+    @Nullable
+    HtmlElement p = null;
 
     for (TextData data : array) {
-      if (data.getText().startsWith(LEGACY_LIST_PREFIX) || data.getText().startsWith(LIST_PREFIX)) {
-        if (pOpen) {
-          pOpen = false;
-          builder.append("</p>\n");
+      String text = data.getText();
+      if (text.startsWith(LEGACY_LIST_PREFIX) || text.startsWith(LIST_PREFIX)) {
+        if (p != null) {
+          p = null;
         }
-        if (!ulOpen) {
-          ulOpen = true;
-          builder.append("<ul class=\"prop-list\">\n");
+        if (ul == null) {
+          ul = HtmlElement.ul().classes("prop-list");
+          group.add(ul);
         }
 
         // removes the bullet point character
-        data.text = data.getText().replaceFirst(LEGACY_LIST_PREFIX, "").replaceFirst(LIST_PREFIX, "");
-        builder.append(HTMLUtils.li(data.toHTML(book).replaceAll("<(/?)p>", "<$1span>")));
+        ul.add(HtmlElement.li().add(data.toHTML(book, text.replaceFirst(LEGACY_LIST_PREFIX, "").replaceFirst(LIST_PREFIX, ""))));
       } else {
-        if (ulOpen) {
+        if (ul != null) {
           // merges <li> separated by \n
           if (data.getText().equals("\n")) continue;
-          ulOpen = false;
-          builder.append("</ul>\n");
+          ul = null;
         }
-        if (pOpen) {
+        if (p != null) {
           if (data.paragraph) {
             // add an extra p as an extra line
-            if (prevBreak) builder.append("</p>\n<p>");
-            builder.append("</p>\n<p>");
+            if (prevBreak)  group.add(HtmlElement.p());
+            p = HtmlElement.p();
+            group.add(p);
           }
           if (data.linebreak || data.getText().charAt(data.getText().length() - 1) == '\n') {
-            builder.append("<br>");
+            p.add(HtmlElement.br());
             prevBreak = true;
           } else {
             prevBreak = false;
           }
         } else {
-          pOpen = true;
-          builder.append("<p>");
+          p = HtmlElement.p();
+          group.add(p);
         }
-
-        builder.append(data.toHTML(book).replaceAll("<(/?)p>", "<$1span>"));
+        p.add(data.toHTML(book, data.getText()));
       }
     }
-
-    if (ulOpen) builder.append("</ul>");
-    if (pOpen) builder.append("</p>");
-
-    return builder.toString();
+    return group;
   }
-
 }

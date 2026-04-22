@@ -8,13 +8,14 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraftforge.common.crafting.conditions.ICondition;
 import net.minecraftforge.common.crafting.conditions.TrueCondition;
 import slimeknights.mantle.client.book.BookLoader;
-import slimeknights.mantle.client.book.HTMLUtils;
 import slimeknights.mantle.client.book.IHTML;
 import slimeknights.mantle.client.book.data.content.ContentError;
 import slimeknights.mantle.client.book.data.element.ImageData;
 import slimeknights.mantle.client.book.repository.BookRepository;
 import slimeknights.mantle.client.screen.book.BookScreen;
 import slimeknights.mantle.util.DataLoadedConditionContext;
+import slimeknights.mantle.util.html.HtmlElement;
+import slimeknights.mantle.util.html.HtmlSerializable;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -148,19 +149,18 @@ public class SectionData implements IDataItem, IConditional, IHTML {
   }
 
   @Override
-  public String toHTML(BookData book) {
-    int page_number = book.getFirstPageNumber(this, null);
-    return String.format("""
-      <div data-minetip-title="%s">
-      <a href="../page-%d/#%s.%s"><img src="/assets/images/book/icons/blank.png" alt=""></a>
-      %s
-      </div>""",
-      getTitle(),
-      page_number / 2,
-      name,
-      // why -1
-      book.findPage(page_number - 1, null).name,
-      HTMLUtils.p(getTitle())
-    );
+  public HtmlSerializable toHTML(BookData book) {
+    int pageNumber = book.getFirstPageNumber(this, null);
+    // first page number is 1 indexed, but find page is 0 indexed
+    PageData firstPage = book.findPage(pageNumber - 1, null);
+    if (firstPage == null) {
+      return HtmlSerializable.EMPTY;
+    }
+    String title = getTitle();
+    return HtmlElement.div()
+      .minetip(title)
+      .add(HtmlElement.a().href("../page-" + (pageNumber / 2) + "/#" + name + '.' + firstPage.name)
+        .add(HtmlElement.img().src("/assets/images/book/icons/blank.png"))) // TODO: make this not an image
+      .add(HtmlElement.p().add(title));
   }
 }

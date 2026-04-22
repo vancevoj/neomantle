@@ -2,7 +2,6 @@ package slimeknights.mantle.client.book.data.content;
 
 import lombok.Getter;
 import lombok.Setter;
-import slimeknights.mantle.client.book.HTMLUtils;
 import slimeknights.mantle.client.book.IHTML;
 import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.book.data.PageData;
@@ -11,6 +10,7 @@ import slimeknights.mantle.client.book.repository.BookRepository;
 import slimeknights.mantle.client.screen.book.BookScreen;
 import slimeknights.mantle.client.screen.book.element.BookElement;
 import slimeknights.mantle.client.screen.book.element.TextElement;
+import slimeknights.mantle.util.html.HtmlElement;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -167,21 +167,22 @@ public abstract class PageContent implements IHTML {
     return height;
   }
 
-  /** Helper to create title in HTML */
-  public String getTitleHTML(@Nullable String classes, @Nullable String styles) {
-    StringBuilder classesBuilder = new StringBuilder("underline");
-    if (isLarge()) classesBuilder.append(" large");
-    if (classes != null) classesBuilder.append(" ").append(classes);
-
-    StringBuilder stylesBuilder = new StringBuilder();
-    if (isCentered()) stylesBuilder.append("align-self: center;");
-    if (styles != null) stylesBuilder.append(styles);
-
-    return HTMLUtils.p(getTitle(), parent.parent.name +  "." + parent.name, classesBuilder.toString(), null, stylesBuilder.isEmpty() ? null : stylesBuilder.toString());
+  /** Creates a mutable HTML object for the title */
+  public HtmlElement makeTitleHTML() {
+    String title = getTitle();
+    if (title == null) {
+      return HtmlElement.p();
+    }
+    HtmlElement element = HtmlElement.p()
+      .add(title)
+      .classes("underline")
+      .id(parent.parent.name +  "." + parent.name);
+    if (isLarge()) {
+      element.classes("large");
+    }
+    if (isCentered()) {
+      element.style("align-self", "center");
+    }
+    return element;
   }
-
-  public String getTitleHTML() {
-    return getTitleHTML(null, null);
-  }
-
 }

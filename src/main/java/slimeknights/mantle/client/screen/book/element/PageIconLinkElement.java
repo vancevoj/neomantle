@@ -11,6 +11,8 @@ import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.book.data.PageData;
 import slimeknights.mantle.client.book.data.element.TextData;
 import slimeknights.mantle.client.screen.book.BookScreen;
+import slimeknights.mantle.util.html.HtmlElement;
+import slimeknights.mantle.util.html.HtmlSerializable;
 
 /** Link elements for {@link slimeknights.mantle.client.book.data.content.ContentPageIconList} */
 public class PageIconLinkElement extends SizedBookElement implements IHTML {
@@ -68,18 +70,16 @@ public class PageIconLinkElement extends SizedBookElement implements IHTML {
   }
 
   @Override
-  public String toHTML(BookData book) {
+  public HtmlSerializable toHTML(BookData book) {
     // basically just ignores 'mantle:go-to-page-rtn '
     String location = action.substring(action.indexOf(StringActionProcessor.PROTOCOL_SEPARATOR) + StringActionProcessor.PROTOCOL_SEPARATOR.length());
     int bookPage = book.findPageNumber(location);
-
-    return String.format("""
-      <div data-minetip-title="%s">
-      <a href="../page-%d/#%s"><img src="/assets/images/book/icons/blank.png" alt=""></a>
-      </div>""",
-      book.findPage(bookPage - 1, null).getTitle(),
-      bookPage / 2,
-      location
-    );
+    PageData target = book.findPage(bookPage - 1, null);
+    if (target == null) {
+      return HtmlSerializable.EMPTY;
+    }
+    return HtmlElement.div().minetip(target.getTitle())
+      .add(HtmlElement.a().href("../page-" + (bookPage / 2) + "/#" + location)
+        .add(HtmlElement.img().src("/assets/images/book/icons/blank.png"))); // TODO: replace blank with something else
   }
 }

@@ -8,12 +8,13 @@ import slimeknights.mantle.client.book.action.StringActionProcessor;
 import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.book.data.element.TextComponentData;
 import slimeknights.mantle.client.screen.book.TextComponentDataRenderer;
+import slimeknights.mantle.util.html.HtmlGroup;
+import slimeknights.mantle.util.html.HtmlSerializable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class TextComponentElement extends SizedBookElement implements IHTML {
 
@@ -61,10 +62,8 @@ public class TextComponentElement extends SizedBookElement implements IHTML {
   }
 
   @Override
-  public String toHTML(BookData book) {
-    return Arrays.stream(text)
-      .map(s -> s.toHTML(book))
-      .collect(Collectors.joining("\n"));
+  public HtmlSerializable toHTML(BookData book) {
+    return HtmlGroup.indent().add(Arrays.stream(text).map(s -> s.toHTML(book)));
   }
 
   @Override

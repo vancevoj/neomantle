@@ -8,6 +8,8 @@ import slimeknights.mantle.client.book.data.element.TextData;
 import slimeknights.mantle.client.screen.book.BookScreen;
 import slimeknights.mantle.client.screen.book.element.BookElement;
 import slimeknights.mantle.client.screen.book.element.TextElement;
+import slimeknights.mantle.util.html.HtmlGroup;
+import slimeknights.mantle.util.html.HtmlSerializable;
 
 import java.util.ArrayList;
 
@@ -33,7 +35,10 @@ public class ContentText extends PageContent {
   }
 
   @Override
-  public String toHTML(BookData book) {
-    return getTitleHTML() + TextData.toHTML(text, book);
+  public HtmlSerializable toHTML(BookData book) {
+    return HtmlGroup.indent().add(
+      makeTitleHTML(),
+      TextData.toHtml(text, book)
+    );
   }
 }

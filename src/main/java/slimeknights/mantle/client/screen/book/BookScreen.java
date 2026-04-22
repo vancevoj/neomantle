@@ -23,6 +23,8 @@ import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.book.data.PageData;
 import slimeknights.mantle.client.book.data.SectionData;
 import slimeknights.mantle.client.screen.book.element.BookElement;
+import slimeknights.mantle.util.html.HtmlElement;
+import slimeknights.mantle.util.html.HtmlSerializable;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -756,12 +758,10 @@ public class BookScreen extends Screen {
     PageData leftData = getLeftPage();
     PageData rightData = getRightPage();
 
-    String left = leftData != null ? leftData.content.toHTML(book) : null;
-    String right = rightData != null ? rightData.content.toHTML(book) : null;
-
     StringBuilder builder = new StringBuilder();
 
-    if (left != null || right != null) {
+    // create page if we have data on either side
+    if (leftData != null || rightData != null) {
       builder.append("---\n")
         .append("layout: book-page\n")
         .append("title: ").append(title).append(" (").append(version).append(") - page ").append(this.page).append('\n')
@@ -772,9 +772,21 @@ public class BookScreen extends Screen {
         .append("---\n\n");
     }
 
-    if (left != null) builder.append("<div class=\"left\">\n").append(left).append("\n</div>");
-    if (right != null) builder.append("<div class=\"right\">\n").append(right).append("\n</div>");
-
+    // add page data
+    if (leftData != null) {
+      HtmlSerializable left = leftData.content.toHTML(book);
+      if (left != null) {
+        HtmlElement.div().classes("left").add(left).toHtml(builder, "");
+      }
+      builder.append('\n');
+    }
+    if (rightData != null) {
+      HtmlSerializable right = rightData.content.toHTML(book);
+      if (right != null) {
+        HtmlElement.div().classes("right").add(right).toHtml(builder, "");
+      }
+      builder.append('\n');
+    }
     return builder.toString();
   }
 

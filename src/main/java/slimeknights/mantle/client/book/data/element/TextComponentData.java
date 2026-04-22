@@ -6,6 +6,9 @@ import net.minecraft.network.chat.Component;
 import slimeknights.mantle.client.book.HTMLUtils;
 import slimeknights.mantle.client.book.IHTML;
 import slimeknights.mantle.client.book.data.BookData;
+import slimeknights.mantle.util.html.HtmlElement;
+import slimeknights.mantle.util.html.HtmlGroup;
+import slimeknights.mantle.util.html.HtmlSerializable;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -39,10 +42,13 @@ public class TextComponentData implements IHTML {
   }
 
   @Override
-  public String toHTML(BookData book) {
-    if (text == null) return "";
-    if (dropShadow) return HTMLUtils.p(text, "shadow", null, null);
-    return HTMLUtils.p(text);
+  public HtmlSerializable toHTML(BookData book) {
+    if (text == null) return HtmlSerializable.EMPTY;
+    HtmlElement element = HtmlElement.span().add(HTMLUtils.toHtml(text));
+    if (dropShadow) {
+      element.classes("shadow");
+    }
+    return element;
   }
 
   /**
@@ -52,28 +58,26 @@ public class TextComponentData implements IHTML {
    * @param book parent BookData
    * @return HTML p tag
    */
-  public static String toHTML(@Nullable List<TextComponentData> list, BookData book) {
-      if (list == null) return "";
+  public static HtmlSerializable toHTML(@Nullable List<TextComponentData> list, BookData book) {
+      if (list == null) return HtmlSerializable.EMPTY;
 
       boolean prevBreak = false;
-      StringBuilder builder = new StringBuilder();
-      builder.append("<p>");
+      HtmlGroup group = HtmlGroup.indent();
+      HtmlElement p = HtmlElement.p();
+      group.add(p);
 
       for (TextComponentData data : list) {
         if (data.isParagraph) {
-          if (prevBreak) builder.append("</p>\n<p>");
-          builder.append("</p><p>");
+          if (prevBreak) group.add(HtmlElement.p());
+          p = HtmlElement.p();
+          group.add(p);
         }
 
-        //                               replace p with span
-        //                               cant just remove it since it might have a shadow class
-        builder.append(data.toHTML(book).replaceAll("<(/?)p>", "<$1span>"));
+        p.add(data.toHTML(book));
 
         prevBreak = data.linebreak;
-        if (data.linebreak) builder.append("<br>");
+        if (data.linebreak) p.add(HtmlElement.br());
       }
-
-      builder.append("</p>");
-      return builder.toString();
+      return group;
   }
 }

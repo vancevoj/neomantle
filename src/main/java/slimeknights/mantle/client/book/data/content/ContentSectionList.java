@@ -5,9 +5,10 @@ import slimeknights.mantle.client.book.data.SectionData;
 import slimeknights.mantle.client.screen.book.BookScreen;
 import slimeknights.mantle.client.screen.book.element.BookElement;
 import slimeknights.mantle.client.screen.book.element.SelectionElement;
+import slimeknights.mantle.util.html.HtmlElement;
+import slimeknights.mantle.util.html.HtmlSerializable;
 
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 public class ContentSectionList extends PageContent {
 
@@ -39,11 +40,8 @@ public class ContentSectionList extends PageContent {
   }
 
   @Override
-  public String toHTML(BookData book) {
-    return "<div class=\"grid-content-" + (sections.size() >= 9 ? 4 : 3) + " mc-font-gray\">\n" +
-      sections.stream()
-        .map(s -> s.toHTML(book))
-        .collect(Collectors.joining()) +
-      "</div>";
+  public HtmlSerializable toHTML(BookData book) {
+    return HtmlElement.div().classes("grid-content-" + (book.appearance.drawFourColumnIndex ? 4 : 3), "mc-font-gray")
+      .add(sections.stream().map(s -> s.toHTML(book)));
   }
 }

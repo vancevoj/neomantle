@@ -4,7 +4,6 @@ import lombok.Getter;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import slimeknights.mantle.Mantle;
-import slimeknights.mantle.client.book.HTMLUtils;
 import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.book.data.PageData;
 import slimeknights.mantle.client.book.data.SectionData;
@@ -14,11 +13,13 @@ import slimeknights.mantle.client.screen.book.BookScreen;
 import slimeknights.mantle.client.screen.book.TextDataRenderer;
 import slimeknights.mantle.client.screen.book.element.BookElement;
 import slimeknights.mantle.client.screen.book.element.ListingLeftElement;
+import slimeknights.mantle.util.html.HtmlElement;
+import slimeknights.mantle.util.html.HtmlGroup;
+import slimeknights.mantle.util.html.HtmlSerializable;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /** Page content for building an index, instantiate either through {@link ContentIndex} or {@link ContentListingSectionTransformer} */
 public class ContentListing extends PageContent {
@@ -168,12 +169,15 @@ public class ContentListing extends PageContent {
   }
 
   @Override
-  public String toHTML(BookData book) {
-    StringBuilder builder = new StringBuilder(getTitleHTML());
-    if (subText != null) builder.append(HTMLUtils.p(subText, "padding-left: 10px"));
+  public HtmlSerializable toHTML(BookData book) {
+    HtmlGroup group = HtmlGroup.indent().add(makeTitleHTML());
+    if (subText != null) {
+      group.add(HtmlElement.p().add(subText).style("padding-left", 10));
+    }
 
     if (!entries.isEmpty()) {
-      builder.append("<div class=\"content-list-links\">\n");
+      HtmlElement columns = HtmlElement.div().classes("content-list-links");
+      group.add(columns);
 
       int yOff = 0;
       if (this.title != null) yOff = 16;
@@ -181,29 +185,28 @@ public class ContentListing extends PageContent {
       int rows = getColumnHeight(yOff) / LINE_HEIGHT;
 
       for (List<TextData> entry : entries) {
+        HtmlElement column = HtmlElement.div();
+        columns.add(column);
         int i = 0;
-
-        builder.append("<div>\n");
-
-        if (entry.get(0).bold) builder.append(entry.get(i++).toHTML(book));
-
-        builder.append("<ul class=\"link-list\">\n");
+        if (entry.get(0).bold) {
+          column.add(entry.get(0).toHTML(book));
+          i++;
+        }
+        HtmlElement list = HtmlElement.ul().classes("link-list");
+        column.add(list);
         for (; i < entry.size(); i++) {
-          // split list into new divs
+          // split list into new divs/lists
           if (i != 0 && i % rows == 0 && i != entry.size() - 1) {
-            builder.append("</ul></div>\n<div><ul class=\"link-list\">\n");
+            column = HtmlElement.div();
+            columns.add(column);
+            list = HtmlElement.ul().classes("link-list");
+            column.add(list);
           }
 
-          TextData data = entry.get(i);
-          builder.append("<li>").append(data.toHTML(book)).append("</li>\n");
+          list.add(HtmlElement.li().add(entry.get(i).toHTML(book)));
         }
-
-        builder.append("</ul></div>");
       };
-
-      builder.append("\n</div>");
     }
-
-    return builder.toString();
+    return group;
   }
 }
