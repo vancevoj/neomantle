@@ -133,7 +133,9 @@ public class TextData implements IHTML {
         }
 
         // removes the bullet point character
-        ul.add(HtmlElement.li().add(data.toHTML(book, text.replaceFirst(LEGACY_LIST_PREFIX, "").replaceFirst(LIST_PREFIX, ""))));
+        ul.add(HtmlElement.li().add(HtmlElement.p().add(
+          data.toHTML(book, text.replaceFirst(LEGACY_LIST_PREFIX, "").replaceFirst(LIST_PREFIX, "")))
+        ));
       } else {
         if (ul != null) {
           // merges <li> separated by \n
