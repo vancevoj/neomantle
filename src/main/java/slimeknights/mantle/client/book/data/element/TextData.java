@@ -12,6 +12,8 @@ import slimeknights.mantle.util.html.HtmlGroup;
 import slimeknights.mantle.util.html.HtmlSerializable;
 
 import javax.annotation.Nullable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Accessors(fluent = true)
 @Setter
@@ -19,7 +21,8 @@ public class TextData implements IHTML {
   /** @deprecated use {@link #linebreak} */
   @Deprecated(forRemoval = true)
   public static final TextData LINEBREAK = new TextData().linebreak(true);
-  private static final String LEGACY_LIST_PREFIX = "• ";
+  private static final Pattern LIST_REGEX = Pattern.compile("^\n?•[ \u00a0]");
+  /** Constant to use in mods wishing to implement bulleted lists that are compatible with the book lists. Will also need to use {@link #linebreak(boolean)} */
   public static final String LIST_PREFIX = "•\u00a0";
 
   // TODO 1.21: make no longer nullable
@@ -123,7 +126,8 @@ public class TextData implements IHTML {
 
     for (TextData data : array) {
       String text = data.getText();
-      if (text.startsWith(LEGACY_LIST_PREFIX) || text.startsWith(LIST_PREFIX)) {
+      Matcher match = LIST_REGEX.matcher(text);
+      if (match.find()) {
         if (p != null) {
           p = null;
         }
@@ -134,7 +138,7 @@ public class TextData implements IHTML {
 
         // removes the bullet point character
         ul.add(HtmlElement.li().add(HtmlElement.p().add(
-          data.toHTML(book, text.replaceFirst(LEGACY_LIST_PREFIX, "").replaceFirst(LIST_PREFIX, "")))
+          data.toHTML(book, match.replaceFirst("")))
         ));
       } else {
         if (ul != null) {
