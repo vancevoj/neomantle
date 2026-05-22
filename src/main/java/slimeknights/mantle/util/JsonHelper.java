@@ -10,6 +10,7 @@ import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
+import net.minecraft.ResourceLocationException;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.Resource;
@@ -160,17 +161,27 @@ public class JsonHelper {
 
   /**
    * Gets a resource location from JSON, throwing a nice exception if invalid
+   * @param text  Text to parse
+   * @param key   Key to fetch
+   * @return  Resource location parsed
+   */
+  public static ResourceLocation parseResourceLocation(String text, String key) {
+    // basically the inside of ResourceLocation#tryParse, but with a JSON exception instead of being nullable
+    try {
+      return new ResourceLocation(text);
+    } catch (ResourceLocationException ex) {
+      throw new JsonSyntaxException("Expected " + key + " to be a resource location, was '" + text + "'", ex);
+    }
+  }
+
+  /**
+   * Gets a resource location from JSON, throwing a nice exception if invalid
    * @param json  JSON object
    * @param key   Key to fetch
    * @return  Resource location parsed
    */
   public static ResourceLocation getResourceLocation(JsonObject json, String key) {
-    String text = GsonHelper.getAsString(json, key);
-    ResourceLocation location = ResourceLocation.tryParse(text);
-    if (location == null) {
-      throw new JsonSyntaxException("Expected " + key + " to be a Resource location, was '" + text + "'");
-    }
-    return location;
+    return parseResourceLocation(GsonHelper.getAsString(json, key), key);
   }
 
   /**
@@ -196,12 +207,7 @@ public class JsonHelper {
    * @return  Resource location parsed
    */
   public static ResourceLocation convertToResourceLocation(JsonElement json, String key) {
-    String text = GsonHelper.convertToString(json, key);
-    ResourceLocation location = ResourceLocation.tryParse(text);
-    if (location == null) {
-      throw new JsonSyntaxException("Expected " + key + " to be a resource location, was '" + text + "'");
-    }
-    return location;
+    return parseResourceLocation(GsonHelper.convertToString(json, key), key);
   }
 
   /**

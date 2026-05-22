@@ -1,8 +1,9 @@
 package slimeknights.mantle.data.loadable.primitive;
 
-import com.google.gson.JsonElement;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.util.JsonHelper;
 import slimeknights.mantle.util.typed.TypedMap;
 
 /**
@@ -12,8 +13,28 @@ import slimeknights.mantle.util.typed.TypedMap;
  */
 @SuppressWarnings("unused")  // API
 public interface ResourceLocationLoadable<T> extends StringLoadable<T> {
-  /** This is just an alias to minimize mistakes from the statically inherited StringLoadable default. */
-  StringLoadable<ResourceLocation> DEFAULT = Loadables.RESOURCE_LOCATION;
+  /** Standard implementation of a resource location loadable for raw resource locations. */
+  StringLoadable<ResourceLocation> DEFAULT = new ResourceLocationLoadable<>() {
+    @Override
+    public ResourceLocation fromKey(ResourceLocation name, String key, TypedMap context) {
+      return name;
+    }
+
+    @Override
+    public ResourceLocation getKey(ResourceLocation object) {
+      return object;
+    }
+
+    @Override
+    public ResourceLocation decode(FriendlyByteBuf buffer, TypedMap context) {
+      return buffer.readResourceLocation();
+    }
+
+    @Override
+    public void encode(FriendlyByteBuf buffer, ResourceLocation value) {
+      buffer.writeResourceLocation(value);
+    }
+  };
 
   /**
    * Converts this value from a resource location.
@@ -32,12 +53,7 @@ public interface ResourceLocationLoadable<T> extends StringLoadable<T> {
 
   @Override
   default T parseString(String value, String key, TypedMap context) {
-    return fromKey(Loadables.RESOURCE_LOCATION.parseString(value, key), key, context);
-  }
-
-  @Override
-  default T convert(JsonElement element, String key, TypedMap context) {
-    return fromKey(Loadables.RESOURCE_LOCATION.convert(element, key, context), key, context);
+    return fromKey(JsonHelper.parseResourceLocation(value, key), key, context);
   }
 
   /**

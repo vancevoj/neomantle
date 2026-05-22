@@ -1,6 +1,5 @@
 package slimeknights.mantle.data.loadable;
 
-import net.minecraft.ResourceLocationException;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
@@ -46,14 +45,8 @@ import java.util.function.BiFunction;
 public class Loadables {
   private Loadables() {}
 
-  /** Loadable for a resource location */
-  public static final StringLoadable<ResourceLocation> RESOURCE_LOCATION = StringLoadable.DEFAULT.xmap((s, e) -> {
-    try {
-      return new ResourceLocation(s);
-    } catch (ResourceLocationException ex) {
-      throw e.create(ex);
-    }
-  }, (r, e) -> r.toString());
+  /** Alias for the resource location loadable as it's a common need */
+  public static final StringLoadable<ResourceLocation> RESOURCE_LOCATION = ResourceLocationLoadable.DEFAULT;
   public static final StringLoadable<ToolAction> TOOL_ACTION = StringLoadable.DEFAULT.flatXmap(ToolAction::get, ToolAction::name);
 
   /* Registries */
