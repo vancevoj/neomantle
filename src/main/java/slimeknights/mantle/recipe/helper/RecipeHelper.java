@@ -8,6 +8,7 @@ import net.minecraft.world.Container;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
+import slimeknights.mantle.Mantle;
 import slimeknights.mantle.recipe.IMultiRecipe;
 
 import java.util.Comparator;
@@ -97,7 +98,14 @@ public class RecipeHelper {
         .flatMap((recipe) -> {
           // if its a multi recipe, extract child recipes and stream those
           if (recipe instanceof IMultiRecipe<?>) {
-            return ((IMultiRecipe<?>)recipe).getRecipes(access).stream();
+            // most multiregistries iterate some external registry to list their contents
+            // sometimes people do dumb things and register broken objects, so best to avoid breaking the rest of the JEI plugin
+            try {
+              return ((IMultiRecipe<?>) recipe).getRecipes(access).stream();
+            } catch (Exception e) {
+              Mantle.logger.error("Failed to fetch JEI recipes for multi recipe {} ({})", recipe.getId(), recipe, e);
+              return Stream.empty();
+            }
           }
           return Stream.of(recipe);
         })
