@@ -73,7 +73,7 @@ public class NetworkWrapper {
    * @param <MSG>  Packet class type
    */
   public <MSG> void registerPacket(Class<MSG> clazz, BiConsumer<MSG, FriendlyByteBuf> encoder, Function<FriendlyByteBuf, MSG> decoder, BiConsumer<MSG,Supplier<NetworkEvent.Context>> consumer, @Nullable NetworkDirection direction) {
-    registerPacketNoLogger(clazz, encoder, wrapLogger(clazz, decoder), consumer, direction);
+    registerPacketNoLogger(clazz, wrapLogger(clazz, encoder), wrapLogger(clazz, decoder), consumer, direction);
   }
 
   /**
@@ -87,6 +87,18 @@ public class NetworkWrapper {
    */
   public <MSG> void registerPacketNoLogger(Class<MSG> clazz, BiConsumer<MSG, FriendlyByteBuf> encoder, Function<FriendlyByteBuf, MSG> decoder, BiConsumer<MSG,Supplier<NetworkEvent.Context>> consumer, @Nullable NetworkDirection direction) {
     this.network.registerMessage(this.id++, clazz, encoder, decoder, consumer, Optional.ofNullable(direction));
+  }
+
+  /** Wraps the given encoder function */
+  private static <MSG> BiConsumer<MSG, FriendlyByteBuf> wrapLogger(Class<MSG> clazz, BiConsumer<MSG, FriendlyByteBuf> encoder) {
+    return (message, buffer) -> {
+      try {
+        encoder.accept(message, buffer);
+      } catch (Exception e) {
+        Mantle.logger.error("Exception while encoding packet of class {}", clazz.getName(), e);
+        throw e;
+      }
+    };
   }
 
   /** Wraps the given decoder function */
