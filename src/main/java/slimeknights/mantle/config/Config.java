@@ -46,7 +46,7 @@ public class Config {
 
     ENABLE_FLUID_FOG_FIX = client
       .comment(
-        "If true, fluids properly have their lighting adjusted under vanilla fog effects such as blindness. If false, they render as nearly fullbright ignoring fog.",
+        "If true, fluids properly have their lighting adjusted under vanilla fog effects such as blindness. If false, they render as nearly fullbright ignoring fog and have limited light level support.",
         "This config option is provided as the fix breaks shaders, and slightly broken is better than fully broken.",
         "Best fix is to fix your shaders though, so you can have no broken visuals.")
       .translation("config.mantle.enableFluidFogFix")
