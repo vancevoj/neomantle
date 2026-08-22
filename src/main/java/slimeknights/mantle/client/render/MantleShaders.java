@@ -27,7 +27,10 @@ public class MantleShaders {
   /** Gets the shader to use for {@link MantleRenderTypes#FLUID_SHADER}, checking the config option to select which shader to use. */
   @Nullable
   public static ShaderInstance getConfiguredFluidShader() {
-    return Config.ENABLE_FLUID_FOG_FIX.get() ? fluidShader : GameRenderer.getPositionColorTexLightmapShader();
+    if (Config.ENABLE_FLUID_FOG_FIX.get()) {
+      return fluidShader;
+    }
+    return Config.FLUID_USE_TEXT_SHADER.get() ? GameRenderer.getRendertypeTextShader() : GameRenderer.getPositionColorTexLightmapShader();
   }
 
   @SubscribeEvent

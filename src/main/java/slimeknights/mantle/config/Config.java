@@ -24,6 +24,9 @@ public class Config {
   /** If true, enables the fluid fog fix. If false, disables it for better shader compatability. */
   public static final BooleanValue ENABLE_FLUID_FOG_FIX;
 
+  /** If true, the fallback shader for fluid uses a text shader, which provides better compatability. */
+  public static final BooleanValue FLUID_USE_TEXT_SHADER;
+
 	/** List of preferences for tag outputs */
 	private static final List<String> DEFAULT_TAG_PREFERENCES = Arrays.asList("minecraft", "tconstruct", "tmechworks", "metalborn", "embers", "create", "immersiveengineering", "mekanism", "thermal");
 	public static final ConfigValue<List<? extends String>> TAG_PREFERENCES;
@@ -51,6 +54,14 @@ public class Config {
         "Best fix is to fix your shaders though, so you can have no broken visuals.")
       .translation("config.mantle.enableFluidFogFix")
       .define("enableFluidFogFix", true);
+
+    FLUID_USE_TEXT_SHADER = client
+      .comment(
+        "If true, the fallback shader for fluid uses a text shader, which provides better compatability. If false, uses the generic position color tex lightmap shader.",
+        "The text shader provides a fallback with more functionality than the generic one, but may be unexpected by other custom rendering.",
+        "Does nothing if enableFluidFogFix is true.")
+      .translation("config.mantle.fluidFallbackUseTextShader")
+      .define("fluidFallbackUseTextShader", true);
 
 		// server options
 		TAG_PREFERENCES = server.comment("Preferences for outputs from tags used in automatic compat in recipes")
