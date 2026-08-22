@@ -104,7 +104,6 @@ public class MantleEvents {
   /** Called when the new player is created to fetch the soulbound item from the old */
   @SubscribeEvent(priority = EventPriority.HIGH)
   static void onPlayerClone(PlayerEvent.Clone event) {
-    // TODO: same as above, lots of duplicated code with tinkers, move to Mantle
     if (!event.isWasDeath()) {
       return;
     }
