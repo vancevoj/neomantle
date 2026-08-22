@@ -279,7 +279,7 @@ public class MultiModuleScreen<CONTAINER extends MultiModuleContainerMenu<?>> ex
     // the default implementation still bounds checks before running the module's own handler, so only modules that opt in see releases outside their area
     boolean handled = false;
     for (ModuleScreen<?,?> module : this.modules) {
-      if (module.handleMouseReleasedAnywhere(mouseX, mouseY, state)) {
+      if (module.handleMouseReleased(mouseX, mouseY, state)) {
         handled = true;
       }
     }
