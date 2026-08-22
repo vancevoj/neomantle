@@ -24,7 +24,9 @@ public class ContentTextRightImage extends PageContent {
   public ImageData image;
 
   // TODO: rename these fields in 1.21 to left_text, and bottom_text
+  /** Text placed on the left of the image */
   public TextData[] text1;
+  /** Text placed below the image */
   public TextData[] text2;
 
   private final int OFFSET = 55;
