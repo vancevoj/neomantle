@@ -81,6 +81,18 @@ public class BlockEntityHelper {
     return true;
   }
 
+  /**
+   * Gets a block entity, checking its chunk is loaded first via {@link #isBlockLoaded(BlockGetter, BlockPos)}.
+   */
+  @SuppressWarnings("unused")
+  @Nullable
+  public static BlockEntity getLoaded(@Nullable BlockGetter world, BlockPos pos) {
+    if (isBlockLoaded(world, pos)) {
+      return world.getBlockEntity(pos);
+    }
+    return null;
+  }
+
   /** Handles the unchecked cast for a block entity ticker */
   @SuppressWarnings("unchecked")
   @Nullable
