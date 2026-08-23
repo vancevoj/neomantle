@@ -10,7 +10,6 @@ import net.minecraft.world.level.block.LecternBlock;
 import net.minecraft.world.level.block.entity.LecternBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import slimeknights.mantle.util.BlockEntityHelper;
 
 /**
  * Book item that can be placed on lecterns
@@ -45,16 +44,11 @@ public abstract class LecternBookItem extends TooltipItem implements ILecternBoo
     // must be a lectern, and have the TE
     BlockPos pos = event.getPos();
     BlockState state = world.getBlockState(pos);
-    if (state.is(Blocks.LECTERN)) {
-      BlockEntityHelper.get(LecternBlockEntity.class, world, pos)
-											 .ifPresent(te -> {
-                        ItemStack book = te.getBook();
-                        if (!book.isEmpty() && book.getItem() instanceof ILecternBookItem
-                            && ((ILecternBookItem) book.getItem()).openLecternScreen(world, pos, event.getEntity(), book)) {
-                          event.setCanceled(true);
-                        }
-                      });
+    if (state.is(Blocks.LECTERN) && world.getBlockEntity(pos) instanceof LecternBlockEntity te) {
+      ItemStack stack = te.getBook();
+      if (!stack.isEmpty() && stack.getItem() instanceof ILecternBookItem book && book.openLecternScreen(world, pos, event.getEntity(), stack)) {
+        event.setCanceled(true);
+      }
     }
   }
-
 }

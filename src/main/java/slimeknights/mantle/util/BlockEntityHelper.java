@@ -28,7 +28,7 @@ public class BlockEntityHelper {
    * @return  Optional of the tile entity, empty if missing or wrong class
    * @deprecated use pattern matching instanceof with {@link Level#getBlockEntity(BlockPos)}
    */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   public static <T> Optional<T> get(Class<T> clazz, @Nullable BlockGetter world, BlockPos pos) {
     return get(clazz, world, pos, false);
   }
@@ -43,7 +43,7 @@ public class BlockEntityHelper {
    * @return  Optional of the tile entity, empty if missing or wrong class
    * @deprecated use pattern matching instanceof with {@link Level#getBlockEntity(BlockPos)}
    */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   public static <T> Optional<T> get(Class<T> clazz, @Nullable BlockGetter world, BlockPos pos, boolean logWrongType) {
     if (!isBlockLoaded(world, pos)) {
       return Optional.empty();
