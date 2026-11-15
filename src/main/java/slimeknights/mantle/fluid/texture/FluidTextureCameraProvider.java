@@ -2,7 +2,7 @@ package slimeknights.mantle.fluid.texture;
 
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.common.data.ExistingFileHelper;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.neoforged.neoforge.fluids.FluidType;
 import slimeknights.mantle.data.client.DeanimateTextureGenerator;
 
@@ -15,14 +15,14 @@ public class FluidTextureCameraProvider extends DeanimateTextureGenerator {
   /** Fluid types from the provider to ignore */
   private final Set<FluidType> skip;
 
-  public FluidTextureCameraProvider(PackOutput packOutput, ExistingFileHelper existingFileHelper, AbstractFluidTextureProvider provider, Set<FluidType> skip) {
-    super(packOutput, existingFileHelper);
+  public FluidTextureCameraProvider(PackOutput packOutput, ResourceManager resourceManager, AbstractFluidTextureProvider provider, Set<FluidType> skip) {
+    super(packOutput, resourceManager);
     this.provider = provider;
     this.skip = skip;
   }
 
-  public FluidTextureCameraProvider(PackOutput packOutput, ExistingFileHelper existingFileHelper, AbstractFluidTextureProvider provider) {
-    this(packOutput, existingFileHelper, provider, Set.of());
+  public FluidTextureCameraProvider(PackOutput packOutput, ResourceManager resourceManager, AbstractFluidTextureProvider provider) {
+    this(packOutput, resourceManager, provider, Set.of());
   }
 
   @Override

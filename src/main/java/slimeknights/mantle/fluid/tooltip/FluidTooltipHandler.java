@@ -10,13 +10,15 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.material.Fluid;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.bus.api.EventPriority;
@@ -26,6 +28,7 @@ import net.neoforged.fml.ModList;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.SafeClientAccess;
 import slimeknights.mantle.client.TooltipKey;
+import slimeknights.mantle.data.gson.ResourceLocationSerializer;
 import slimeknights.mantle.data.gson.TagKeySerializer;
 import slimeknights.mantle.recipe.ingredient.FluidIngredient;
 import slimeknights.mantle.util.JsonHelper;
@@ -43,15 +46,17 @@ import java.util.function.BiConsumer;
 /** Handles fluid units displaying in tooltips */
 @SuppressWarnings("unused")
 @Log4j2
-public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
+public class FluidTooltipHandler extends SimpleJsonResourceReloadListener<JsonElement> {
   /** Tooltip when not holding shift mentioning that is possible */
   public static final Component HOLD_SHIFT = Mantle.makeComponent("gui", "fluid.hold_shift").withStyle(ChatFormatting.GRAY);
   /** Folder for saving the logic */
   public static final String FOLDER = "mantle/fluid_tooltips";
+  /** Key for the reload listener */
+  public static final Identifier LISTENER_ID = Mantle.getResource("fluid_tooltips");
   /** GSON instance */
   // TODO: do we even need GSON here? I feel a classical serializer is sufficient as this class is pretty simple
   public static final Gson GSON = (new GsonBuilder())
-    .registerTypeAdapter(Identifier.class, new Identifier.Serializer())
+    .registerTypeAdapter(Identifier.class, ResourceLocationSerializer.resourceLocation(Identifier.DEFAULT_NAMESPACE))
     .registerTypeAdapter(FluidIngredient.class, FluidIngredient.LOADABLE)
     .registerTypeAdapter(TagKey.class, new TagKeySerializer<Fluid>(Registries.FLUID))
     .setPrettyPrinting()
@@ -84,14 +89,14 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
    * Initializes this manager, registering it with the resource manager
    * @param manager  Manager
    */
-  public static void init(RegisterClientReloadListenersEvent manager) {
-    manager.registerReloadListener(INSTANCE);
+  public static void init(AddClientReloadListenersEvent manager) {
+    manager.addListener(LISTENER_ID, INSTANCE);
     // clear the cache on tag reload, if the tags changed it might be wrong
     NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, TagsUpdatedEvent.class, event -> INSTANCE.listCache.clear());
   }
 
   private FluidTooltipHandler() {
-    super(GSON, FOLDER);
+    super(ExtraCodecs.JSON, FileToIdConverter.json(FOLDER));
   }
 
   /** Loads from JSON */
@@ -209,7 +214,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
     List<Component> tooltip = new ArrayList<>();
     Identifier key = BuiltInRegistries.FLUID.getKey(fluid.getFluid());
     // fluid name, not sure if there is a cleaner way to do this
-    tooltip.add(fluid.getDisplayName());
+    tooltip.add(fluid.getHoverName());
     // add ID if advanced
     appendAdvanced(key, tooltip);
     // material

@@ -2,7 +2,6 @@ package slimeknights.mantle.fluid.texture;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-import com.mojang.blaze3d.shaders.FogShape;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,13 @@ import slimeknights.mantle.util.JsonHelper;
 import javax.annotation.Nullable;
 import java.util.Objects;
 
-/** Record representing a fluid texture */
+/**
+ * Record representing a fluid texture.
+ * <p>
+ * 26.3: the still, flowing and overlay textures and the color are turned into the vanilla fluid model, see
+ * {@link FluidTextureManager#createModel(net.minecraft.world.level.material.Fluid)}. Set {@link #translucent()} for fluids
+ * whose textures are opaque but should still render in the translucent chunk layer.
+ */
 @Accessors(fluent = true)
 @Data
 @AllArgsConstructor
@@ -42,11 +47,18 @@ public final class FluidTexture {
   private final FogShape fogShape;
   private final float fogStart;
   private final float fogEnd;
+  /** If true, the fluid always renders in the translucent chunk layer, even if its textures are opaque */
+  private final boolean translucent;
 
-  /** @deprecated use {@link #FluidTexture(Identifier, Identifier, Identifier, Identifier, float, int, int, boolean, FogShape, float, float)} */
+  /** Creates a fluid texture that uses the chunk layer matching its textures */
+  public FluidTexture(Identifier still, Identifier flowing, @Nullable Identifier overlay, @Nullable Identifier camera, float cameraOpacity, int color, int fogColor, boolean calculateFogColor, @Nullable FogShape fogShape, float fogStart, float fogEnd) {
+    this(still, flowing, overlay, camera, cameraOpacity, color, fogColor, calculateFogColor, fogShape, fogStart, fogEnd, false);
+  }
+
+  /** @deprecated use {@link #FluidTexture(Identifier, Identifier, Identifier, Identifier, float, int, int, boolean, FogShape, float, float, boolean)} */
   @Deprecated(forRemoval = true)
   public FluidTexture(Identifier still, Identifier flowing, @Nullable Identifier overlay, @Nullable Identifier camera, int color) {
-    this(still, flowing, overlay, camera, 0.1f, color, -1, false, null, 0.25f, 1);
+    this(still, flowing, overlay, camera, 0.1f, color, -1, false, null, 0.25f, 1, false);
   }
 
   /** Gets the fog color for this fluid */
@@ -88,6 +100,9 @@ public final class FluidTexture {
     if (!fog.keySet().isEmpty()) {
       json.add("fog", fog);
     }
+    if (translucent) {
+      json.addProperty("translucent", true);
+    }
 
     return json;
   }
@@ -125,8 +140,16 @@ public final class FluidTexture {
         fogEnd = GsonHelper.getAsFloat(fog, "end", 1);
       }
     }
-    return new FluidTexture(still, flowing, overlay, camera, cameraOpacity, color, fogColor, calculateFogColor, fogShape, fogStart, fogEnd);
+    boolean translucent = GsonHelper.getAsBoolean(json, "translucent", false);
+    return new FluidTexture(still, flowing, overlay, camera, cameraOpacity, color, fogColor, calculateFogColor, fogShape, fogStart, fogEnd, translucent);
   }
+
+  /**
+   * Shape of the fluid fog, kept from the 1.21.1 vanilla enum for the JSON format.
+   * In 26.3, {@link #SPHERE} limits the environmental fog (spherical distance) and {@link #CYLINDER} limits the render
+   * distance fog (cylindrical distance), which matches how the old shapes measured distance.
+   */
+  public enum FogShape { SPHERE, CYLINDER }
 
 
   /**
@@ -157,6 +180,8 @@ public final class FluidTexture {
     private FogShape fogShape = null;
     private float fogStart = 0.25f;
     private float fogEnd = 1;
+    /** If true, forces the fluid into the translucent chunk layer */
+    private boolean translucent = false;
 
     /**
      * Adds textures using the fluid registry ID
@@ -244,7 +269,7 @@ public final class FluidTexture {
       if (still == null || flowing == null) {
         throw new IllegalStateException("Must set both still and flowing");
       }
-      return new FluidTexture(still, flowing, overlay, camera, cameraOpacity, color, fogColor, fogColor == -1 && calculateFogColor, fogShape, fogStart, fogEnd);
+      return new FluidTexture(still, flowing, overlay, camera, cameraOpacity, color, fogColor, fogColor == -1 && calculateFogColor, fogShape, fogStart, fogEnd, translucent);
     }
 
     /* Getters for other datagen */

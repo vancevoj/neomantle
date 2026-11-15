@@ -42,7 +42,7 @@ public abstract class AbstractFluidTextureProvider extends GenericDataProvider {
 
     // ensure we added textures for all our fluid types
     if (modId != null) {
-      List<String> missing = fluidTypeRegistry.entrySet().stream().filter(entry -> entry.getKey().location().getNamespace().equals(modId) && !allTextures.containsKey(entry.getValue()) && !ignore.contains(entry.getValue())).map(e -> e.getKey().location().toString()).toList();
+      List<String> missing = fluidTypeRegistry.entrySet().stream().filter(entry -> entry.getKey().identifier().getNamespace().equals(modId) && !allTextures.containsKey(entry.getValue()) && !ignore.contains(entry.getValue())).map(e -> e.getKey().identifier().toString()).toList();
       if (!missing.isEmpty()) {
         throw new IllegalStateException("Missing fluid textures for: " + String.join(", ", missing));
       }

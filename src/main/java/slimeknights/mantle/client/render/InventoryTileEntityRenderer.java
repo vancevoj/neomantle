@@ -1,8 +1,5 @@
 package slimeknights.mantle.client.render;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.world.Container;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -12,34 +9,14 @@ import java.util.List;
 
 /** @deprecated use {@link InventoryBlockEntityRenderer} for the new render item registry. */
 @Deprecated(forRemoval = true)
-public class InventoryTileEntityRenderer<T extends BlockEntity & Container> implements BlockEntityRenderer<T> {
-  public InventoryTileEntityRenderer(BlockEntityRendererProvider.Context context) {}
-
-  @Override
-  public void render(T inventory, float partialTicks, PoseStack matrices, MultiBufferSource buffer, int light, int combinedOverlayIn) {
-    if (inventory.isEmpty()) return;
-
-    // first, find the model for item display locations
-    BlockState state = inventory.getBlockState();
-    List<RenderItem> renderItems = RenderItem.REGISTRY.get(state.getBlock(), List.of());
-    if (!renderItems.isEmpty()) {
-      // if the block is rotatable, rotate item display
-      boolean isRotated = RenderingHelper.applyRotation(matrices, state);
-
-      // render items
-      for (int i = 0; i < renderItems.size(); i++) {
-        RenderingHelper.renderItem(matrices, buffer, inventory.getItem(i), renderItems.get(i), light);
-      }
-
-      // pop back rotation
-      if (isRotated) {
-        matrices.popPose();
-      }
-    }
+public class InventoryTileEntityRenderer<T extends BlockEntity & Container> extends InventoryBlockEntityRenderer<T> {
+  public InventoryTileEntityRenderer(BlockEntityRendererProvider.Context context) {
+    super(context);
   }
 
+  @SuppressWarnings("removal")
   @Override
-  public boolean shouldRenderOffScreen(T tile) {
-    return !tile.isEmpty();
+  protected List<RenderItem> getRenderItems(BlockState state) {
+    return RenderItem.REGISTRY.get(state.getBlock(), List.of());
   }
 }

@@ -7,7 +7,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.joml.Vector3f;
@@ -19,8 +19,9 @@ import java.util.List;
 
 /**
  * Represents a model for {@link FluidCuboid}. Caches some properties used for tank bounds.
- * @see FluidRenderer#renderScaledModel(PoseStack, MultiBufferSource, FluidModel, FluidStack, float, int, int, boolean) 
- * @see FluidRenderer#renderCuboids(PoseStack, VertexConsumer, List, FluidStack, int)
+ * @see FluidRenderer#renderScaledModel(PoseStack, SubmitNodeCollector, FluidModel, FluidStack, float, int, int, boolean)
+ * @see FluidRenderer#renderScaledModel(PoseStack.Pose, VertexConsumer, FluidModel, FluidStack, float, int, int, boolean)
+ * @see FluidRenderer#renderCuboids(PoseStack.Pose, VertexConsumer, List, FluidStack, int)
  */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public class FluidModel {

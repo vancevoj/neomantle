@@ -1,48 +1,39 @@
 package slimeknights.mantle.fluid.texture;
 
-import com.mojang.blaze3d.shaders.FogShape;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.FogRenderer.FogMode;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.fog.FogData;
+import net.minecraft.client.renderer.fog.environment.FogEnvironment;
+import net.minecraft.client.renderer.state.level.PlayerRenderState;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.FastColor;
+import net.minecraft.util.ARGB;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.fluids.FluidType;
-import org.joml.Vector3f;
+import org.joml.Vector4f;
 import slimeknights.mantle.client.render.FluidRenderer;
+import slimeknights.mantle.fluid.texture.FluidTexture.FogShape;
 
 import javax.annotation.Nullable;
 
-/** Implementation of {@link IClientFluidTypeExtensions} using {@link FluidTexture} */
+/**
+ * Implementation of {@link IClientFluidTypeExtensions} using {@link FluidTexture}.
+ * <p>
+ * 26.3: client extensions only handle the camera overlay and fog. Textures and tint are part of the vanilla fluid model,
+ * created by {@link FluidTextureManager#createModel(net.minecraft.world.level.material.Fluid)}. Register this with
+ * {@link net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent}; Mantle registers it automatically
+ * for every {@link slimeknights.mantle.fluid.TextureFluidType} without another extension.
+ */
 @RequiredArgsConstructor
 public class ClientTextureFluidType implements IClientFluidTypeExtensions {
   protected final FluidType type;
-  private Vector3f fogColor;
-
-  @Override
-  public int getTintColor() {
-    return FluidTextureManager.getColor(type);
-  }
-
-  @Override
-  public Identifier getStillTexture() {
-    return FluidTextureManager.getStillTexture(type);
-  }
-
-  @Override
-  public Identifier getFlowingTexture() {
-    return FluidTextureManager.getFlowingTexture(type);
-  }
-
-  @Nullable
-  @Override
-  public Identifier getOverlayTexture() {
-    return FluidTextureManager.getOverlayTexture(type);
-  }
+  /** Fluid color used to compute the cached fog multipliers, to detect resource reloads */
+  private int lastFogColor = -1;
+  /** Cached fog color multipliers */
+  private float fogRed = 1, fogGreen = 1, fogBlue = 1;
 
   @Nullable
   @Override
@@ -51,46 +42,50 @@ public class ClientTextureFluidType implements IClientFluidTypeExtensions {
   }
 
   @Override
-  public void renderOverlay(Minecraft mc, PoseStack poseStack) {
+  public void extractOverlay(Minecraft minecraft, LocalPlayer player, PlayerRenderState playerRenderState, BlockPos eyePos, float brightness) {
     FluidTexture data = FluidTextureManager.getData(type);
     Identifier camera = data.camera();
     if (camera != null) {
-      FluidRenderer.renderCamera(mc, poseStack, camera, data.cameraOpacity(), data.color());
+      FluidRenderer.extractCamera(player, playerRenderState, camera, data.cameraOpacity(), data.color(), brightness);
     }
   }
 
   @Override
-  public Vector3f modifyFogColor(Camera camera, float partialTick, ClientLevel level, int renderDistance, float darkenWorldAmount, Vector3f fluidFogColor) {
+  public void modifyFogColor(Camera camera, float partialTick, ClientLevel level, int renderDistance, float darkenWorldAmount, Vector4f fluidFogColor) {
     // nothing to do if fog color is white
     int fluidColor = FluidTextureManager.getData(type).fogColor();
     if (fluidColor != -1) {
-      // cache the vector for fog color to reduce computation time
-      if (fogColor == null) {
-        fogColor = new Vector3f(ARGB.red(fluidColor) / 255f, ARGB.green(fluidColor) / 255f, ARGB.blue(fluidColor) / 255f);
+      // cache the multipliers for fog color to reduce computation time
+      if (fluidColor != lastFogColor) {
+        fogRed = ARGB.redFloat(fluidColor);
+        fogGreen = ARGB.greenFloat(fluidColor);
+        fogBlue = ARGB.blueFloat(fluidColor);
+        lastFogColor = fluidColor;
       }
-      fluidFogColor.x *= fogColor.x;
-      fluidFogColor.y *= fogColor.y;
-      fluidFogColor.z *= fogColor.z;
+      fluidFogColor.x *= fogRed;
+      fluidFogColor.y *= fogGreen;
+      fluidFogColor.z *= fogBlue;
     }
-    return fluidFogColor;
   }
 
   @Override
-  public void modifyFogRender(Camera camera, FogMode mode, float renderDistance, float partialTick, float nearDistance, float farDistance, FogShape shape) {
+  public void modifyFogRender(Camera camera, @Nullable FogEnvironment environment, float renderDistance, float partialTick, FogData fogData) {
     FluidTexture data = FluidTextureManager.getData(type);
-    FogShape overrideShape = data.fogShape();
-    if (overrideShape != null) {
-      if (overrideShape != shape) {
-        RenderSystem.setShaderFogShape(overrideShape);
-      }
+    FogShape shape = data.fogShape();
+    if (shape != null) {
       float start = data.fogStart();
-      if (start < nearDistance) {
-        RenderSystem.setShaderFogStart(start);
-      }
       float end = data.fogEnd();
-      if (end < farDistance) {
-        RenderSystem.setShaderFogEnd(end);
+      // spherical fog is the environmental fog, cylindrical fog is the render distance fog
+      if (shape == FogShape.CYLINDER) {
+        fogData.renderDistanceStart = Math.min(fogData.renderDistanceStart, start);
+        fogData.renderDistanceEnd = Math.min(fogData.renderDistanceEnd, end);
+      } else {
+        fogData.environmentalStart = Math.min(fogData.environmentalStart, start);
+        fogData.environmentalEnd = Math.min(fogData.environmentalEnd, end);
       }
+      // like lava, the sky and clouds disappear into the fog
+      fogData.skyEnd = Math.min(fogData.skyEnd, end);
+      fogData.cloudEnd = Math.min(fogData.cloudEnd, end);
     }
   }
 }

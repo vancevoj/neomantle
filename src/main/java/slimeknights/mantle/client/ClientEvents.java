@@ -1,14 +1,16 @@
 package slimeknights.mantle.client;
 
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.AttackIndicatorStatus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.debug.DebugScreenEntries;
 import net.minecraft.client.gui.screens.ChatScreen;
-import net.minecraft.client.renderer.Sheets;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.blockentity.HangingSignRenderer;
 import net.minecraft.client.renderer.blockentity.StandingSignRenderer;
 import net.minecraft.core.BlockPos;
@@ -17,6 +19,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -24,54 +27,60 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.api.distmarker.Dist;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.ModelEvent.RegisterGeometryLoaders;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
-import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.client.ClientHooks;
+import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.event.RecipesReceivedEvent;
+import net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.fluid.FluidUtil;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.block.GaugeBlock;
 import slimeknights.mantle.client.book.BookLoader;
+import slimeknights.mantle.client.book.structure.StructurePreviewRenderer;
 import slimeknights.mantle.client.book.repository.FileRepository;
-import slimeknights.mantle.client.model.FallbackModelLoader;
-import slimeknights.mantle.client.model.NBTKeyModel;
-import slimeknights.mantle.client.model.RetexturedModel;
-import slimeknights.mantle.client.model.TextureColorHelper;
-import slimeknights.mantle.client.model.TextureMapManager;
-import slimeknights.mantle.client.model.connected.ConnectedModel;
-import slimeknights.mantle.client.model.util.ColoredBlockModel;
-import slimeknights.mantle.client.model.util.MantleItemLayerModel;
-import slimeknights.mantle.client.model.util.ModelHelper;
 import slimeknights.mantle.client.render.FluidModel;
 import slimeknights.mantle.client.render.RenderItem;
+import slimeknights.mantle.recipe.helper.ClientRecipeEvents;
 import slimeknights.mantle.command.client.MantleClientCommand;
 import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.fluid.texture.FluidTextureManager;
 import slimeknights.mantle.fluid.tooltip.FluidTooltipHandler;
 import slimeknights.mantle.registration.MantleRegistrations;
-import slimeknights.mantle.registration.RegistrationHelper;
 import slimeknights.mantle.util.OffhandCooldownTracker;
 import slimeknights.mantle.util.RegistryHelper;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @EventBusSubscriber(modid = Mantle.modId, value = Dist.CLIENT)
 public class ClientEvents {
   /** Called on construct to initiatlize things that need early entry */
-  public static void onConstruct() {}
+  public static void onConstruct() {
+    // recipes only reach the client through the NeoForge recipe sync, cache them for books and other client lookups
+    NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, false, RecipesReceivedEvent.class, ClientRecipeEvents::onRecipesReceived);
+    NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, ClientPlayerNetworkEvent.LoggingOut.class, ClientRecipeEvents::onLoggingOut);
+  }
 
+  /**
+   * Registers the sign renderers for Mantle's sign block entities.
+   * In 26.3 the sign board itself is a block model, these renderers only draw the text.
+   */
   @SuppressWarnings("ConstantConditions")
   @SubscribeEvent
   static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -85,38 +94,41 @@ public class ClientEvents {
 
   @SuppressWarnings("removal")
   @SubscribeEvent
-  static void registerListeners(RegisterClientReloadListenersEvent event) {
-    event.registerReloadListener(ModelHelper.LISTENER);
-    event.registerReloadListener(new BookLoader());
+  static void registerListeners(AddClientReloadListenersEvent event) {
+    // books
+    event.addListener(Mantle.getResource("books"), new BookLoader());
+    // rendering data
     ResourceColorManager.init(event);
     FluidTooltipHandler.init(event);
     FluidTextureManager.init(event);
-    event.registerReloadListener(FluidModel.REGISTRY);
-    event.registerReloadListener(RenderItem.REGISTRY);
-    event.registerReloadListener(RenderItem.STATE_REGISTRY);
-    event.registerReloadListener(TextureColorHelper.RELOAD_LISTENER);
-    event.registerReloadListener(TextureMapManager.INSTANCE);
+    event.addListener(Mantle.getResource("block_fluids"), FluidModel.REGISTRY);
+    event.addListener(Mantle.getResource("render_items"), RenderItem.REGISTRY);
+    event.addListener(Mantle.getResource("item_lists"), RenderItem.STATE_REGISTRY);
+  }
+
+  /**
+   * Registers {@link slimeknights.mantle.fluid.texture.ClientTextureFluidType} for Mantle fluid types.
+   * Runs last so other mods may register their own extensions for Mantle fluid types first.
+   */
+  @SubscribeEvent(priority = EventPriority.LOWEST)
+  static void registerClientExtensions(RegisterClientExtensionsEvent event) {
+    FluidTextureManager.registerClientExtensions(event);
+  }
+
+  /**
+   * Registers fluid models for Mantle fluid types from their fluid textures.
+   * Runs last so other mods may register their own models for Mantle fluid types first.
+   */
+  @SubscribeEvent(priority = EventPriority.LOWEST)
+  static void registerFluidModels(RegisterFluidModelsEvent event) {
+    FluidTextureManager.registerFluidModels(event);
   }
 
   @SubscribeEvent
   static void clientSetup(FMLClientSetupEvent event) {
-    event.enqueueWork(() -> RegistrationHelper.forEachWoodType(Sheets::addWoodType));
-
+    // 26.3: signs are block models and sign GUI textures are looked up by wood type name, so wood types need no client registration
     BookLoader.registerBook(Mantle.getResource("test"), new FileRepository(Mantle.getResource("books/test")));
     MantleClientCommand.init();
-  }
-
-  @SubscribeEvent
-  static void registerModelLoaders(RegisterGeometryLoaders event) {
-    // standard models - useful in resource packs for any model
-    event.register(Mantle.getResource("connected"), ConnectedModel.LOADER);
-    event.register(Mantle.getResource("item_layer"), MantleItemLayerModel.LOADER);
-    event.register(Mantle.getResource("colored_block"), ColoredBlockModel.LOADER);
-    event.register(Mantle.getResource("fallback"), FallbackModelLoader.INSTANCE);
-
-    // NBT dynamic models - require specific data defined in the block/item to use
-    event.register(Mantle.getResource("nbt_key"), NBTKeyModel.LOADER);
-    event.register(Mantle.getResource("retextured"), RetexturedModel.LOADER);
   }
 
   @SubscribeEvent
@@ -126,13 +138,19 @@ public class ClientEvents {
   }
 
   /**
-   * Registers the custom heart renderer as a replacement for the vanilla player health GUI layer.
+   * Registers the custom heart renderer as a wrapper around the vanilla player health GUI layer.
    * Mirrors the 1.20 behavior of {@code MinecraftForge.EVENT_BUS.register(new ExtraHeartRenderHandler())},
    * which took over heart rendering by cancelling and redrawing the vanilla hearts.
    */
   @SubscribeEvent
   static void registerGuiLayers(RegisterGuiLayersEvent event) {
-    event.replaceLayer(VanillaGuiLayers.PLAYER_HEALTH, new ExtraHeartRenderHandler());
+    ExtraHeartRenderHandler.register(event);
+  }
+
+  /** Book structure pages render their 3D preview through picture in picture */
+  @SubscribeEvent
+  static void registerPictureInPicture(RegisterPictureInPictureRenderersEvent event) {
+    StructurePreviewRenderer.register(event);
   }
 
   /** Vanilla attack indicator sprites, split out of the old GUI_ICONS atlas in 1.21 */
@@ -174,26 +192,23 @@ public class ClientEvents {
     switch (indicator) {
       case CROSSHAIR:
         if (!isHotbar && minecraft.options.getCameraType().isFirstPerson()) {
-          if (!minecraft.gui.getDebugOverlay().showDebugScreen() || settings.hideGui || minecraft.player.isReducedDebugInfo() || settings.reducedDebugInfo().get()) {
-            // mostly cloned from vanilla attack indicator
-            RenderSystem.enableBlend();
-            RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.ONE_MINUS_DST_COLOR, GlStateManager.DestFactor.ONE_MINUS_SRC_COLOR, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
+          // vanilla skips the 2D crosshair when the 3D debug crosshair is shown
+          if (!minecraft.debugEntries.isCurrentlyEnabled(DebugScreenEntries.THREE_DIMENSIONAL_CROSSHAIR)) {
+            // mostly cloned from vanilla attack indicator, the crosshair pipeline inverts the colors behind it
             int scaledHeight = minecraft.getWindow().getGuiScaledHeight();
             // integer division makes this a pain to line up, there might be a simplier version of this formula but I cannot think of one
             int y = (scaledHeight / 2) - 14 + (2 * (scaledHeight % 2));
             int x = minecraft.getWindow().getGuiScaledWidth() / 2 - 8;
             int width = (int)(cooldown * 17.0F);
-            // 1.21: the GUI_ICONS atlas was split into individual sprites, draw the indicator via blitSprite
-            graphics.blitSprite(CROSSHAIR_ATTACK_INDICATOR_BACKGROUND, x, y, 16, 4);
+            graphics.blitSprite(RenderPipelines.CROSSHAIR, CROSSHAIR_ATTACK_INDICATOR_BACKGROUND, x, y, 16, 4);
             if (width > 0) {
-              graphics.blitSprite(CROSSHAIR_ATTACK_INDICATOR_PROGRESS, 16, 4, 0, 0, x, y, width, 4);
+              graphics.blitSprite(RenderPipelines.CROSSHAIR, CROSSHAIR_ATTACK_INDICATOR_PROGRESS, 16, 4, 0, 0, x, y, width, 4);
             }
-            RenderSystem.defaultBlendFunc();
           }
         }
         break;
       case HOTBAR:
-        if (isHotbar && minecraft.cameraEntity == minecraft.player) {
+        if (isHotbar && minecraft.getCameraEntity() == minecraft.player) {
           int centerWidth = minecraft.getWindow().getGuiScaledWidth() / 2;
           int y = minecraft.getWindow().getGuiScaledHeight() - 20;
           int x;
@@ -204,11 +219,10 @@ public class ClientEvents {
             x = centerWidth + 91 + 6 + 32;
           }
           int l1 = (int)(cooldown * 19.0F);
-          RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-          // 1.21: draw the split-out hotbar attack indicator sprites; progress grows from the bottom
-          graphics.blitSprite(HOTBAR_ATTACK_INDICATOR_BACKGROUND, x, y, 18, 18);
+          // progress grows from the bottom
+          graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR_ATTACK_INDICATOR_BACKGROUND, x, y, 18, 18);
           if (l1 > 0) {
-            graphics.blitSprite(HOTBAR_ATTACK_INDICATOR_PROGRESS, 18, 18, 0, 18 - l1, x, y + 18 - l1, 18, l1);
+            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, HOTBAR_ATTACK_INDICATOR_PROGRESS, 18, 18, 0, 18 - l1, x, y + 18 - l1, 18, l1);
           }
         }
         break;
@@ -224,7 +238,8 @@ public class ClientEvents {
     }
     // must not be in a screen, though chat is fine
     Minecraft minecraft = Minecraft.getInstance();
-    if (minecraft.screen != null && minecraft.screen.getClass() != ChatScreen.class) {
+    Screen screen = minecraft.gui.screen();
+    if (screen != null && screen.getClass() != ChatScreen.class) {
       return;
     }
     // must have a hit result
@@ -254,31 +269,36 @@ public class ClientEvents {
     if (gaugeContainer == null || RegistryHelper.contains(BuiltInRegistries.BLOCK_ENTITY_TYPE, MantleTags.BlockEntities.GAUGE_BLACKLIST, gaugeContainer.getType())) {
       return;
     }
-    // block entity must have a fluid handler; 1.21 queries capabilities through the level and returns null if absent
-    IFluidHandler handler = minecraft.level.getCapability(Capabilities.Fluid.BLOCK, gaugePos, side);
-    if (handler == null || handler.getTanks() <= 0) {
+    // block entity must have a fluid handler; capabilities are queried through the level and return null if absent
+    ResourceHandler<FluidResource> handler = minecraft.level.getCapability(Capabilities.Fluid.BLOCK, gaugePos, side);
+    if (handler == null || handler.size() <= 0) {
       return;
     }
     // if the fluid is empty, just render the capacity
-    FluidStack fluid = handler.getFluidInTank(0);
+    FluidStack fluid = FluidUtil.getStack(handler, 0);
+    int capacity = handler.getCapacityAsInt(0, handler.getResource(0));
     List<Component> tooltip;
     if (fluid.isEmpty()) {
-      tooltip = List.of(GaugeBlock.formatCapacity(handler.getTankCapacity(0)));
+      tooltip = List.of(GaugeBlock.formatCapacity(capacity));
     } else if (RegistryHelper.contains(BuiltInRegistries.BLOCK_ENTITY_TYPE, MantleTags.BlockEntities.HIDES_GAUGE_AMOUNT, gaugeContainer.getType())) {
       // in the tag, don't show capacity
       Identifier id = BuiltInRegistries.FLUID.getKey(fluid.getFluid());
       tooltip = new ArrayList<>(3);
-      tooltip.add(fluid.getDisplayName());
+      tooltip.add(fluid.getHoverName());
       FluidTooltipHandler.appendAdvanced(id, tooltip);
-      tooltip.add(GaugeBlock.formatCapacity(handler.getTankCapacity(0)).withStyle(ChatFormatting.GRAY));
+      tooltip.add(GaugeBlock.formatCapacity(capacity).withStyle(ChatFormatting.GRAY));
       tooltip.add(FluidTooltipHandler.formatModName(id));
     } else {
       // render full fluid tooltip
       tooltip = FluidTooltipHandler.getFluidTooltip(fluid);
     }
 
-    int x = minecraft.getWindow().getGuiScaledWidth() / 2;
-    int y = minecraft.getWindow().getGuiScaledHeight() / 2;
-    event.getGuiGraphics().renderTooltip(minecraft.font, tooltip, Optional.empty(), x, y);
+    // the deferred tooltip only renders inside screens, so draw it directly on a new stratum above the HUD
+    GuiGraphicsExtractor graphics = event.getGuiGraphics();
+    int x = graphics.guiWidth() / 2;
+    int y = graphics.guiHeight() / 2;
+    List<ClientTooltipComponent> components = ClientHooks.gatherTooltipComponents(ItemStack.EMPTY, tooltip, x, graphics.guiWidth(), graphics.guiHeight(), minecraft.font);
+    graphics.nextStratum();
+    graphics.tooltip(minecraft.font, components, x, y, DefaultTooltipPositioner.INSTANCE, null, false);
   }
 }

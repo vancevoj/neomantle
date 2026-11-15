@@ -1,33 +1,36 @@
 package slimeknights.mantle.client.render;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.ScreenEffectRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.state.level.PlayerRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.inventory.InventoryMenu;
-import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.minecraft.util.ARGB;
+import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.FluidType;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import slimeknights.mantle.client.render.FluidCuboid.FluidFace;
 
 import java.util.List;
 
+/**
+ * Helpers for rendering fluid cuboids.
+ * <p>
+ * 26.3: nothing is drawn immediately any more. Renderers submit geometry to a {@link SubmitNodeCollector} and the vertex
+ * methods here run later, inside {@link SubmitNodeCollector#submitCustomGeometry(PoseStack, net.minecraft.client.renderer.rendertype.RenderType, SubmitNodeCollector.CustomGeometryRenderer)},
+ * which hands out a {@link PoseStack.Pose} snapshot and a {@link VertexConsumer} for {@link MantleRenderTypes#FLUID}.
+ * The methods taking a {@link PoseStack.Pose} are meant to be called inside such a lambda, the methods taking a
+ * {@link SubmitNodeCollector} do the submission for you. Resolve sprites with {@link FluidSprites#of(FluidStack)} during
+ * render state extraction where possible, and only capture immutable values in submitted lambdas.
+ */
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class FluidRenderer {
   /**
@@ -36,7 +39,27 @@ public class FluidRenderer {
    * @return  Sprite location
    */
   public static TextureAtlasSprite getBlockSprite(Identifier sprite) {
-    return Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS).getSprite(sprite);
+    return Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(TextureAtlas.LOCATION_BLOCKS).getSprite(sprite);
+  }
+
+  /**
+   * Gets the vanilla fluid model for the given fluid, containing its textures and tint.
+   * Fluids without a registered model get the missing model.
+   * @param fluid  Fluid to fetch
+   * @return  Fluid model
+   */
+  public static net.minecraft.client.renderer.block.FluidModel getFluidModel(Fluid fluid) {
+    return Minecraft.getInstance().getModelManager().getFluidStateModelSet().get(fluid.defaultFluidState());
+  }
+
+  /**
+   * Gets the sprites and tint for the given fluid stack
+   * @param fluid  Fluid stack
+   * @return  Fluid sprites
+   * @see FluidSprites#of(FluidStack)
+   */
+  public static FluidSprites getFluidSprites(FluidStack fluid) {
+    return FluidSprites.of(fluid);
   }
 
   /**
@@ -47,8 +70,18 @@ public class FluidRenderer {
    */
   public static int withBlockLight(int combinedLight, int blockLight) {
     // skylight from the combined plus larger block light between combined and parameter
-    // not using methods from LightTexture to reduce number of operations
+    // not using methods from LightCoordsUtil to reduce number of operations
     return (combinedLight & 0xFFFF0000) | Math.max(blockLight << 4, combinedLight & 0xFFFF);
+  }
+
+  /**
+   * Gets the light to use for rendering the given fluid, accounting for the fluid's own light level
+   * @param light  Packed light from the renderer
+   * @param fluid  Fluid to render
+   * @return  Packed light
+   */
+  public static int getFluidLight(int light, FluidStack fluid) {
+    return withBlockLight(light, fluid.getFluid().getFluidType().getLightLevel(fluid));
   }
 
   /* Fluid cuboids */
@@ -188,7 +221,7 @@ public class FluidRenderer {
     int r = color >> 16 & 0xFF;
     int g = color >> 8 & 0xFF;
     int b = color & 0xFF;
-    // face normal for the NEW_ENTITY vertex format (required by the entity-translucent render type so shaders render it)
+    // face normal for the ENTITY vertex format (required by the entity translucent render type so shaders render it)
     int nx = face.getStepX(), ny = face.getStepY(), nz = face.getStepZ();
     switch (face) {
       case DOWN -> {
@@ -230,10 +263,29 @@ public class FluidRenderer {
     }
   }
 
-  /** @deprecated use {@link #renderCuboid(PoseStack, VertexConsumer, FluidCuboid, TextureAtlasSprite, TextureAtlasSprite, Vector3f, Vector3f, int, int)} */
-  @Deprecated(forRemoval = true)
-  public static void renderCuboid(PoseStack matrices, VertexConsumer buffer, FluidCuboid cube, TextureAtlasSprite still, TextureAtlasSprite flowing, Vector3f from, Vector3f to, int color, int light, boolean isGas) {
-    renderCuboid(matrices, buffer, cube, still, flowing, from, to, color, light);
+  /* Cuboids */
+
+  /**
+   * Renders a full fluid cuboid for the given data
+   * @param pose      Pose to render with, typically from {@link SubmitNodeCollector.CustomGeometryRenderer}
+   * @param buffer    Vertex consumer for {@link MantleRenderTypes#FLUID}
+   * @param cube      Fluid cuboid
+   * @param still     Still sprite
+   * @param flowing   Flowing sprite
+   * @param from      Fluid start
+   * @param to        Fluid end
+   * @param color     Fluid color
+   * @param light     Quad lighting
+   */
+  public static void renderCuboid(PoseStack.Pose pose, VertexConsumer buffer, FluidCuboid cube, TextureAtlasSprite still, TextureAtlasSprite flowing, Vector3f from, Vector3f to, int color, int light) {
+    Matrix4f matrix = pose.pose();
+    for (Direction dir : Direction.values()) {
+      FluidFace face = cube.getFace(dir);
+      if (face != null) {
+        boolean isFlowing = face.isFlowing();
+        putTexturedQuad(buffer, matrix, isFlowing ? flowing : still, from, to, dir, color, light, face.rotation(), isFlowing);
+      }
+    }
   }
 
   /**
@@ -247,16 +299,97 @@ public class FluidRenderer {
    * @param to        Fluid end
    * @param color     Fluid color
    * @param light     Quad lighting
+   * @see #renderCuboid(PoseStack.Pose, VertexConsumer, FluidCuboid, TextureAtlasSprite, TextureAtlasSprite, Vector3f, Vector3f, int, int)
    */
   public static void renderCuboid(PoseStack matrices, VertexConsumer buffer, FluidCuboid cube, TextureAtlasSprite still, TextureAtlasSprite flowing, Vector3f from, Vector3f to, int color, int light) {
-    Matrix4f matrix = matrices.last().pose();
-    for (Direction dir : Direction.values()) {
-      FluidFace face = cube.getFace(dir);
-      if (face != null) {
-        boolean isFlowing = face.isFlowing();
-        putTexturedQuad(buffer, matrix, isFlowing ? flowing : still, from, to, dir, color, light, face.rotation(), isFlowing);
-      }
+    renderCuboid(matrices.last(), buffer, cube, still, flowing, from, to, color, light);
+  }
+
+  /** @deprecated use {@link #renderCuboid(PoseStack.Pose, VertexConsumer, FluidCuboid, TextureAtlasSprite, TextureAtlasSprite, Vector3f, Vector3f, int, int)} */
+  @Deprecated(forRemoval = true)
+  public static void renderCuboid(PoseStack matrices, VertexConsumer buffer, FluidCuboid cube, TextureAtlasSprite still, TextureAtlasSprite flowing, Vector3f from, Vector3f to, int color, int light, boolean isGas) {
+    renderCuboid(matrices.last(), buffer, cube, still, flowing, from, to, color, light);
+  }
+
+  /**
+   * Renders a fluid cuboid at its own bounds, used to manually place cuboids from a list for rendering {@link #renderCuboids(PoseStack.Pose, VertexConsumer, List, FluidStack, int)}
+   * @param pose      Pose to render with
+   * @param buffer    Vertex consumer for {@link MantleRenderTypes#FLUID}
+   * @param cube      Fluid cuboid
+   * @param still     Still sprite
+   * @param flowing   Flowing sprite
+   * @param color     Fluid color
+   * @param light     Quad lighting from the renderer
+   */
+  public static void renderCuboid(PoseStack.Pose pose, VertexConsumer buffer, FluidCuboid cube, TextureAtlasSprite still, TextureAtlasSprite flowing, int color, int light) {
+    renderCuboid(pose, buffer, cube, still, flowing, cube.getFromScaled(), cube.getToScaled(), color, light);
+  }
+
+  /**
+   * Renders a fluid cuboid at its own bounds using the given fluid sprites and tint
+   * @param pose      Pose to render with
+   * @param buffer    Vertex consumer for {@link MantleRenderTypes#FLUID}
+   * @param cube      Fluid cuboid
+   * @param sprites   Fluid sprites and tint
+   * @param light     Quad lighting, see {@link #getFluidLight(int, FluidStack)}
+   */
+  public static void renderCuboid(PoseStack.Pose pose, VertexConsumer buffer, FluidCuboid cube, FluidSprites sprites, int light) {
+    renderCuboid(pose, buffer, cube, sprites.still(), sprites.flowing(), sprites.color(), light);
+  }
+
+  /**
+   * Renders a fluid cuboid at its own bounds, used to manually place cuboids from a list for rendering {@link #renderCuboids(PoseStack, VertexConsumer, List, FluidStack, int)}
+   * @param matrices  Matrix stack instance
+   * @param buffer    Buffer type
+   * @param cube      Fluid cuboid
+   * @param still     Still sprite
+   * @param flowing   Flowing sprite
+   * @param color     Fluid color
+   * @param light     Quad lighting from the renderer
+   */
+  public static void renderCuboid(PoseStack matrices, VertexConsumer buffer, FluidCuboid cube, TextureAtlasSprite still, TextureAtlasSprite flowing, int color, int light) {
+    renderCuboid(matrices.last(), buffer, cube, still, flowing, color, light);
+  }
+
+  /** @deprecated use {@link #renderCuboid(PoseStack.Pose, VertexConsumer, FluidCuboid, TextureAtlasSprite, TextureAtlasSprite, int, int)}, translating the pose if needed */
+  @Deprecated(forRemoval = true)
+  public static void renderCuboid(PoseStack matrices, VertexConsumer buffer, FluidCuboid cube, float yOffset, TextureAtlasSprite still, TextureAtlasSprite flowing, int color, int light, boolean isGas) {
+    PoseStack.Pose pose = matrices.last();
+    if (yOffset != 0) {
+      pose = pose.copy();
+      pose.translate(0, yOffset, 0);
     }
+    renderCuboid(pose, buffer, cube, still, flowing, color, light);
+  }
+
+  /**
+   * Renders a list of fluid cuboids
+   * @param pose     Pose to render with
+   * @param buffer   Vertex consumer for {@link MantleRenderTypes#FLUID}
+   * @param cubes    List of cubes to render
+   * @param sprites  Fluid sprites and tint
+   * @param light    Quad lighting, see {@link #getFluidLight(int, FluidStack)}
+   */
+  public static void renderCuboids(PoseStack.Pose pose, VertexConsumer buffer, List<FluidCuboid> cubes, FluidSprites sprites, int light) {
+    for (FluidCuboid cube : cubes) {
+      renderCuboid(pose, buffer, cube, sprites, light);
+    }
+  }
+
+  /**
+   * Renders a list of fluid cuboids
+   * @param pose    Pose to render with
+   * @param buffer  Vertex consumer for {@link MantleRenderTypes#FLUID}
+   * @param cubes   List of cubes to render
+   * @param fluid   Fluid to use in rendering
+   * @param light   Light level from the renderer
+   */
+  public static void renderCuboids(PoseStack.Pose pose, VertexConsumer buffer, List<FluidCuboid> cubes, FluidStack fluid, int light) {
+    if (fluid.isEmpty()) {
+      return;
+    }
+    // fluid attributes, fetch once for all fluids to save effort
+    renderCuboids(pose, buffer, cubes, FluidSprites.of(fluid), getFluidLight(light, fluid));
   }
 
   /**
@@ -265,68 +398,75 @@ public class FluidRenderer {
    * @param buffer    Buffer instance
    * @param cubes     List of cubes to render
    * @param fluid     Fluid to use in rendering
-   * @param light     Light level from TER
+   * @param light     Light level from the renderer
    */
   public static void renderCuboids(PoseStack matrices, VertexConsumer buffer, List<FluidCuboid> cubes, FluidStack fluid, int light) {
-    if (fluid.isEmpty()) {
-      return;
-    }
-
-    // fluid attributes, fetch once for all fluids to save effort
-    IClientFluidTypeExtensions clientFluid = IClientFluidTypeExtensions.of(fluid.getFluid());
-    TextureAtlasSprite still = getBlockSprite(clientFluid.getStillTexture(fluid));
-    TextureAtlasSprite flowing = getBlockSprite(clientFluid.getFlowingTexture(fluid));
-    int color = clientFluid.getTintColor(fluid);
-    FluidType type = fluid.getFluid().getFluidType();
-    light = withBlockLight(light, type.getLightLevel(fluid));
-
-    // render all given cuboids
-    for (FluidCuboid cube : cubes) {
-      renderCuboid(matrices, buffer, cube, still, flowing, cube.getFromScaled(), cube.getToScaled(), color, light);
-    }
-  }
-
-  /** @deprecated use {@link #renderCuboid(PoseStack, VertexConsumer, FluidCuboid, TextureAtlasSprite, TextureAtlasSprite, int, int)} */
-  @Deprecated(forRemoval = true)
-  public static void renderCuboid(PoseStack matrices, VertexConsumer buffer, FluidCuboid cube, float yOffset, TextureAtlasSprite still, TextureAtlasSprite flowing, int color, int light, boolean isGas) {
-    if (yOffset != 0) {
-      matrices.pushPose();
-      matrices.translate(0, yOffset, 0);
-    }
-    renderCuboid(matrices, buffer, cube, still, flowing, cube.getFromScaled(), cube.getToScaled(), color, light);
-    if (yOffset != 0) {
-      matrices.popPose();
-    }
+    renderCuboids(matrices.last(), buffer, cubes, fluid, light);
   }
 
   /**
-   * Renders a fluid cuboid with the given offset, used to manually place cuboids from a list for rendering {@link #renderCuboids(PoseStack, VertexConsumer, List, FluidStack, int)}
-   * @param matrices  Matrix stack instance
-   * @param buffer    Buffer type
-   * @param cube      Fluid cuboid
-   * @param still     Still sprite
-   * @param flowing   Flowing sprite
-   * @param color     Fluid color
-   * @param light     Quad lighting from TER
+   * Submits a list of fluid cuboids for rendering with {@link MantleRenderTypes#FLUID}.
+   * Sprites, tint and light are resolved immediately, so the fluid stack may change after this call.
+   * @param matrices   Matrix stack instance, the current pose is captured
+   * @param collector  Submit node collector
+   * @param cubes      List of cubes to render
+   * @param fluid      Fluid to use in rendering
+   * @param light      Light level from the renderer
    */
-  public static void renderCuboid(PoseStack matrices, VertexConsumer buffer, FluidCuboid cube, TextureAtlasSprite still, TextureAtlasSprite flowing, int color, int light) {
-    renderCuboid(matrices, buffer, cube, still, flowing, cube.getFromScaled(), cube.getToScaled(), color, light);
+  public static void renderCuboids(PoseStack matrices, SubmitNodeCollector collector, List<FluidCuboid> cubes, FluidStack fluid, int light) {
+    if (fluid.isEmpty() || cubes.isEmpty()) {
+      return;
+    }
+    FluidSprites sprites = FluidSprites.of(fluid);
+    int fluidLight = getFluidLight(light, fluid);
+    List<FluidCuboid> toRender = List.copyOf(cubes);
+    collector.submitCustomGeometry(matrices, MantleRenderTypes.FLUID, (pose, buffer) -> renderCuboids(pose, buffer, toRender, sprites, fluidLight));
   }
 
 
   /* Scaling */
 
   /**
+   * Computes the Y value at which to stop a partially filled fluid
+   * @param minY      Bottom of the fluid area
+   * @param maxY      Top of the fluid area
+   * @param amount    Fluid amount
+   * @param offset    Fluid amount offset, used to animate transitions
+   * @param capacity  Fluid capacity, must be above 0
+   * @param flip      If true, the fluid fills from the top (gases)
+   * @return  Y value to stop the fluid. If {@code flip} this is a minimum, otherwise a maximum.
+   */
+  public static float getScaledY(float minY, float maxY, int amount, float offset, int capacity, boolean flip) {
+    float height = (amount - offset) / capacity;
+    if (flip) {
+      return maxY + (height * (minY - maxY));
+    }
+    return minY + (height * (maxY - minY));
+  }
+
+  /**
+   * Checks if the given fluid should render flipped
+   * @param fluid    Fluid to check
+   * @param flipGas  If true, gases are flipped
+   * @return  True if the fluid fills from the top
+   */
+  public static boolean shouldFlip(FluidStack fluid, boolean flipGas) {
+    return flipGas && fluid.getFluid().getFluidType().isLighterThanAir();
+  }
+
+  /**
    * Renders a fluid cuboid scaled to the given height
-   * @param matrices  Matrix stack instance
-   * @param consumer  Vertex consumer for the fluid
+   * @param pose      Pose to render with
+   * @param consumer  Vertex consumer for {@link MantleRenderTypes#FLUID}
    * @param cube      Fluid cuboid instance
+   * @param scaledY   Y value to stop the fluid. If {@code flip} this is a minimum, otherwise a maximum.
+   * @param flip      If true, the fluid fills from the top
    * @param still     Still sprite
    * @param flowing   Flowing sprite
-   * @param scaledY   Y value to stop the fluid. If {@code flip} this is a minimum, otherwise a maximum.
-   * @param light     Quad lighting from TER
+   * @param color     Fluid color
+   * @param light     Quad lighting from the renderer
    */
-  public static void renderScaledCuboid(PoseStack matrices, VertexConsumer consumer, FluidCuboid cube, float scaledY, boolean flip, TextureAtlasSprite still, TextureAtlasSprite flowing, int color, int light) {
+  public static void renderScaledCuboid(PoseStack.Pose pose, VertexConsumer consumer, FluidCuboid cube, float scaledY, boolean flip, TextureAtlasSprite still, TextureAtlasSprite flowing, int color, int light) {
     Vector3f from = cube.getFromScaled();
     Vector3f to = cube.getToScaled();
     if (flip) {
@@ -347,122 +487,188 @@ public class FluidRenderer {
       }
     }
     // draw cuboid
-    renderCuboid(matrices, consumer, cube, still, flowing, from, to, color, light);
+    renderCuboid(pose, consumer, cube, still, flowing, from, to, color, light);
+  }
+
+  /**
+   * Renders a fluid cuboid scaled to the given height
+   * @param matrices  Matrix stack instance
+   * @param consumer  Vertex consumer for the fluid
+   * @param cube      Fluid cuboid instance
+   * @param scaledY   Y value to stop the fluid. If {@code flip} this is a minimum, otherwise a maximum.
+   * @param flip      If true, the fluid fills from the top
+   * @param still     Still sprite
+   * @param flowing   Flowing sprite
+   * @param color     Fluid color
+   * @param light     Quad lighting from the renderer
+   */
+  public static void renderScaledCuboid(PoseStack matrices, VertexConsumer consumer, FluidCuboid cube, float scaledY, boolean flip, TextureAtlasSprite still, TextureAtlasSprite flowing, int color, int light) {
+    renderScaledCuboid(matrices.last(), consumer, cube, scaledY, flip, still, flowing, color, light);
+  }
+
+  /**
+   * Renders a fluid cuboid scaled to the given height using the given fluid sprites and tint
+   * @param pose      Pose to render with
+   * @param consumer  Vertex consumer for {@link MantleRenderTypes#FLUID}
+   * @param cube      Fluid cuboid instance
+   * @param sprites   Fluid sprites and tint
+   * @param scaledY   Y value to stop the fluid, see {@link #getScaledY(float, float, int, float, int, boolean)}
+   * @param flip      If true, the fluid fills from the top
+   * @param light     Quad lighting, see {@link #getFluidLight(int, FluidStack)}
+   */
+  public static void renderScaledCuboid(PoseStack.Pose pose, VertexConsumer consumer, FluidCuboid cube, FluidSprites sprites, float scaledY, boolean flip, int light) {
+    renderScaledCuboid(pose, consumer, cube, scaledY, flip, sprites.still(), sprites.flowing(), sprites.color(), light);
   }
 
   /**
    * Renders a fluid cuboid with partial height based on the capacity
-   * @param matrices  Matrix stack instance
-   * @param buffer    Render type buffer instance
+   * @param pose      Pose to render with
+   * @param consumer  Vertex consumer for {@link MantleRenderTypes#FLUID}
+   * @param cube      Fluid cuboid instance
    * @param fluid     Fluid to render
    * @param offset    Fluid amount offset, used to animate transitions
    * @param capacity  Fluid tank capacity, must be above 0
-   * @param light     Quad lighting from TER
-   * @param cube      Fluid cuboid instance
+   * @param light     Quad lighting from the renderer
    * @param flipGas   If true, flips gas cubes
-   * @deprecated use {@link #renderScaledModel(PoseStack, MultiBufferSource, FluidModel, FluidStack, float, int, int, boolean)}
+   * @deprecated use {@link #renderScaledModel(PoseStack.Pose, VertexConsumer, FluidModel, FluidStack, float, int, int, boolean)}
    */
   @Deprecated
-  public static void renderScaledCuboid(PoseStack matrices, MultiBufferSource buffer, FluidCuboid cube, FluidStack fluid, float offset, int capacity, int light, boolean flipGas) {
+  public static void renderScaledCuboid(PoseStack.Pose pose, VertexConsumer consumer, FluidCuboid cube, FluidStack fluid, float offset, int capacity, int light, boolean flipGas) {
     // nothing to render
     if (fluid.isEmpty() || capacity <= 0) {
       return;
     }
-    IClientFluidTypeExtensions clientFluid = IClientFluidTypeExtensions.of(fluid.getFluid());
-    FluidType type = fluid.getFluid().getFluidType();
-
     // figure out the height to render the fluids
-    float minY = cube.getFromScaled().y;
-    float maxY = cube.getToScaled().y;
-    float height = (fluid.getAmount() - offset) / capacity;
-    boolean flip = flipGas && type.isLighterThanAir();
-    float scaledY;
-    if (flip) {
-      scaledY = maxY + (height * (minY - maxY));
-    } else {
-      scaledY = minY + (height * (maxY - minY));
-    }
-    renderScaledCuboid(
-      matrices, buffer.getBuffer(MantleRenderTypes.FLUID), cube, scaledY, flip,
-      getBlockSprite(clientFluid.getStillTexture(fluid)), getBlockSprite(clientFluid.getFlowingTexture(fluid)),
-      clientFluid.getTintColor(fluid), withBlockLight(light, type.getLightLevel(fluid))
-    );
+    boolean flip = shouldFlip(fluid, flipGas);
+    float scaledY = getScaledY(cube.getFromScaled().y, cube.getToScaled().y, fluid.getAmount(), offset, capacity, flip);
+    renderScaledCuboid(pose, consumer, cube, FluidSprites.of(fluid), scaledY, flip, getFluidLight(light, fluid));
   }
 
   /**
-   * Renders a fluid cuboid with partial height based on the capacity
-   * @param matrices  Matrix stack instance
-   * @param buffer    Render type buffer instance
+   * Submits a fluid cuboid with partial height based on the capacity for rendering with {@link MantleRenderTypes#FLUID}.
+   * Sprites, tint, light and height are resolved immediately, so the fluid stack may change after this call.
+   * @param matrices   Matrix stack instance, the current pose is captured
+   * @param collector  Submit node collector
+   * @param cube       Fluid cuboid instance
+   * @param fluid      Fluid to render
+   * @param offset     Fluid amount offset, used to animate transitions
+   * @param capacity   Fluid tank capacity, must be above 0
+   * @param light      Quad lighting from the renderer
+   * @param flipGas    If true, flips gas cubes
+   * @deprecated use {@link #renderScaledModel(PoseStack, SubmitNodeCollector, FluidModel, FluidStack, float, int, int, boolean)}
+   */
+  @Deprecated
+  public static void renderScaledCuboid(PoseStack matrices, SubmitNodeCollector collector, FluidCuboid cube, FluidStack fluid, float offset, int capacity, int light, boolean flipGas) {
+    // nothing to render
+    if (fluid.isEmpty() || capacity <= 0) {
+      return;
+    }
+    boolean flip = shouldFlip(fluid, flipGas);
+    float scaledY = getScaledY(cube.getFromScaled().y, cube.getToScaled().y, fluid.getAmount(), offset, capacity, flip);
+    FluidSprites sprites = FluidSprites.of(fluid);
+    int fluidLight = getFluidLight(light, fluid);
+    collector.submitCustomGeometry(matrices, MantleRenderTypes.FLUID, (pose, buffer) -> renderScaledCuboid(pose, buffer, cube, sprites, scaledY, flip, fluidLight));
+  }
+
+  /**
+   * Renders a fluid model scaled to the given height using the given fluid sprites and tint
+   * @param pose      Pose to render with
+   * @param consumer  Vertex consumer for {@link MantleRenderTypes#FLUID}
+   * @param model     Fluid model instance
+   * @param sprites   Fluid sprites and tint
+   * @param scaledY   Y value to stop the fluid, see {@link #getScaledY(FluidModel, FluidStack, float, int, boolean)}
+   * @param flip      If true, the fluid fills from the top
+   * @param light     Quad lighting, see {@link #getFluidLight(int, FluidStack)}
+   */
+  public static void renderScaledModel(PoseStack.Pose pose, VertexConsumer consumer, FluidModel model, FluidSprites sprites, float scaledY, boolean flip, int light) {
+    for (FluidCuboid cube : model.getFluids()) {
+      renderScaledCuboid(pose, consumer, cube, sprites, scaledY, flip, light);
+    }
+  }
+
+  /**
+   * Computes the Y value at which to stop a partially filled fluid model
    * @param model     Fluid model instance
    * @param fluid     Fluid to render
    * @param offset    Fluid amount offset, used to animate transitions
    * @param capacity  Fluid tank capacity, must be above 0
-   * @param light     Quad lighting from TER
+   * @param flipGas   If true, flips gas cubes
+   * @return  Y value to stop the fluid
+   */
+  public static float getScaledY(FluidModel model, FluidStack fluid, float offset, int capacity, boolean flipGas) {
+    return getScaledY(model.getMinScaled().y, model.getMaxScaled().y, fluid.getAmount(), offset, capacity, shouldFlip(fluid, flipGas));
+  }
+
+  /**
+   * Renders a fluid cuboid with partial height based on the capacity
+   * @param pose      Pose to render with
+   * @param consumer  Vertex consumer for {@link MantleRenderTypes#FLUID}
+   * @param model     Fluid model instance
+   * @param fluid     Fluid to render
+   * @param offset    Fluid amount offset, used to animate transitions
+   * @param capacity  Fluid tank capacity, must be above 0
+   * @param light     Quad lighting from the renderer
    * @param flipGas   If true, flips gas cubes
    */
-  public static void renderScaledModel(PoseStack matrices, MultiBufferSource buffer, FluidModel model, FluidStack fluid, float offset, int capacity, int light, boolean flipGas) {
+  public static void renderScaledModel(PoseStack.Pose pose, VertexConsumer consumer, FluidModel model, FluidStack fluid, float offset, int capacity, int light, boolean flipGas) {
     // nothing to render
     if (fluid.isEmpty() || capacity <= 0 || model.isEmpty()) {
       return;
     }
-
-    // fluid attributes
-    IClientFluidTypeExtensions clientFluid = IClientFluidTypeExtensions.of(fluid.getFluid());
-    TextureAtlasSprite still = getBlockSprite(clientFluid.getStillTexture(fluid));
-    TextureAtlasSprite flowing = getBlockSprite(clientFluid.getFlowingTexture(fluid));
-    FluidType type = fluid.getFluid().getFluidType();
-    int color = clientFluid.getTintColor(fluid);
-    light = withBlockLight(light, type.getLightLevel(fluid));
-    VertexConsumer consumer = buffer.getBuffer(MantleRenderTypes.FLUID);
-
-    // figure out the height to render the fluids
-    float minY = model.getMinScaled().y;
-    float maxY = model.getMaxScaled().y;
-    float height = (fluid.getAmount() - offset) / capacity;
-    boolean flip = flipGas && type.isLighterThanAir();
-    float scaledY;
-    if (flip) {
-      scaledY = maxY + (height * (minY - maxY));
-    } else {
-      scaledY = minY + (height * (maxY - minY));
-    }
-
-    // render cuboids
-    for (FluidCuboid cube : model.getFluids()) {
-      // draw cuboid
-      renderScaledCuboid(matrices, consumer, cube, scaledY, flip, still, flowing, color, light);
-    }
+    renderScaledModel(pose, consumer, model, FluidSprites.of(fluid), getScaledY(model, fluid, offset, capacity, flipGas), shouldFlip(fluid, flipGas), getFluidLight(light, fluid));
   }
 
-  /** Same as {@link net.minecraft.client.renderer.ScreenEffectRenderer#renderFluid(Minecraft, PoseStack, Identifier)} but with opacity and color control */
-  public static void renderCamera(Minecraft minecraft, PoseStack poseStack, Identifier texture, float opacity, int color) {
-    assert minecraft.player != null;
-    RenderSystem.setShader(GameRenderer::getPositionTexShader);
-    RenderSystem.setShaderTexture(0, texture);
-    BlockPos pos = BlockPos.containing(minecraft.player.getX(), minecraft.player.getEyeY(), minecraft.player.getZ());
-    Level level = minecraft.player.level();
-    float brightness = LightTexture.getBrightness(level.dimensionType(), level.getMaxLocalRawBrightness(pos));
-    RenderSystem.enableBlend();
+  /**
+   * Submits a fluid model with partial height based on the capacity for rendering with {@link MantleRenderTypes#FLUID}.
+   * Sprites, tint, light and height are resolved immediately, so the fluid stack may change after this call.
+   * @param matrices   Matrix stack instance, the current pose is captured
+   * @param collector  Submit node collector
+   * @param model      Fluid model instance
+   * @param fluid      Fluid to render
+   * @param offset     Fluid amount offset, used to animate transitions
+   * @param capacity   Fluid tank capacity, must be above 0
+   * @param light      Quad lighting from the renderer
+   * @param flipGas    If true, flips gas cubes
+   */
+  public static void renderScaledModel(PoseStack matrices, SubmitNodeCollector collector, FluidModel model, FluidStack fluid, float offset, int capacity, int light, boolean flipGas) {
+    // nothing to render
+    if (fluid.isEmpty() || capacity <= 0 || model.isEmpty()) {
+      return;
+    }
+    FluidSprites sprites = FluidSprites.of(fluid);
+    float scaledY = getScaledY(model, fluid, offset, capacity, flipGas);
+    boolean flip = shouldFlip(fluid, flipGas);
+    int fluidLight = getFluidLight(light, fluid);
+    collector.submitCustomGeometry(matrices, MantleRenderTypes.FLUID, (pose, buffer) -> renderScaledModel(pose, buffer, model, sprites, scaledY, flip, fluidLight));
+  }
+
+
+  /* Camera */
+
+  /**
+   * Sets up a fluid camera overlay for the player, same as the vanilla underwater overlay but with opacity and color control.
+   * Call from {@link net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions#extractOverlay}.
+   * <p>
+   * 26.3 replacement for the old {@code renderCamera(Minecraft, PoseStack, Identifier, float, int)}, which drew immediately.
+   * @param player      Player in the fluid
+   * @param state       Player render state receiving the overlay renderer
+   * @param texture     Full path to the overlay texture
+   * @param opacity     Overlay opacity
+   * @param color       Overlay tint, -1 for no tint
+   * @param brightness  Brightness at the player's eye position
+   */
+  public static void extractCamera(LocalPlayer player, PlayerRenderState state, Identifier texture, float opacity, int color, float brightness) {
+    int argb;
     // apply fluid tint if one is set
     if (color != -1) {
-      RenderSystem.setShaderColor(
-        brightness * (color >> 16 & 255) / 255f,
-        brightness * (color >> 8 & 255) / 255f,
-        brightness * (color & 255) / 255f,
-        opacity * (color >>> 24) / 255f);
+      argb = ARGB.colorFromFloat(opacity * ARGB.alphaFloat(color), brightness * ARGB.redFloat(color), brightness * ARGB.greenFloat(color), brightness * ARGB.blueFloat(color));
     } else {
-      RenderSystem.setShaderColor(brightness, brightness, brightness, opacity);
+      argb = ARGB.colorFromFloat(opacity, brightness, brightness, brightness);
     }
-    float yRot = -minecraft.player.getYRot() / 64;
-    float xRot = minecraft.player.getXRot() / 64;
-    Matrix4f matrix = poseStack.last().pose();
-    BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-    buffer.addVertex(matrix, -1, -1, -0.5f).setUv(4 + yRot, 4 + xRot);
-    buffer.addVertex(matrix,  1, -1, -0.5f).setUv(0 + yRot, 4 + xRot);
-    buffer.addVertex(matrix,  1,  1, -0.5f).setUv(0 + yRot, 0 + xRot);
-    buffer.addVertex(matrix, -1,  1, -0.5f).setUv(4 + yRot, 0 + xRot);
-    BufferUploader.drawWithShader(buffer.buildOrThrow());
-    RenderSystem.setShaderColor(1, 1, 1, 1);
-    RenderSystem.disableBlend();
+    PlayerRenderState.WaterOverlay overlay = new PlayerRenderState.WaterOverlay(argb, -player.getYRot() / 64, player.getXRot() / 64);
+    state.customFluidOverlayRenderer = (playerState, camera, collector, poseStack, sprites, partialTicks, hideGui) -> {
+      ScreenEffectRenderer.submitFluid(overlay, poseStack, collector, texture);
+      return true;
+    };
   }
 }

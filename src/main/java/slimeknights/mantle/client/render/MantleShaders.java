@@ -1,47 +1,39 @@
 package slimeknights.mantle.client.render;
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import lombok.Getter;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.ShaderInstance;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.neoforge.client.event.RegisterShadersEvent;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import slimeknights.mantle.Mantle;
-import slimeknights.mantle.config.Config;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import net.minecraft.client.renderer.RenderPipelines;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
+/**
+ * Render pipelines backing Mantle's render types.
+ * <p>
+ * 26.3 removed core shader programs ({@code ShaderInstance}, {@code RegisterShadersEvent}); render pipelines replace them.
+ * Mantle no longer needs any custom shader: in world fluids use the vanilla entity translucent cull pipeline, which applies
+ * fog itself (so the old fluid fog fix shader is obsolete), and the book structure renderer uses the vanilla translucent
+ * item pipeline with full bright light. Nothing needs to be registered.
+ */
+public final class MantleShaders {
+  private MantleShaders() {}
 
-/** Handles any custom shaders registered by Mantle. */
-@EventBusSubscriber(modid = Mantle.modId, value = Dist.CLIENT)
-public class MantleShaders {
-  @Nullable
-  @Getter
-  private static ShaderInstance blockFullBrightShader;
-  @Nullable
-  @Getter
-  private static ShaderInstance fluidShader;
+  /** Pipeline behind {@link MantleRenderTypes#FLUID} */
+  public static final RenderPipeline FLUID = RenderPipelines.ENTITY_TRANSLUCENT_CULL;
+  /** Pipeline behind {@link MantleRenderTypes#TRANSLUCENT_FULLBRIGHT} */
+  public static final RenderPipeline BLOCK_FULLBRIGHT = RenderPipelines.ITEM_TRANSLUCENT;
 
-  /** Gets the shader to use for {@link MantleRenderTypes#FLUID_SHADER}, checking the config option to select which shader to use. */
-  @Nullable
-  public static ShaderInstance getConfiguredFluidShader() {
-    if (Config.ENABLE_FLUID_FOG_FIX.get()) {
-      return fluidShader;
-    }
-    return Config.FLUID_USE_TEXT_SHADER.get() ? GameRenderer.getRendertypeTextShader() : GameRenderer.getPositionColorTexLightmapShader();
+  /** Gets the pipeline used for the book structure renderer */
+  public static RenderPipeline getBlockFullBrightShader() {
+    return BLOCK_FULLBRIGHT;
   }
 
-  @SubscribeEvent
-  static void registerShaders(RegisterShadersEvent event) throws IOException {
-    event.registerShader(
-      new ShaderInstance(event.getResourceProvider(), Mantle.getResource("block_fullbright"), DefaultVertexFormat.BLOCK),
-      shader -> blockFullBrightShader = shader
-    );
-    event.registerShader(
-      new ShaderInstance(event.getResourceProvider(), Mantle.getResource("fluid"), DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP),
-      shader -> fluidShader = shader
-    );
+  /** Gets the pipeline used for fluids */
+  public static RenderPipeline getFluidShader() {
+    return FLUID;
+  }
+
+  /**
+   * Gets the pipeline used for fluids. The fog fix and text shader config options no longer select a shader, as the
+   * vanilla entity pipeline already renders fog correctly.
+   */
+  public static RenderPipeline getConfiguredFluidShader() {
+    return FLUID;
   }
 }
