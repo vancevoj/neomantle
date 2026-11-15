@@ -135,11 +135,11 @@ public class SizedIngredient implements Predicate<ItemStack> {
     try {
       ingredientMatch = ingredient.items().toList();
     } catch (RuntimeException e) {
-      // tags not yet bound
-      ingredientMatch = List.of();
+      // tags not yet bound, or a tag set made before binding that is never bound (display stacks look the tag up by key), cannot tell when to recache
+      ingredientMatch = null;
     }
     // if we never cached, or the matched items changed since we last cached (tag reload), recache
-    if (matchingStacks == null || !ingredientMatch.equals(lastIngredientMatch)) {
+    if (matchingStacks == null || ingredientMatch == null || !ingredientMatch.equals(lastIngredientMatch)) {
       matchingStacks = IngredientHelper.getStacks(ingredient).stream().map(stack -> {
         if (stack.getCount() != amountNeeded) {
           stack = stack.copy();
