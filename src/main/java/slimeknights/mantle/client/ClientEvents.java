@@ -127,13 +127,14 @@ public class ClientEvents {
   }
 
   /**
-   * Registers the custom heart renderer as a replacement for the vanilla player health GUI layer.
+   * Registers the custom heart renderer as a wrapper around the vanilla player health GUI layer.
    * Mirrors the 1.20 behavior of {@code MinecraftForge.EVENT_BUS.register(new ExtraHeartRenderHandler())},
    * which took over heart rendering by cancelling and redrawing the vanilla hearts.
+   * The vanilla layer is wrapped rather than discarded so it still draws when the config disables our renderer.
    */
   @SubscribeEvent
   static void registerGuiLayers(RegisterGuiLayersEvent event) {
-    event.replaceLayer(VanillaGuiLayers.PLAYER_HEALTH, new ExtraHeartRenderHandler());
+    event.wrapLayer(VanillaGuiLayers.PLAYER_HEALTH, ExtraHeartRenderHandler::new);
   }
 
   /** Vanilla attack indicator sprites, split out of the old GUI_ICONS atlas in 1.21 */

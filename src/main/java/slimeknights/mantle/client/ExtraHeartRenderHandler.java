@@ -19,7 +19,8 @@ import java.util.Random;
 
 /**
  * Replacement for the vanilla {@code PLAYER_HEALTH} GUI layer, registered via {@code RegisterGuiLayersEvent}.
- * In 1.21 the old {@code RenderGuiOverlayEvent} cancel-and-redraw flow became a layer replacement.
+ * In 1.21 the old {@code RenderGuiOverlayEvent} cancel-and-redraw flow became a layer wrapper, which still draws the
+ * vanilla layer when the config disables this renderer.
  */
 public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
   private static final ResourceLocation ICON_HEARTS = ResourceLocation.fromNamespaceAndPath(Mantle.modId, "textures/gui/extra_hearts.png");
@@ -56,6 +57,8 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
   private static final int ABSORPTION_CONTAINER = 234;
 
   private final Minecraft mc = Minecraft.getInstance();
+  /** Vanilla health layer, used when the renderer is disabled in the config */
+  private final LayeredDraw.Layer vanillaLayer;
   /** Offsets for each heart position */
   private final int[] offsets = new int[20];
 
@@ -69,6 +72,14 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
   private long lastHealthTime = 0;
   private final Random rand = new Random();
 
+  /**
+   * Creates a new heart renderer
+   * @param vanillaLayer  Vanilla health layer, used when the renderer is disabled in the config
+   */
+  public ExtraHeartRenderHandler(LayeredDraw.Layer vanillaLayer) {
+    this.vanillaLayer = vanillaLayer;
+  }
+
   /* HUD */
 
   /**
@@ -80,6 +91,8 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
   public void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
     HeartRenderer renderer = Config.HEART_RENDERER.get();
     if (renderer == HeartRenderer.DISABLE) {
+      // the wrapped vanilla layer does its own visibility checks
+      this.vanillaLayer.render(graphics, deltaTracker);
       return;
     }
     // ensure its visible: gui shown, survival-style gamemode, and a player camera (mirrors the old shouldDrawSurvivalElements)
