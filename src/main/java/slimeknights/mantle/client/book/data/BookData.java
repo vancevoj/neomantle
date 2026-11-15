@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -85,7 +85,7 @@ public class BookData implements IDataItem, BookScreenOpener {
           Mantle.logger.error("Failed to load repository {}.", repo, e);
         }
 
-        ResourceLocation appearanceLocation = repo.getResourceLocation("appearance.json");
+        Identifier appearanceLocation = repo.getResourceLocation("appearance.json");
 
         if (repo.resourceExists(appearanceLocation)) {
           try {
@@ -97,7 +97,7 @@ public class BookData implements IDataItem, BookScreenOpener {
 
         this.appearance.load();
 
-        ResourceLocation languageLocation = repo.getResourceLocation("language.lang");
+        Identifier languageLocation = repo.getResourceLocation("language.lang");
 
         if (repo.resourceExists(languageLocation)) {
           try {
@@ -366,7 +366,7 @@ public class BookData implements IDataItem, BookScreenOpener {
    */
   public void openGui(Component title, String page, @Nullable Consumer<String> pageUpdater, @Nullable Consumer<?> bookPickup) {
     this.load();
-    Minecraft.getInstance().setScreen(new BookScreen(title, this, page, pageUpdater, bookPickup));
+    Minecraft.getInstance().gui.setScreen(new BookScreen(title, this, page, pageUpdater, bookPickup));
   }
 
   /**

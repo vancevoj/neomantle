@@ -3,7 +3,7 @@ package slimeknights.mantle.data.client;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.PackOutput;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 
 import java.io.IOException;
@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 
 /** Copies the first frame of the passed texture into its own texture */
 public class DeanimateTextureGenerator extends GenericTextureGenerator {
-  private static final Map<ResourceLocation,ResourceLocation> deanimate = new HashMap<>();
+  private static final Map<Identifier,Identifier> deanimate = new HashMap<>();
   private final String folder;
   public DeanimateTextureGenerator(PackOutput packOutput, ExistingFileHelper existingFileHelper, String folder) {
     super(packOutput, existingFileHelper, folder);
@@ -27,8 +27,8 @@ public class DeanimateTextureGenerator extends GenericTextureGenerator {
   }
 
   /** Requests the given texture to be deanimated */
-  public void deanimate(ResourceLocation source, ResourceLocation destination) {
-    ResourceLocation existing = deanimate.putIfAbsent(destination, source);
+  public void deanimate(Identifier source, Identifier destination) {
+    Identifier existing = deanimate.putIfAbsent(destination, source);
     if (existing != null && !existing.equals(source)) {
       throw new IllegalArgumentException("Multiple textures are deanimating with the same destination: original - " + existing + ", new - " + source);
     }

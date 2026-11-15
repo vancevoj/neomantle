@@ -59,7 +59,7 @@ public abstract class InventoryBlock extends Block implements EntityBlock {
   protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult rayTraceResult) {
     // mirrors vanilla ChestBlock/AbstractFurnaceBlock: no bounce-suppression gate (block placement already ran in
     // useItemOn), and consume on the server so the menu open is not double counted
-    if (!world.isClientSide) {
+    if (!world.isClientSide()) {
       return this.openGui(player, world, pos) ? InteractionResult.CONSUME : InteractionResult.PASS;
     }
     return InteractionResult.SUCCESS;
@@ -102,7 +102,7 @@ public abstract class InventoryBlock extends Block implements EntityBlock {
         // explicitly, which skips the (now-air) world lookup.
         IItemHandler inventory = te instanceof InventoryBlockEntity inv
                                  ? inv.getItemHandler()
-                                 : worldIn.getCapability(Capabilities.ItemHandler.BLOCK, pos, state, te, null);
+                                 : worldIn.getCapability(Capabilities.Item.BLOCK, pos, state, te, null);
         if (inventory != null) {
           dropInventoryItems(state, worldIn, pos, inventory);
         }

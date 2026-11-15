@@ -2,7 +2,7 @@ package slimeknights.mantle.data.loadable.common;
 
 import com.google.gson.JsonSyntaxException;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.mapping.EnumMapLoadable;
@@ -19,10 +19,10 @@ public enum DisplayContextLoadable implements ResourceLocationLoadable<ItemDispl
   INSTANCE;
 
   @Override
-  public ItemDisplayContext fromKey(ResourceLocation name, String key, TypedMap context) {
+  public ItemDisplayContext fromKey(Identifier name, String key, TypedMap context) {
     // values are keyed by their serialized name; vanilla contexts resolve to the minecraft namespace, addon contexts may be namespaced (e.g. tconstruct:melter)
     for (ItemDisplayContext value : ItemDisplayContext.values()) {
-      if (ResourceLocation.parse(value.getSerializedName()).equals(name)) {
+      if (Identifier.parse(value.getSerializedName()).equals(name)) {
         return value;
       }
     }
@@ -30,9 +30,9 @@ public enum DisplayContextLoadable implements ResourceLocationLoadable<ItemDispl
   }
 
   @Override
-  public ResourceLocation getKey(ItemDisplayContext object) {
+  public Identifier getKey(ItemDisplayContext object) {
     // parse handles both bare vanilla names (e.g. "fixed" -> minecraft:fixed) and namespaced addon names (e.g. "tconstruct:melter")
-    return ResourceLocation.parse(object.getSerializedName());
+    return Identifier.parse(object.getSerializedName());
   }
 
   @Override

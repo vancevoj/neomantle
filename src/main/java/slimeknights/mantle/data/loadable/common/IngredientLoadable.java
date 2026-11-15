@@ -16,7 +16,7 @@ public enum IngredientLoadable implements Loadable<Ingredient> {
 
   @Override
   public Ingredient convert(JsonElement element, String key, TypedMap context) {
-    return (this == ALLOW_EMPTY ? Ingredient.CODEC : Ingredient.CODEC_NONEMPTY)
+    return (this == ALLOW_EMPTY ? Ingredient.CODEC : Ingredient.CODEC)
       .parse(JsonOps.INSTANCE, element)
       .getOrThrow(JsonSyntaxException::new);
   }

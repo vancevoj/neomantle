@@ -7,7 +7,7 @@ import mezz.jei.api.ingredients.IIngredientType;
 import mezz.jei.api.ingredients.subtypes.UidContext;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
@@ -58,7 +58,7 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityInput> {
   }
 
   @Override
-  public ResourceLocation getResourceLocation(EntityInput type) {
+  public Identifier getResourceLocation(EntityInput type) {
     return Loadables.ENTITY_TYPE.getKey(type.type());
   }
 
@@ -92,7 +92,7 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityInput> {
 
   @SuppressWarnings("deprecation")
   @Override
-  public Stream<ResourceLocation> getTagStream(EntityInput ingredient) {
+  public Stream<Identifier> getTagStream(EntityInput ingredient) {
     return ingredient.type().builtInRegistryHolder().tags().map(TagKey::location);
   }
 

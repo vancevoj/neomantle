@@ -2,7 +2,7 @@ package slimeknights.mantle.registration.object;
 
 import lombok.Getter;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
@@ -54,7 +54,7 @@ public class WoodBlockObject extends FenceBuildingBlockObject {
   @Getter
   private final TagKey<Item> logItemTag;
 
-  public WoodBlockObject(ResourceLocation name, WoodType woodType, BuildingBlockObject planks,
+  public WoodBlockObject(Identifier name, WoodType woodType, BuildingBlockObject planks,
                          Supplier<? extends Block> log, Supplier<? extends Block> strippedLog, Supplier<? extends Block> wood, Supplier<? extends Block> strippedWood,
                          Supplier<? extends FenceBlock> fence, Supplier<? extends FenceGateBlock> fenceGate, Supplier<? extends DoorBlock> door, Supplier<? extends TrapDoorBlock> trapdoor,
                          Supplier<? extends PressurePlateBlock> pressurePlate, Supplier<? extends ButtonBlock> button,
@@ -75,13 +75,13 @@ public class WoodBlockObject extends FenceBuildingBlockObject {
     this.wallSign = wallSign;
     this.hangingSign = hangingSign;
     this.wallHangingSign = wallHangingSign;
-    ResourceLocation tagName = ResourceLocation.fromNamespaceAndPath(name.getNamespace(), name.getPath() + "_logs");
+    Identifier tagName = Identifier.fromNamespaceAndPath(name.getNamespace(), name.getPath() + "_logs");
     this.logBlockTag = BlockTags.create(tagName);
     this.logItemTag = ItemTags.create(tagName);
   }
 
   @SuppressWarnings("deprecation")
-  public WoodBlockObject(ResourceLocation name, WoodType woodType, BuildingBlockObject planks,
+  public WoodBlockObject(Identifier name, WoodType woodType, BuildingBlockObject planks,
                          Block log, Block strippedLog, Block wood, Block strippedWood,
                          Block fence, Block fenceGate, Block door, Block trapdoor,
                          Block pressurePlate, Block button,
@@ -101,7 +101,7 @@ public class WoodBlockObject extends FenceBuildingBlockObject {
     this.wallSign = getCastedHolder(BuiltInRegistries.BLOCK, wallSign);
     this.hangingSign = getCastedHolder(BuiltInRegistries.BLOCK, hangingSign);
     this.wallHangingSign = getCastedHolder(BuiltInRegistries.BLOCK, wallHangingSign);
-    ResourceLocation tagName = ResourceLocation.fromNamespaceAndPath(name.getNamespace(), name.getPath() + "_logs");
+    Identifier tagName = Identifier.fromNamespaceAndPath(name.getNamespace(), name.getPath() + "_logs");
     this.logBlockTag = BlockTags.create(tagName);
     this.logItemTag = ItemTags.create(tagName);
   }

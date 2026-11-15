@@ -3,7 +3,7 @@ package slimeknights.mantle.data.loadable.field;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.common.conditions.ICondition.IContext;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 @RequiredArgsConstructor
 public class ContextKey<T> implements Key<T> {
   /** Context field representing the object's ID */
-  public static final ContextKey<ResourceLocation> ID = new ContextKey<>("id");
+  public static final ContextKey<Identifier> ID = new ContextKey<>("id");
   /** Key for adding debug info to log messages. Generally not useful as a field */
   public static final ContextKey<String> DEBUG = new ContextKey<>("debug info");
   /** Key for adding condition context, used in {@link slimeknights.mantle.data.loadable.mapping.ConditionalLoadable} */

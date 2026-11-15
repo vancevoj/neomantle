@@ -15,7 +15,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -52,7 +52,7 @@ import java.util.Set;
 public class CombatHelper {
   private static final float TO_RADIAN = (float)Math.PI / 180f;
   /** ID for the anti knockback attribute modifier */
-  private static final ResourceLocation ANTI_KNOCKBACK_ID = ResourceLocation.fromNamespaceAndPath(Mantle.modId, "anti_knockback");
+  private static final Identifier ANTI_KNOCKBACK_ID = Identifier.fromNamespaceAndPath(Mantle.modId, "anti_knockback");
   /** Attribute modifier to disable knockback on a target */
   private static final AttributeModifier ANTI_KNOCKBACK_MODIFIER = new AttributeModifier(ANTI_KNOCKBACK_ID, 1f, Operation.ADD_VALUE);
   /** Item ability to disable the base knockback of the weapon. Requires replacing left click behavior of your weapon. */
@@ -63,7 +63,7 @@ public class CombatHelper {
   /** Gets the item stack in the main hand that contributes to attributes. Exposed for benefit of Tinkers' Construct which can optimize these methods for its tools. */
   public static ItemStack getMainhandAttributeStack(LivingEntity entity) {
     // clientside does not use last item stack, so our best choice is the mainhand stack
-    if (entity.level().isClientSide) {
+    if (entity.level().isClientSide()) {
       return entity.getMainHandItem();
     }
     // serverside, the last hand item is no longer accessible, so use the current mainhand stack
@@ -309,9 +309,9 @@ public class CombatHelper {
           }
 
           // sync player motion
-          if (target instanceof ServerPlayer serverTarget && target.hurtMarked) {
+          if (target instanceof ServerPlayer serverTarget && target.syncVelocity) {
             serverTarget.connection.send(new ClientboundSetEntityMotionPacket(target));
-            target.hurtMarked = false;
+            target.syncVelocity = false;
             target.setDeltaMovement(movement);
           }
 
@@ -337,7 +337,7 @@ public class CombatHelper {
           }
 
           // damage the tool
-          if (!player.level().isClientSide && !stack.isEmpty() && parent instanceof LivingEntity living) {
+          if (!player.level().isClientSide() && !stack.isEmpty() && parent instanceof LivingEntity living) {
             ItemStack copy = stack.copy();
             boolean hurt = stack.hurtEnemy(living, player);
             if (hurt) {
@@ -382,7 +382,7 @@ public class CombatHelper {
 
   /** Makes a damage source from the given key */
   public static Holder<DamageType> damageType(RegistryAccess access, ResourceKey<DamageType> key) {
-    return access.registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(key);
+    return access.lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(key);
   }
 
   /** Makes a damage source from the given key */

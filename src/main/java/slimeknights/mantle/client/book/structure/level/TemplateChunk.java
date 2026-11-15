@@ -27,7 +27,7 @@ public class TemplateChunk extends EmptyLevelChunk {
   private final Predicate<BlockPos> shouldShow;
 
   public TemplateChunk(Level level, ChunkPos chunkPos, List<StructureBlockInfo> blocksInChunk, Predicate<BlockPos> shouldShow) {
-    super(level, chunkPos, level.registryAccess().registryOrThrow(Registries.BIOME).getHolderOrThrow(Biomes.PLAINS));
+    super(level, chunkPos, level.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.PLAINS));
     this.shouldShow = shouldShow;
     this.blocksInChunk = new HashMap<>();
     this.tiles = new HashMap<>();

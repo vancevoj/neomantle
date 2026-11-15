@@ -12,7 +12,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.damagesource.DamageType;
@@ -52,7 +52,7 @@ public class Loadables {
   private Loadables() {}
 
   /** Alias for the resource location loadable as it's a common need */
-  public static final StringLoadable<ResourceLocation> RESOURCE_LOCATION = ResourceLocationLoadable.DEFAULT;
+  public static final StringLoadable<Identifier> RESOURCE_LOCATION = ResourceLocationLoadable.DEFAULT;
   public static final StringLoadable<ItemAbility> ITEM_ABILITY = StringLoadable.NON_EMPTY.map(ItemAbility::get, ItemAbility::name);
 
   /* Registries */
@@ -65,12 +65,12 @@ public class Loadables {
   // Holder (which serializes by key) and resolved on parse via ContextKey.REGISTRIES in the parse context
   public static final ResourceLocationLoadable<Holder<Enchantment>> ENCHANTMENT = new ResourceLocationLoadable<>() {
     @Override
-    public ResourceLocation getKey(Holder<Enchantment> object) {
+    public Identifier getKey(Holder<Enchantment> object) {
       return object.unwrapKey().orElseThrow(() -> new RuntimeException("Cannot serialize unregistered enchantment holder " + object)).location();
     }
 
     @Override
-    public Holder<Enchantment> fromKey(ResourceLocation name, String key, slimeknights.mantle.util.typed.TypedMap context) {
+    public Holder<Enchantment> fromKey(Identifier name, String key, slimeknights.mantle.util.typed.TypedMap context) {
       ResourceKey<Enchantment> enchantmentKey = ResourceKey.create(Registries.ENCHANTMENT, name);
       HolderLookup.Provider registries = context.get(slimeknights.mantle.data.loadable.field.ContextKey.REGISTRIES);
       if (registries != null) {
@@ -81,7 +81,7 @@ public class Loadables {
 
     @Override
     public Holder<Enchantment> decode(FriendlyByteBuf buffer, slimeknights.mantle.util.typed.TypedMap context) {
-      ResourceKey<Enchantment> enchantmentKey = ResourceKey.create(Registries.ENCHANTMENT, buffer.readResourceLocation());
+      ResourceKey<Enchantment> enchantmentKey = ResourceKey.create(Registries.ENCHANTMENT, buffer.readIdentifier());
       if (buffer instanceof RegistryFriendlyByteBuf registryBuffer) {
         return registryBuffer.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(enchantmentKey);
       }
@@ -90,7 +90,7 @@ public class Loadables {
 
     @Override
     public void encode(FriendlyByteBuf buffer, Holder<Enchantment> value) {
-      buffer.writeResourceLocation(getKey(value));
+      buffer.writeIdentifier(getKey(value));
     }
   };
   public static final ResourceLocationLoadable<EntityType<?>> ENTITY_TYPE = new RegistryLoadable<>(BuiltInRegistries.ENTITY_TYPE);

@@ -41,7 +41,7 @@ public abstract class InventoryBlockEntity extends NameableBlockEntity implement
   /**
    * Item handler exposing this inventory. In NeoForge 1.21.1 the capability is no longer provided via {@code getCapability};
    * the owning mod registers this handler in {@code RegisterCapabilitiesEvent} via
-   * {@code event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type, (be, side) -> be.getItemHandler())}.
+   * {@code event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.getItemHandler())}.
    */
   @Getter
   protected IItemHandlerModifiable itemHandler;

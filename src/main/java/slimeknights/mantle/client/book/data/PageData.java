@@ -1,10 +1,10 @@
 package slimeknights.mantle.client.book.data;
 
 import com.google.gson.JsonElement;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.neoforged.neoforge.common.conditions.ICondition;
-import net.neoforged.neoforge.common.conditions.TrueCondition;
+import net.neoforged.neoforge.common.conditions.AlwaysCondition;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.book.BookLoader;
 import slimeknights.mantle.client.book.data.content.ContentError;
@@ -24,13 +24,13 @@ import java.util.Map;
 public class PageData implements IDataItem, IConditional {
 
   public String name = null;
-  public ResourceLocation type = Mantle.getResource("blank");
+  public Identifier type = Mantle.getResource("blank");
   public String data = "";
   public float scale = 1.0F;
-  public ICondition condition = TrueCondition.INSTANCE;
+  public ICondition condition = AlwaysCondition.INSTANCE;
 
   /** Contains arbitrary data to be used by custom transformers and other things */
-  public Map<ResourceLocation, JsonElement> extraData = Collections.emptyMap();
+  public Map<Identifier, JsonElement> extraData = Collections.emptyMap();
 
   public transient SectionData parent;
   public transient BookRepository source;
@@ -178,6 +178,6 @@ public class PageData implements IDataItem, IConditional {
   }
 
   private static class PageTypeOverrider {
-    public ResourceLocation type;
+    public Identifier type;
   }
 }

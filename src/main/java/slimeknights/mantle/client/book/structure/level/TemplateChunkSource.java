@@ -49,7 +49,7 @@ public class TemplateChunkSource extends ChunkSource {
   @Nullable
   @Override
   public ChunkAccess getChunk(int chunkX, int chunkZ, @Nonnull ChunkStatus requiredStatus, boolean load) {
-    return this.chunks.computeIfAbsent(new ChunkPos(chunkX, chunkZ), p -> new EmptyLevelChunk(level, p, level.registryAccess().registryOrThrow(Registries.BIOME).getHolderOrThrow(Biomes.PLAINS)));
+    return this.chunks.computeIfAbsent(new ChunkPos(chunkX, chunkZ), p -> new EmptyLevelChunk(level, p, level.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.PLAINS)));
   }
 
   @Override

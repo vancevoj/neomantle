@@ -14,7 +14,7 @@ public abstract class BuiltinRegistryTagProvider<T> extends IntrinsicHolderTagsP
   public BuiltinRegistryTagProvider(PackOutput packOutput, Registry<T> registry, CompletableFuture<Provider> lookupProvider, String modId, @Nullable ExistingFileHelper existingFileHelper) {
     super(packOutput, registry.key(), lookupProvider,
       // not sure why fetching the resource key from the object is such a pain
-      value -> registry.getHolder(registry.getId(value)).orElseThrow().key(),
+      value -> registry.get(registry.getId(value)).orElseThrow().key(),
       modId, existingFileHelper);
   }
 }

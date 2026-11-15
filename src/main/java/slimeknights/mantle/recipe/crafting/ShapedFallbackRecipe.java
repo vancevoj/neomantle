@@ -5,7 +5,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
@@ -23,7 +23,7 @@ import java.util.List;
 public class ShapedFallbackRecipe extends ShapedRecipe {
 
   /** Recipes to skip if they match */
-  private final List<ResourceLocation> alternatives;
+  private final List<Identifier> alternatives;
   private List<CraftingRecipe> alternativeCache;
 
   /**
@@ -35,7 +35,7 @@ public class ShapedFallbackRecipe extends ShapedRecipe {
    * @param showNotification  If true, shows the toast notification on first craft
    * @param alternatives      List of recipe names to fail this match if they match
    */
-  public ShapedFallbackRecipe(String group, CraftingBookCategory category, ShapedRecipePattern pattern, ItemStack result, boolean showNotification, List<ResourceLocation> alternatives) {
+  public ShapedFallbackRecipe(String group, CraftingBookCategory category, ShapedRecipePattern pattern, ItemStack result, boolean showNotification, List<Identifier> alternatives) {
     super(group, category, pattern, result, showNotification);
     this.alternatives = alternatives;
   }
@@ -80,7 +80,7 @@ public class ShapedFallbackRecipe extends ShapedRecipe {
       ShapedRecipePattern.MAP_CODEC.forGetter(r -> r.pattern),
       ItemStack.STRICT_CODEC.fieldOf("result").forGetter(r -> r.getResultItem(null)),
       Codec.BOOL.optionalFieldOf("show_notification", true).forGetter(ShapedRecipe::showNotification),
-      ResourceLocation.CODEC.listOf().optionalFieldOf("alternatives", List.of()).forGetter(r -> r.alternatives)
+      Identifier.CODEC.listOf().optionalFieldOf("alternatives", List.of()).forGetter(r -> r.alternatives)
     ).apply(inst, ShapedFallbackRecipe::new));
 
     private static final StreamCodec<RegistryFriendlyByteBuf, ShapedFallbackRecipe> STREAM_CODEC = StreamCodec.of(Serializer::toNetwork, Serializer::fromNetwork);
@@ -102,22 +102,22 @@ public class ShapedFallbackRecipe extends ShapedRecipe {
       ItemStack result = ItemStack.STREAM_CODEC.decode(buffer);
       boolean showNotification = buffer.readBoolean();
       int size = buffer.readVarInt();
-      List<ResourceLocation> alternatives = new java.util.ArrayList<>(size);
+      List<Identifier> alternatives = new java.util.ArrayList<>(size);
       for (int i = 0; i < size; i++) {
-        alternatives.add(buffer.readResourceLocation());
+        alternatives.add(buffer.readIdentifier());
       }
       return new ShapedFallbackRecipe(group, category, pattern, result, showNotification, List.copyOf(alternatives));
     }
 
     private static void toNetwork(RegistryFriendlyByteBuf buffer, ShapedFallbackRecipe recipe) {
-      buffer.writeUtf(recipe.getGroup());
+      buffer.writeUtf(recipe.group());
       buffer.writeEnum(recipe.category());
       ShapedRecipePattern.STREAM_CODEC.encode(buffer, recipe.pattern);
       ItemStack.STREAM_CODEC.encode(buffer, recipe.getResultItem(null));
       buffer.writeBoolean(recipe.showNotification());
       buffer.writeVarInt(recipe.alternatives.size());
-      for (ResourceLocation alternative : recipe.alternatives) {
-        buffer.writeResourceLocation(alternative);
+      for (Identifier alternative : recipe.alternatives) {
+        buffer.writeIdentifier(alternative);
       }
     }
   }

@@ -63,7 +63,7 @@ import java.util.function.Supplier;
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
-  private static final BlockBehaviour.Properties POTTED_PROPS = BlockBehaviour.Properties.of().instabreak().noOcclusion().pushReaction(PushReaction.DESTROY);
+  private static final BlockBehaviour.Properties POTTED_PROPS = BlockBehaviour.Properties.of().instabreak().noOcclusion().pushReaction(PushReaction.POPPED);
 
   protected final SynchronizedDeferredRegister<Item> itemRegister;
   public BlockDeferredRegister(String modID) {
@@ -260,18 +260,18 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
     ItemObject<RotatedPillarBlock> wood = register(name + "_wood", () -> new StrippableLogBlock(strippedWood, behaviorCreator.apply(WoodBlockObject.WoodVariant.WOOD).instrument(NoteBlockInstrument.BASS).strength(2.0f)), burnable300);
 
     // doors
-    ItemObject<DoorBlock> door = register(name + "_door", () -> new DoorBlock(setType, behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().pushReaction(PushReaction.DESTROY)), burnableTallItem);
+    ItemObject<DoorBlock> door = register(name + "_door", () -> new DoorBlock(setType, behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().pushReaction(PushReaction.POPPED)), burnableTallItem);
     ItemObject<TrapDoorBlock> trapdoor = register(name + "_trapdoor", () -> new TrapDoorBlock(setType, behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().isValidSpawn(Blocks::never)), burnable300);
     ItemObject<FenceGateBlock> fenceGate = register(name + "_fence_gate", () -> new FenceGateBlock(woodType, BlockBehaviour.Properties.ofFullCopy(fence.get())), burnable300);
     // redstone
-    BlockBehaviour.Properties redstoneProps = behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollission().pushReaction(PushReaction.DESTROY).strength(0.5F);
+    BlockBehaviour.Properties redstoneProps = behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().pushReaction(PushReaction.POPPED).strength(0.5F);
     ItemObject<PressurePlateBlock> pressurePlate = register(name + "_pressure_plate", () -> new PressurePlateBlock(setType, redstoneProps), burnable300);
     ItemObject<ButtonBlock> button = register(name + "_button", () -> new ButtonBlock(setType, 30, redstoneProps), burnableItem.apply(100));
     // signs
-    DeferredHolder<? super StandingSignBlock, StandingSignBlock> standingSign = registerNoItem(name + "_sign", () -> new MantleStandingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollission().strength(1.0F), woodType));
-    DeferredHolder<? super WallSignBlock, WallSignBlock> wallSign = registerNoItem(name + "_wall_sign", () -> new MantleWallSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollission().strength(1.0F).lootFrom(standingSign), woodType));
-    DeferredHolder<? super MantleCeilingHangingSignBlock, MantleCeilingHangingSignBlock> hangingSign = registerNoItem(name + "_hanging_sign", () -> new MantleCeilingHangingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollission().strength(1.0F), woodType));
-    DeferredHolder<? super MantleWallHangingSignBlock, MantleWallHangingSignBlock> wallHangingSign = registerNoItem(name + "_wall_hanging_sign", () -> new MantleWallHangingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollission().strength(1.0F).lootFrom(hangingSign), woodType));
+    DeferredHolder<? super StandingSignBlock, StandingSignBlock> standingSign = registerNoItem(name + "_sign", () -> new MantleStandingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollision().strength(1.0F), woodType));
+    DeferredHolder<? super WallSignBlock, WallSignBlock> wallSign = registerNoItem(name + "_wall_sign", () -> new MantleWallSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollision().strength(1.0F).lootFrom(standingSign), woodType));
+    DeferredHolder<? super MantleCeilingHangingSignBlock, MantleCeilingHangingSignBlock> hangingSign = registerNoItem(name + "_hanging_sign", () -> new MantleCeilingHangingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollision().strength(1.0F), woodType));
+    DeferredHolder<? super MantleWallHangingSignBlock, MantleWallHangingSignBlock> wallHangingSign = registerNoItem(name + "_wall_hanging_sign", () -> new MantleWallHangingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollision().strength(1.0F).lootFrom(hangingSign), woodType));
     // tell mantle to inject these into the TE
     MantleSignBlockEntity.registerSignBlock(standingSign);
     MantleSignBlockEntity.registerSignBlock(wallSign);

@@ -6,7 +6,7 @@ import com.google.gson.JsonDeserializer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.world.InteractionHand;
@@ -63,12 +63,12 @@ public class BookLoader implements ResourceManagerReloadListener {
   /**
    * Maps page content presets to names
    */
-  private static final HashMap<ResourceLocation, Class<? extends PageContent>> typeToContentMap = new HashMap<>();
+  private static final HashMap<Identifier, Class<? extends PageContent>> typeToContentMap = new HashMap<>();
 
   /**
    * Internal registry of all books for the purposes of the reloader, maps books to name
    */
-  private static final HashMap<ResourceLocation, BookData> books = new HashMap<>();
+  private static final HashMap<Identifier, BookData> books = new HashMap<>();
 
   public BookLoader() {
     // Register page types
@@ -94,7 +94,7 @@ public class BookLoader implements ResourceManagerReloadListener {
     StringActionProcessor.registerProtocol(Mantle.getResource("go-to-page-rtn"), new ProtocolGoToPage(true));
 
     // Register GSON type adapters
-    registerGsonTypeAdapter(ResourceLocation.class, ResourceLocationSerializer.resourceLocation("mantle"));
+    registerGsonTypeAdapter(Identifier.class, ResourceLocationSerializer.resourceLocation("mantle"));
     registerGsonTypeAdapter(int.class, new HexStringDeserializer());
     registerGsonTypeAdapter(ICondition.class, new ConditionDeserializer());
     registerGsonTypeAdapter(IngredientData.class, new IngredientData.Deserializer());
@@ -115,7 +115,7 @@ public class BookLoader implements ResourceManagerReloadListener {
    * @param clazz The PageContent class for this page type
    * @RecommendedInvoke init
    */
-  public static void registerPageType(ResourceLocation id, Class<? extends PageContent> clazz) {
+  public static void registerPageType(Identifier id, Class<? extends PageContent> clazz) {
     if (typeToContentMap.containsKey(id)) {
       throw new IllegalArgumentException("Page type " + id + " already in use.");
     }
@@ -130,7 +130,7 @@ public class BookLoader implements ResourceManagerReloadListener {
    * @return The class of the page type, ContentError.class if page type not registered
    */
   @Nullable
-  public static Class<? extends PageContent> getPageType(ResourceLocation name) {
+  public static Class<? extends PageContent> getPageType(Identifier name) {
     return typeToContentMap.get(name);
   }
 
@@ -142,7 +142,7 @@ public class BookLoader implements ResourceManagerReloadListener {
    * @param repositories All the repositories the book will load the sections from
    * @return The book object, not immediately populated
    */
-  public static BookData registerBook(ResourceLocation id, BookRepository... repositories) {
+  public static BookData registerBook(Identifier id, BookRepository... repositories) {
     return registerBook(id, true, true, repositories);
   }
 
@@ -156,7 +156,7 @@ public class BookLoader implements ResourceManagerReloadListener {
    * @param repositories       All the repositories the book will load the sections from
    * @return The book object, not immediately populated
    */
-  public static BookData registerBook(ResourceLocation id, boolean appendIndex, boolean appendContentTable, BookRepository... repositories) {
+  public static BookData registerBook(Identifier id, boolean appendIndex, boolean appendContentTable, BookRepository... repositories) {
     BookData info = new BookData(repositories);
 
     if (appendIndex) {
@@ -176,18 +176,18 @@ public class BookLoader implements ResourceManagerReloadListener {
    * @return The book object, or null if it doesn't exist
    */
   @Nullable
-  public static BookData getBook(ResourceLocation id) {
+  public static BookData getBook(Identifier id) {
     return books.getOrDefault(id, null);
   }
 
   /** @deprecated use {@link #getAllBooks()} */
   @Deprecated(forRemoval = true)
-  public static Iterable<ResourceLocation> getRegisteredBooks() {
+  public static Iterable<Identifier> getRegisteredBooks() {
     return books.keySet();
   }
 
   /** Gets the resource locations of all registered books */
-  public static Collection<ResourceLocation> getAllBooks() {
+  public static Collection<Identifier> getAllBooks() {
     return books.keySet();
   }
 

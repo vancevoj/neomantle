@@ -3,7 +3,7 @@ package slimeknights.mantle.client.screen.book;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
@@ -32,7 +32,7 @@ public class TextComponentDataRenderer {
    * @return the action if there's any
    */
   // TODO: can we merge this with TextDataRenderer, put the differences in TextData vs TextComponentData?
-  public static String drawText(GuiGraphics graphics, int x, int y, int boxWidth, int boxHeight, TextComponentData[] data, int mouseX, int mouseY, Font fr, List<Component> tooltip) {
+  public static String drawText(GuiGraphicsExtractor graphics, int x, int y, int boxWidth, int boxHeight, TextComponentData[] data, int mouseX, int mouseY, Font fr, List<Component> tooltip) {
     String action = "";
 
     int atX = x;
@@ -138,7 +138,7 @@ public class TextComponentDataRenderer {
       }
 
       if (atY >= y + boxHeight) {
-        graphics.drawString(fr, "...", atX, atY, 0, item.dropShadow);
+        graphics.text(fr, "...", atX, atY, 0, item.dropShadow);
         break;
       }
 
@@ -193,13 +193,13 @@ public class TextComponentDataRenderer {
    * @param dropShadow    if there should be a shadow on the text
    * @param scale         the scale to render as
    */
-  public static void drawScaledTextComponent(GuiGraphics graphics, Font font, FormattedText textComponent, float x, float y, boolean dropShadow, float scale) {
+  public static void drawScaledTextComponent(GuiGraphicsExtractor graphics, Font font, FormattedText textComponent, float x, float y, boolean dropShadow, float scale) {
     PoseStack poseStack = graphics.pose();
     poseStack.pushPose();
     poseStack.translate(x, y, 0);
     poseStack.scale(scale, scale, 1F);
 
-    graphics.drawString(font, Language.getInstance().getVisualOrder(textComponent), 0, 0, 0, dropShadow);
+    graphics.text(font, Language.getInstance().getVisualOrder(textComponent), 0, 0, 0, dropShadow);
     poseStack.popPose();
   }
 }

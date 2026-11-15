@@ -1,11 +1,11 @@
 package slimeknights.mantle.client;
 
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.LayeredDraw;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -22,7 +22,7 @@ import java.util.Random;
  * In 1.21 the old {@code RenderGuiOverlayEvent} cancel-and-redraw flow became a layer replacement.
  */
 public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
-  private static final ResourceLocation ICON_HEARTS = ResourceLocation.fromNamespaceAndPath(Mantle.modId, "textures/gui/extra_hearts.png");
+  private static final Identifier ICON_HEARTS = Identifier.fromNamespaceAndPath(Mantle.modId, "textures/gui/extra_hearts.png");
   /** Number of heart color variants */
   private static final int HEART_VARIANTS = 12;
   /** Number of heart color variants */
@@ -77,7 +77,7 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
    * @param deltaTracker  Frame delta tracker
    */
   @Override
-  public void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
+  public void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
     HeartRenderer renderer = Config.HEART_RENDERER.get();
     if (renderer == HeartRenderer.DISABLE) {
       return;
@@ -91,7 +91,7 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
       return;
     }
 
-    this.mc.getProfiler().push("health");
+    Profiler.get().push("health");
 
     // based on the top of Gui#renderPlayerHealth
     int tickCount = this.mc.gui.getGuiTicks();
@@ -120,7 +120,7 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
     // setup window size
     com.mojang.blaze3d.platform.Window window = this.mc.getWindow();
     int left = window.getGuiScaledWidth() / 2 - 91;
-    int top = window.getGuiScaledHeight() - this.mc.gui.leftHeight;
+    int top = window.getGuiScaledHeight() - this.mc.gui.hud.leftHeight;
 
     // grab max health as the max of it or the health we will display
     // cap it to 20, as this just determines heart count
@@ -216,14 +216,14 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
     }
 
     // advance the shared HUD offset so layers drawn after us (food, armor, air) stack above the hearts,
-    // matching what vanilla's renderHealthLevel does. GuiGraphics.blit binds its own texture, so no manual
+    // matching what vanilla's renderHealthLevel does. GuiGraphicsExtractor.blit binds its own texture, so no manual
     // RenderSystem state is needed, and because this layer replaces PLAYER_HEALTH there is no event to cancel/repost.
-    this.mc.gui.leftHeight += ROW_HEIGHT;
+    this.mc.gui.hud.leftHeight += ROW_HEIGHT;
     if (!compactAbsorption && absorb > 0) {
-      this.mc.gui.leftHeight += absorptionOffset;
+      this.mc.gui.hud.leftHeight += absorptionOffset;
     }
 
-    this.mc.getProfiler().pop();
+    Profiler.get().pop();
   }
 
   /** Computes the color U offset for a given heart index */
@@ -241,7 +241,7 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
    * @param count        Number to render
    * @param indexOffset  Heart to raise for regen
    */
-  private void renderHearts(GuiGraphics graphics, int x, int y, int heartOffset, int count, int indexOffset) {
+  private void renderHearts(GuiGraphicsExtractor graphics, int x, int y, int heartOffset, int count, int indexOffset) {
     int heartsTopColor = (count % 20) / 2;
     int heartIndex = count / 20;
     // if we have 1 full non-vanilla row, render the right side hearts
@@ -262,7 +262,7 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
    * @param current     Current to render
    * @param last        Number previous tick
    */
-  private void renderHeartsWithDamage(GuiGraphics graphics, int x, int y, int heartOffset, int current, int last) {
+  private void renderHeartsWithDamage(GuiGraphicsExtractor graphics, int x, int y, int heartOffset, int current, int last) {
     int currentTopRow = current % 20;
     int currentRight = currentTopRow / 2;
     int lastTopRow = last % 20;
@@ -322,7 +322,7 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
    * @param end         Above the last heart to renderer
    * @param half        If true, renders an extra half heart
    */
-  private void renderHeartRow(GuiGraphics graphics, int x, int y, int indexOffset, int uOffset, int vOffset, int start, int end, boolean half) {
+  private void renderHeartRow(GuiGraphicsExtractor graphics, int x, int y, int indexOffset, int uOffset, int vOffset, int start, int end, boolean half) {
     // draw full hearts
     for (int i = start; i < end; i += 1) {
       graphics.blit(ICON_HEARTS, x + HEART_OFFSET * i, y + offsets[i + indexOffset], uOffset, vOffset, HEART_SIZE, HEART_SIZE);

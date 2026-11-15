@@ -61,7 +61,7 @@ public class FluidContainerIngredient implements ICustomIngredient {
     if (stack == null || stack.isEmpty()) {
       return false;
     }
-    IFluidHandlerItem handler = stack.getCapability(Capabilities.FluidHandler.ITEM);
+    IFluidHandlerItem handler = stack.getCapability(Capabilities.Fluid.ITEM);
     if (handler == null || handler.getTanks() != 1) {
       return false;
     }
@@ -72,7 +72,7 @@ public class FluidContainerIngredient implements ICustomIngredient {
     }
     // so far so good, from this point on we are forced to make copies as we need to try draining, so copy and fetch the copy's cap
     ItemStack copy = stack.copyWithCount(1);
-    IFluidHandlerItem copyHandler = copy.getCapability(Capabilities.FluidHandler.ITEM);
+    IFluidHandlerItem copyHandler = copy.getCapability(Capabilities.Fluid.ITEM);
     if (copyHandler == null) {
       return false;
     }

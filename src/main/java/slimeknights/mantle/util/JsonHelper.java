@@ -10,9 +10,9 @@ import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.ResourceLocationException;
+import net.minecraft.IdentifierException;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -45,7 +45,7 @@ public class JsonHelper {
 
   /** Default GSON instance, use instead of creating a new instance unless you need additional type adapaters */
   public static final Gson DEFAULT_GSON = (new GsonBuilder())
-    .registerTypeAdapter(ResourceLocation.class, new ResourceLocation.Serializer())
+    .registerTypeAdapter(Identifier.class, new Identifier.Serializer())
     .setPrettyPrinting()
     .disableHtmlEscaping()
     .create();
@@ -163,11 +163,11 @@ public class JsonHelper {
    * @param key   Key to fetch
    * @return  Resource location parsed
    */
-  public static ResourceLocation parseResourceLocation(String text, String key) {
-    // basically the inside of ResourceLocation#tryParse, but with a JSON exception instead of being nullable
+  public static Identifier parseResourceLocation(String text, String key) {
+    // basically the inside of Identifier#tryParse, but with a JSON exception instead of being nullable
     try {
-      return ResourceLocation.parse(text);
-    } catch (ResourceLocationException ex) {
+      return Identifier.parse(text);
+    } catch (IdentifierException ex) {
       throw new JsonSyntaxException("Expected " + key + " to be a resource location, was '" + text + "'", ex);
     }
   }
@@ -178,7 +178,7 @@ public class JsonHelper {
    * @param key   Key to fetch
    * @return  Resource location parsed
    */
-  public static ResourceLocation getResourceLocation(JsonObject json, String key) {
+  public static Identifier getResourceLocation(JsonObject json, String key) {
     return parseResourceLocation(GsonHelper.getAsString(json, key), key);
   }
 
@@ -191,7 +191,7 @@ public class JsonHelper {
    */
   @Contract("_,_,!null -> !null")
   @Nullable
-  public static ResourceLocation getResourceLocation(JsonObject json, String key, @Nullable ResourceLocation fallback) {
+  public static Identifier getResourceLocation(JsonObject json, String key, @Nullable Identifier fallback) {
     if (json.has(key)) {
       return getResourceLocation(json, key);
     }
@@ -204,7 +204,7 @@ public class JsonHelper {
    * @param key   Key to fetch
    * @return  Resource location parsed
    */
-  public static ResourceLocation convertToResourceLocation(JsonElement json, String key) {
+  public static Identifier convertToResourceLocation(JsonElement json, String key) {
     return parseResourceLocation(GsonHelper.convertToString(json, key), key);
   }
 
@@ -220,14 +220,14 @@ public class JsonHelper {
    */
   @Deprecated(forRemoval = true)
   public static <T> T convertToEntry(Registry<T> registry, JsonElement element, String key) {
-    ResourceLocation name = JsonHelper.convertToResourceLocation(element, key);
+    Identifier name = JsonHelper.convertToResourceLocation(element, key);
     if (registry.containsKey(name)) {
       T value = registry.get(name);
       if (value != null) {
         return value;
       }
     }
-    throw new JsonSyntaxException("Unknown " + registry.key().location() + " " + name);
+    throw new JsonSyntaxException("Unknown " + registry.key().identifier() + " " + name);
   }
 
   /**
@@ -278,7 +278,7 @@ public class JsonHelper {
    * @return  JSON object, or null if failed to parse
    */
   @Nullable
-  public static JsonObject getJson(Resource resource, ResourceLocation location) {
+  public static JsonObject getJson(Resource resource, Identifier location) {
     try (Reader reader = resource.openAsReader()) {
       return GsonHelper.parse(reader);
     } catch (JsonParseException | IOException e) {
@@ -291,9 +291,9 @@ public class JsonHelper {
   public static List<JsonObject> getFileInAllDomainsAndPacks(ResourceManager manager, String path, @Nullable String preferredPath) {
     return manager
       .getNamespaces().stream()
-      .filter(ResourceLocation::isValidNamespace)
+      .filter(Identifier::isValidNamespace)
       .flatMap(namespace -> {
-        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(namespace, path);
+        Identifier location = Identifier.fromNamespaceAndPath(namespace, path);
         return manager.getResourceStack(location).stream()
           .map(preferredPath != null ? resource -> {
             Mantle.logger.warn("Using deprecated path {} in pack {} - use {}:{} instead", location, resource.sourcePackId(), location.getNamespace(), preferredPath);
@@ -349,12 +349,12 @@ public class JsonHelper {
    * @param extension   Extension to trim
    * @return  Localized location
    */
-  public static ResourceLocation localize(ResourceLocation location, String folder, String extension) {
+  public static Identifier localize(Identifier location, String folder, String extension) {
     return location.withPath(localize(location.getPath(), folder, extension));
   }
 
   /** Wraps the given resource location in the given prefix and suffix */
-  public static ResourceLocation wrap(ResourceLocation location, String prefix, String suffix) {
+  public static Identifier wrap(Identifier location, String prefix, String suffix) {
     return location.withPath(prefix + location.getPath() + suffix);
   }
 

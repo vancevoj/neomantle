@@ -1,9 +1,9 @@
 package slimeknights.mantle.client.screen.book;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import slimeknights.mantle.client.book.data.BookData;
 
 import javax.annotation.Nullable;
@@ -36,8 +36,8 @@ public class ArrowButton extends Button {
   }
 
   /** Shared logic between public method and vanilla method */
-  private void renderButton(GuiGraphics graphics, @Nullable BookData bookData) {
-    ResourceLocation texture;
+  private void renderButton(GuiGraphicsExtractor graphics, @Nullable BookData bookData) {
+    Identifier texture;
     if (bookData != null) {
       texture = bookData.appearance.getBookTexture();
     } else {
@@ -57,13 +57,13 @@ public class ArrowButton extends Button {
   }
 
   /** Public method to swap out book data on rendering */
-  public void renderButton(GuiGraphics graphics, int mouseX, int mouseY, float pPartialTick, @Nullable BookData bookData) {
+  public void renderButton(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float pPartialTick, @Nullable BookData bookData) {
     this.isHovered = mouseX >= this.getX() && mouseY >= this.getY() && mouseX < this.getX() + this.width && mouseY < this.getY() + this.height;
     renderButton(graphics, bookData);
   }
 
   @Override
-  protected void renderWidget(GuiGraphics graphics, int pMouseX, int pMouseY, float pPartialTick) {
+  protected void renderWidget(GuiGraphicsExtractor graphics, int pMouseX, int pMouseY, float pPartialTick) {
     renderButton(graphics, bookData);
   }
 

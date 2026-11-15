@@ -3,7 +3,7 @@ package slimeknights.mantle.fluid.transfer;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
@@ -21,7 +21,7 @@ import slimeknights.mantle.recipe.helper.TagPreference;
 
 /** Fluid transfer info that empties a fluid from a potion item, but empties water if its the water potion */
 public class EmptyPotionTransfer extends EmptyFluidContainerTransfer {
-  public static final ResourceLocation ID = Mantle.getResource("empty_potion");
+  public static final Identifier ID = Mantle.getResource("empty_potion");
   /** Unique loader instance */
   public static final RecordLoadable<EmptyPotionTransfer> DESERIALIZER = RecordLoadable.create(
     IngredientLoadable.DISALLOW_EMPTY.requiredField("input", t -> t.input),

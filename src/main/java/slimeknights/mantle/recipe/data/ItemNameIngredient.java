@@ -3,7 +3,7 @@ package slimeknights.mantle.recipe.data;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -27,21 +27,21 @@ public class ItemNameIngredient implements ICustomIngredient {
   /** Ingredient type. Encode-only since the referenced items may not be loaded during datagen. Registered in MantleIngredients. */
   public static final IngredientType<ItemNameIngredient> TYPE = new IngredientType<>(
     RecordCodecBuilder.mapCodec(inst -> inst.group(
-      ResourceLocation.CODEC.listOf().fieldOf("items").forGetter(i -> i.names)
+      Identifier.CODEC.listOf().fieldOf("items").forGetter(i -> i.names)
     ).apply(inst, ItemNameIngredient::new)));
 
-  private final List<ResourceLocation> names;
-  protected ItemNameIngredient(List<ResourceLocation> names) {
+  private final List<Identifier> names;
+  protected ItemNameIngredient(List<Identifier> names) {
     this.names = names;
   }
 
   /** Creates a new ingredient from a list of names */
-  public static ItemNameIngredient from(List<ResourceLocation> names) {
+  public static ItemNameIngredient from(List<Identifier> names) {
     return new ItemNameIngredient(names);
   }
 
   /** Creates a new ingredient from a list of names */
-  public static ItemNameIngredient from(ResourceLocation... names) {
+  public static ItemNameIngredient from(Identifier... names) {
     return from(Arrays.asList(names));
   }
 
@@ -52,8 +52,8 @@ public class ItemNameIngredient implements ICustomIngredient {
     }
     // resolve each name against the registry; a live recipe reaches here only because item_exists passed, but a name
     // may still be absent if several are listed and only some are loaded, so skip the ones that resolve to air
-    for (ResourceLocation name : names) {
-      Item item = BuiltInRegistries.ITEM.get(name);
+    for (Identifier name : names) {
+      Item item = BuiltInRegistries.ITEM.getValue(name);
       if (item != Items.AIR && stack.is(item)) {
         return true;
       }

@@ -2,7 +2,7 @@ package slimeknights.mantle.registration.deferred;
 
 import com.google.common.collect.ImmutableSet;
 import com.mojang.datafixers.types.Type;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.world.level.block.Block;

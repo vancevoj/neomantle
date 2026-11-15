@@ -12,7 +12,7 @@ import java.util.List;
 
 public class ArmorTooltipItem extends ArmorItem {
 
-  public ArmorTooltipItem(Holder<ArmorMaterial> armorMaterial, ArmorItem.Type type, Properties builder) {
+  public ArmorTooltipItem(Holder<ArmorMaterial> armorMaterial, ArmorType type, Properties builder) {
     super(armorMaterial, type, builder);
   }
 

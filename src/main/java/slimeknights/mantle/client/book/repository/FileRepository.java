@@ -1,7 +1,7 @@
 package slimeknights.mantle.client.book.repository;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import org.apache.commons.io.IOUtils;
 import slimeknights.mantle.Mantle;
@@ -19,9 +19,9 @@ import java.util.Optional;
 
 public class FileRepository extends BookRepository {
 
-  public final ResourceLocation location;
+  public final Identifier location;
 
-  public FileRepository(ResourceLocation location) {
+  public FileRepository(Identifier location) {
     this.location = location;
   }
 
@@ -32,9 +32,9 @@ public class FileRepository extends BookRepository {
 
   @Nullable
   @Override
-  public ResourceLocation getResourceLocation(@Nullable String path, boolean safe) {
+  public Identifier getResourceLocation(@Nullable String path, boolean safe) {
     if (path == null) {
-      return safe ? ResourceLocation.parse("") : null;
+      return safe ? Identifier.parse("") : null;
     }
 
     if (!path.contains(":")) {
@@ -47,7 +47,7 @@ public class FileRepository extends BookRepository {
 
       String defaultLangPath = "en_us";
 
-      ResourceLocation res;
+      Identifier res;
 
       // TODO: this can be optimized if we return the resource instead of the location, how feasible is that in practice?
       //noinspection ConstantConditions - see above
@@ -66,17 +66,17 @@ public class FileRepository extends BookRepository {
         return res;
       }
     } else {
-      ResourceLocation res = ResourceLocation.parse(path);
+      Identifier res = Identifier.parse(path);
       if (this.resourceExists(res)) {
         return res;
       }
     }
 
-    return safe ? ResourceLocation.parse("") : null;
+    return safe ? Identifier.parse("") : null;
   }
 
   @Override
-  public Optional<Resource> getLocation(@Nullable ResourceLocation loc) {
+  public Optional<Resource> getLocation(@Nullable Identifier loc) {
     if (loc == null) {
       return Optional.empty();
     }

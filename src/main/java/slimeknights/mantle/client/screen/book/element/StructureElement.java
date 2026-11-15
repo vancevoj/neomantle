@@ -5,9 +5,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Transformation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.BakedModel;
@@ -15,7 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.model.data.ModelData;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -64,7 +64,7 @@ public class StructureElement extends SizedBookElement {
   }
 
   @Override
-  public void draw(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
+  public void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
     // 1.21: ByteBufferBuilder owns native memory and must be closed, else it leaks every frame this page renders
     ByteBufferBuilder byteBuffer = new ByteBufferBuilder(256);
     MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(byteBuffer);
@@ -96,7 +96,7 @@ public class StructureElement extends SizedBookElement {
       transform.translate(this.transX, this.transY, Math.max(structureHeight, Math.max(structureWidth, structureLength)));
       transform.scale(this.scale, -this.scale, 1);
       transform.pushTransformation(this.additionalTransform);
-      transform.mulPose(new Quaternionf().rotateYXZ(0, 0, 0));
+      transform.rotate(new Quaternionf().rotateYXZ(0, 0, 0));
 
       transform.translate(structureLength / -2f, structureHeight / -2f, structureWidth / -2f);
 
@@ -179,7 +179,7 @@ public class StructureElement extends SizedBookElement {
     Vector3f axis = new Vector3f((float) rY, (float) rX, 0);
     float dot = axis.dot(axis);
     if (dot < Float.MIN_NORMAL) {
-      return Transformation.identity();
+      return Transformation.IDENTITY;
     }
 
     float angle = (float) (Math.sqrt(axis.dot(axis)) * Math.PI / 180f);

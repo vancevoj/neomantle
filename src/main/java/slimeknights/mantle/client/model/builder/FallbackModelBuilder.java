@@ -2,7 +2,7 @@ package slimeknights.mantle.client.model.builder;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.model.generators.CustomLoaderBuilder;
 import net.neoforged.neoforge.client.model.generators.ModelBuilder;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
@@ -22,7 +22,7 @@ public class FallbackModelBuilder<T extends ModelBuilder<T>> extends CustomLoade
   /** @deprecated use {@link #FallbackModelBuilder(T, ExistingFileHelper)} */
   @SuppressWarnings("unused")
   @Deprecated(forRemoval = true)
-  public FallbackModelBuilder(ResourceLocation loaderId, T parent, ExistingFileHelper existingFileHelper) {
+  public FallbackModelBuilder(Identifier loaderId, T parent, ExistingFileHelper existingFileHelper) {
     this(parent, existingFileHelper);
   }
 

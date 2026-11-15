@@ -14,7 +14,7 @@ import javax.annotation.Nullable;
 public class SafeClientAccess {
   /** Gets the currently pressed key for tooltips, returns UNKNOWN on a server */
   public static TooltipKey getTooltipKey() {
-    if (FMLEnvironment.dist == Dist.CLIENT) {
+    if (FMLEnvironment.getDist() == Dist.CLIENT) {
       return ClientOnly.getPressedKey();
     }
     return TooltipKey.UNKNOWN;
@@ -23,7 +23,7 @@ public class SafeClientAccess {
   /** Gets the client player entity, or null on a server */
   @Nullable
   public static Player getPlayer() {
-    if (FMLEnvironment.dist == Dist.CLIENT) {
+    if (FMLEnvironment.getDist() == Dist.CLIENT) {
       return ClientOnly.getClientPlayer();
     }
     return null;
@@ -32,7 +32,7 @@ public class SafeClientAccess {
   /** Gets the client player entity, or null on a server */
   @Nullable
   public static Level getLevel() {
-    if (FMLEnvironment.dist == Dist.CLIENT) {
+    if (FMLEnvironment.getDist() == Dist.CLIENT) {
       return ClientOnly.getClientLevel();
     }
     return null;
@@ -50,20 +50,20 @@ public class SafeClientAccess {
 
   /** Checks if its advanced tooltips */
   public static boolean isAdvancedTooltip() {
-    return FMLEnvironment.dist == Dist.CLIENT && ClientOnly.isAdvancedTooltip();
+    return FMLEnvironment.getDist() == Dist.CLIENT && ClientOnly.isAdvancedTooltip();
   }
 
   /** This class is only loaded on the client, so is safe to reference client only methods */
   private static class ClientOnly {
     /** Gets the currently pressed key modifier for tooltips */
     public static TooltipKey getPressedKey() {
-      if (Screen.hasShiftDown()) {
+      if (Minecraft.getInstance().hasShiftDown()) {
         return TooltipKey.SHIFT;
       }
-      if (Screen.hasControlDown()) {
+      if (Minecraft.getInstance().hasControlDown()) {
         return TooltipKey.CONTROL;
       }
-      if (Screen.hasAltDown()) {
+      if (Minecraft.getInstance().hasAltDown()) {
         return TooltipKey.ALT;
       }
       return TooltipKey.NORMAL;

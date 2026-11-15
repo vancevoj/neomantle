@@ -10,7 +10,7 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
@@ -28,7 +28,7 @@ import java.util.List;
 /** Command to dump global loot modifiers */
 public class DumpLootModifiers {
   /** Resource location of the global loot manager "tag" */
-  protected static final ResourceLocation GLOBAL_LOOT_MODIFIERS = ResourceLocation.fromNamespaceAndPath("forge", "loot_modifiers/global_loot_modifiers.json");
+  protected static final Identifier GLOBAL_LOOT_MODIFIERS = Identifier.fromNamespaceAndPath("forge", "loot_modifiers/global_loot_modifiers.json");
   /** Path for saving the loot modifiers */
   private static final String LOOT_MODIFIER_PATH = GLOBAL_LOOT_MODIFIERS.getNamespace() + "/" + GLOBAL_LOOT_MODIFIERS.getPath();
 
@@ -50,7 +50,7 @@ public class DumpLootModifiers {
 
   /** Runs the command, dumping the tag */
   private static int run(CommandContext<CommandSourceStack> context, boolean saveFile) throws CommandSyntaxException {
-    List<ResourceLocation> finalLocations = new ArrayList<>();
+    List<Identifier> finalLocations = new ArrayList<>();
     ResourceManager manager = context.getSource().getServer().getResourceManager();
     // logic based on forge logic for reading loot managers
     for (Resource resource : manager.getResourceStack(GLOBAL_LOOT_MODIFIERS)) {
@@ -66,7 +66,7 @@ public class DumpLootModifiers {
           }
           JsonArray entryList = GsonHelper.getAsJsonArray(json, "entries");
           for (JsonElement entry : entryList) {
-            ResourceLocation res = ResourceLocation.tryParse(GsonHelper.convertToString(entry, "entry"));
+            Identifier res = Identifier.tryParse(GsonHelper.convertToString(entry, "entry"));
             if (res != null) {
               finalLocations.remove(res);
               finalLocations.add(res);
@@ -81,7 +81,7 @@ public class DumpLootModifiers {
 
     // save the list as JSON
     JsonArray entries = new JsonArray();
-    for (ResourceLocation location : finalLocations) {
+    for (Identifier location : finalLocations) {
       entries.add(location.toString());
     }
     JsonObject json = new JsonObject();

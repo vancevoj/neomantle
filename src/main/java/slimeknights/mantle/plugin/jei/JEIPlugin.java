@@ -12,7 +12,7 @@ import mezz.jei.api.registration.IVanillaCategoryExtensionRegistration;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.crafting.BlastingRecipe;
 import net.minecraft.world.item.crafting.CampfireCookingRecipe;
 import net.minecraft.world.item.crafting.CraftingRecipe;
@@ -40,7 +40,7 @@ import java.util.List;
 @JeiPlugin
 public class JEIPlugin implements IModPlugin {
   @Override
-  public ResourceLocation getPluginUid() {
+  public Identifier getPluginUid() {
     return Mantle.getResource("jei");
   }
 

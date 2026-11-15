@@ -43,7 +43,7 @@ public class BaseContainerMenu<TILE extends BlockEntity> extends AbstractContain
 
   public void syncOnOpen(ServerPlayer playerOpened) {
     // find another player that already has the gui for this tile open
-    ServerLevel server = playerOpened.serverLevel();
+    ServerLevel server = playerOpened.level();
 
     for (Player player : server.players()) {
       if (player == playerOpened) {

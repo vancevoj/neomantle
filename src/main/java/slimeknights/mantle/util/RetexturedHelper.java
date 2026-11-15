@@ -8,7 +8,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.BlockItem;
@@ -21,8 +21,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.data.ModelData;
-import net.neoforged.neoforge.client.model.data.ModelProperty;
+import net.neoforged.neoforge.model.data.ModelData;
+import net.neoforged.neoforge.model.data.ModelProperty;
 import slimeknights.mantle.Mantle;
 
 import javax.annotation.Nullable;
@@ -92,9 +92,9 @@ public final class RetexturedHelper {
    */
   public static Block getBlock(String name) {
     if (!name.isEmpty()) {
-      ResourceLocation location = ResourceLocation.tryParse(name);
+      Identifier location = Identifier.tryParse(name);
       if (location != null) {
-        return BuiltInRegistries.BLOCK.get(location);
+        return BuiltInRegistries.BLOCK.getValue(location);
       }
     }
     return Blocks.AIR;
@@ -159,7 +159,7 @@ public final class RetexturedHelper {
   public static void onTextureUpdated(BlockEntity self) {
     // update the texture in BE data
     Level level = self.getLevel();
-    if (level != null && level.isClientSide) {
+    if (level != null && level.isClientSide()) {
       self.requestModelDataUpdate();
       BlockState state = self.getBlockState();
       level.sendBlockUpdated(self.getBlockPos(), state, state, 0);

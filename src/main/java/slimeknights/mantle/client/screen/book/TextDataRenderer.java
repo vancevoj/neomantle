@@ -3,7 +3,7 @@ package slimeknights.mantle.client.screen.book;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.StringUtils;
@@ -21,19 +21,19 @@ public class TextDataRenderer {
    * @deprecated Call drawText with tooltip param and then call drawTooltip separately on the tooltip layer to prevent overlap
    */
   @Deprecated
-  public static String drawText(GuiGraphics graphics, int x, int y, int boxWidth, int boxHeight, TextData[] data, int mouseX, int mouseY, Font fr, BookScreen parent) {
+  public static String drawText(GuiGraphicsExtractor graphics, int x, int y, int boxWidth, int boxHeight, TextData[] data, int mouseX, int mouseY, Font fr, BookScreen parent) {
     List<Component> tooltip = new ArrayList<>();
     String action = drawText(graphics, x, y, boxWidth, boxHeight, data, mouseX, mouseY, fr, tooltip);
 
     if (!tooltip.isEmpty()) {
-      graphics.renderTooltip(fr, tooltip, Optional.empty(), mouseX, mouseY);
+      graphics.setTooltipForNextFrame(fr, tooltip, Optional.empty(), mouseX, mouseY);
     }
 
     return action;
   }
 
   // TODO: can we merge this with TextComponentDataRenderer, put the differences in TextData vs TextComponentData?
-  public static String drawText(GuiGraphics graphics, int x, int y, int boxWidth, int boxHeight, TextData[] data, int mouseX, int mouseY, Font fr, List<Component> tooltip) {
+  public static String drawText(GuiGraphicsExtractor graphics, int x, int y, int boxWidth, int boxHeight, TextData[] data, int mouseX, int mouseY, Font fr, List<Component> tooltip) {
     String action = "";
 
     int atX = x;
@@ -172,7 +172,7 @@ public class TextDataRenderer {
       }
 
       if (atY >= y + boxHeight) {
-        graphics.drawString(fr, "...", atX, atY, 0, item.dropshadow);
+        graphics.text(fr, "...", atX, atY, 0, item.dropshadow);
         break;
       }
       y = atY;
@@ -247,13 +247,13 @@ public class TextDataRenderer {
 
   //BEGIN METHODS FROM GUI
   //TODO: does this exist elsewhere now?
-  public static void drawScaledString(GuiGraphics graphics, Font font, String text, float x, float y, int color, boolean dropShadow, float scale) {
+  public static void drawScaledString(GuiGraphicsExtractor graphics, Font font, String text, float x, float y, int color, boolean dropShadow, float scale) {
     PoseStack poseStack = graphics.pose();
     poseStack.pushPose();
     poseStack.translate(x, y, 0);
     poseStack.scale(scale, scale, 1F);
 
-    graphics.drawString(font, text, 0, 0, color, dropShadow);
+    graphics.text(font, text, 0, 0, color, dropShadow);
 
     poseStack.popPose();
   }

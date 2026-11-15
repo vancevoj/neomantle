@@ -1,16 +1,16 @@
 package slimeknights.mantle.client.screen;
 
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 
 // TODO: class needs some rewrites
 public class ScalableElementScreen extends ElementScreen {
 
-  public ScalableElementScreen(ResourceLocation texture, int x, int y, int w, int h, int texW, int texH) {
+  public ScalableElementScreen(Identifier texture, int x, int y, int w, int h, int texW, int texH) {
     super(texture, x, y, w, h, texW, texH);
   }
 
-  public int drawScaledX(GuiGraphics graphics, int xPos, int yPos, int width) {
+  public int drawScaledX(GuiGraphicsExtractor graphics, int xPos, int yPos, int width) {
     for (int i = 0; i < width / this.w; i++) {
       this.draw(graphics, xPos + i * this.w, yPos);
     }
@@ -23,7 +23,7 @@ public class ScalableElementScreen extends ElementScreen {
     return width;
   }
 
-  public int drawScaledY(GuiGraphics graphics, int xPos, int yPos, int height) {
+  public int drawScaledY(GuiGraphicsExtractor graphics, int xPos, int yPos, int height) {
     for (int i = 0; i < height / this.h; i++) {
       this.draw(graphics, xPos, yPos + i * this.h);
     }
@@ -44,7 +44,7 @@ public class ScalableElementScreen extends ElementScreen {
    * @param height       Height to draw
    * @return  Width for some reason
    */
-  public int drawScaledYUp(GuiGraphics graphics, int xPos, int yPos, int height) {
+  public int drawScaledYUp(GuiGraphicsExtractor graphics, int xPos, int yPos, int height) {
     // draw full-height tiles stacked upward from the bottom baseline (yPos + this.h). The old code
     // only drew the partial remainder, so a full (height == this.h) or multi-tile bar rendered as a
     // sliver or nothing (e.g. the smeltery fuel/fire bar disappeared at full fuel).
@@ -62,7 +62,7 @@ public class ScalableElementScreen extends ElementScreen {
     return this.w;
   }
 
-  public int drawScaled(GuiGraphics graphics, int xPos, int yPos, int width, int height) {
+  public int drawScaled(GuiGraphicsExtractor graphics, int xPos, int yPos, int width, int height) {
     // we draw full height row-wise
     int full = height / this.h;
     for (int i = 0; i < full; i++) {

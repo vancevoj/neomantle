@@ -6,16 +6,16 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.AttackIndicatorStatus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.renderer.Sheets;
 import net.minecraft.client.renderer.blockentity.HangingSignRenderer;
-import net.minecraft.client.renderer.blockentity.SignRenderer;
+import net.minecraft.client.renderer.blockentity.StandingSignRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -37,7 +37,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.common.EventBusSubscriber.Bus;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import slimeknights.mantle.Mantle;
@@ -68,7 +67,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@EventBusSubscriber(modid = Mantle.modId, value = Dist.CLIENT, bus = Bus.MOD)
+@EventBusSubscriber(modid = Mantle.modId, value = Dist.CLIENT)
 public class ClientEvents {
   /** Called on construct to initiatlize things that need early entry */
   public static void onConstruct() {}
@@ -77,7 +76,7 @@ public class ClientEvents {
   @SubscribeEvent
   static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
     if (MantleRegistrations.SIGN != null) {
-      event.registerBlockEntityRenderer(MantleRegistrations.SIGN, SignRenderer::new);
+      event.registerBlockEntityRenderer(MantleRegistrations.SIGN, StandingSignRenderer::new);
     }
     if (MantleRegistrations.HANGING_SIGN != null) {
       event.registerBlockEntityRenderer(MantleRegistrations.HANGING_SIGN, HangingSignRenderer::new);
@@ -137,10 +136,10 @@ public class ClientEvents {
   }
 
   /** Vanilla attack indicator sprites, split out of the old GUI_ICONS atlas in 1.21 */
-  private static final ResourceLocation CROSSHAIR_ATTACK_INDICATOR_BACKGROUND = ResourceLocation.withDefaultNamespace("hud/crosshair_attack_indicator_background");
-  private static final ResourceLocation CROSSHAIR_ATTACK_INDICATOR_PROGRESS = ResourceLocation.withDefaultNamespace("hud/crosshair_attack_indicator_progress");
-  private static final ResourceLocation HOTBAR_ATTACK_INDICATOR_BACKGROUND = ResourceLocation.withDefaultNamespace("hud/hotbar_attack_indicator_background");
-  private static final ResourceLocation HOTBAR_ATTACK_INDICATOR_PROGRESS = ResourceLocation.withDefaultNamespace("hud/hotbar_attack_indicator_progress");
+  private static final Identifier CROSSHAIR_ATTACK_INDICATOR_BACKGROUND = Identifier.withDefaultNamespace("hud/crosshair_attack_indicator_background");
+  private static final Identifier CROSSHAIR_ATTACK_INDICATOR_PROGRESS = Identifier.withDefaultNamespace("hud/crosshair_attack_indicator_progress");
+  private static final Identifier HOTBAR_ATTACK_INDICATOR_BACKGROUND = Identifier.withDefaultNamespace("hud/hotbar_attack_indicator_background");
+  private static final Identifier HOTBAR_ATTACK_INDICATOR_PROGRESS = Identifier.withDefaultNamespace("hud/hotbar_attack_indicator_progress");
 
   // registered with the game bus
   private static void renderOffhandAttackIndicator(RenderGuiLayerEvent.Post event) {
@@ -153,7 +152,7 @@ public class ClientEvents {
     }
 
     // only care about hotbar and crosshair
-    ResourceLocation overlay = event.getName();
+    Identifier overlay = event.getName();
     // will be true for hotbar, false for crosshair
     boolean isHotbar = VanillaGuiLayers.HOTBAR.equals(overlay);
     if (!isHotbar && !VanillaGuiLayers.CROSSHAIR.equals(overlay)) {
@@ -171,7 +170,7 @@ public class ClientEvents {
     }
 
     // show attack indicator
-    GuiGraphics graphics = event.getGuiGraphics();
+    GuiGraphicsExtractor graphics = event.getGuiGraphics();
     switch (indicator) {
       case CROSSHAIR:
         if (!isHotbar && minecraft.options.getCameraType().isFirstPerson()) {
@@ -256,7 +255,7 @@ public class ClientEvents {
       return;
     }
     // block entity must have a fluid handler; 1.21 queries capabilities through the level and returns null if absent
-    IFluidHandler handler = minecraft.level.getCapability(Capabilities.FluidHandler.BLOCK, gaugePos, side);
+    IFluidHandler handler = minecraft.level.getCapability(Capabilities.Fluid.BLOCK, gaugePos, side);
     if (handler == null || handler.getTanks() <= 0) {
       return;
     }
@@ -267,7 +266,7 @@ public class ClientEvents {
       tooltip = List.of(GaugeBlock.formatCapacity(handler.getTankCapacity(0)));
     } else if (RegistryHelper.contains(BuiltInRegistries.BLOCK_ENTITY_TYPE, MantleTags.BlockEntities.HIDES_GAUGE_AMOUNT, gaugeContainer.getType())) {
       // in the tag, don't show capacity
-      ResourceLocation id = BuiltInRegistries.FLUID.getKey(fluid.getFluid());
+      Identifier id = BuiltInRegistries.FLUID.getKey(fluid.getFluid());
       tooltip = new ArrayList<>(3);
       tooltip.add(fluid.getDisplayName());
       FluidTooltipHandler.appendAdvanced(id, tooltip);

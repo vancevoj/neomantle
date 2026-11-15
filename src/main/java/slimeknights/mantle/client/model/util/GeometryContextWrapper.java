@@ -1,9 +1,9 @@
 package slimeknights.mantle.client.model.util;
 
 import com.mojang.math.Transformation;
-import net.minecraft.client.renderer.block.model.ItemTransforms;
+import net.minecraft.client.resources.model.cuboid.ItemTransforms;
 import net.minecraft.client.resources.model.Material;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.RenderTypeGroup;
 import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
 import org.jetbrains.annotations.Nullable;
@@ -64,7 +64,7 @@ public class GeometryContextWrapper implements IGeometryBakingContext {
   }
 
   @Override
-  public @Nullable ResourceLocation getRenderTypeHint() {
+  public @Nullable Identifier getRenderTypeHint() {
     return base.getRenderTypeHint();
   }
 
@@ -74,7 +74,7 @@ public class GeometryContextWrapper implements IGeometryBakingContext {
   }
 
   @Override
-  public RenderTypeGroup getRenderType(ResourceLocation name) {
+  public RenderTypeGroup getRenderType(Identifier name) {
     return base.getRenderType(name);
   }
 }

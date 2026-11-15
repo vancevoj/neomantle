@@ -2,7 +2,7 @@ package slimeknights.mantle.loot.condition;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.advancements.critereon.StatePropertiesPredicate;
+import net.minecraft.advancements.predicates.StatePropertiesPredicate;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
@@ -35,7 +35,7 @@ public record BlockTagLootCondition(TagKey<Block> tag, Optional<StatePropertiesP
 
   @Override
   public boolean test(LootContext context) {
-    BlockState state = context.getParamOrNull(LootContextParams.BLOCK_STATE);
+    BlockState state = context.getOptional(LootContextParams.BLOCK_STATE);
     return state != null && state.is(tag) && (this.properties.isEmpty() || this.properties.get().matches(state));
   }
 

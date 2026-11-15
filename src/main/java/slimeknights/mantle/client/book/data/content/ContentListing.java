@@ -2,7 +2,7 @@ package slimeknights.mantle.client.book.data.content;
 
 import lombok.Getter;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.client.book.data.PageData;

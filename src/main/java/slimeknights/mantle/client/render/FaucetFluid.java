@@ -6,7 +6,7 @@ import lombok.Getter;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
@@ -116,13 +116,13 @@ public record FaucetFluid(List<FluidCuboid> side, List<FluidCuboid> center, bool
   /** Loader implementation */
   public static class Loader extends BlockStateDataMapLoader<FaucetFluid> {
     /** Name of the default fluid model, shared between Ceramics and Tinkers Construct */
-    private final ResourceLocation defaultName;
+    private final Identifier defaultName;
     @Getter
     private FaucetFluid defaultInstance = FaucetFluid.EMPTY;
     private final DefaultingFaucetFluidLoader dataLoader = new DefaultingFaucetFluidLoader();
 
     /** Constructor to extend to override fields */
-    protected Loader(String name, String folder, ResourceLocation defaultName) {
+    protected Loader(String name, String folder, Identifier defaultName) {
       super(name, folder, LOADABLE);
       this.defaultName = defaultName;
     }
@@ -133,7 +133,7 @@ public record FaucetFluid(List<FluidCuboid> side, List<FluidCuboid> center, bool
     }
 
     @Override
-    protected RecordLoadable<FaucetFluid> prepareLoader(Map<ResourceLocation,JsonElement> jsons) {
+    protected RecordLoadable<FaucetFluid> prepareLoader(Map<Identifier,JsonElement> jsons) {
       JsonElement json = jsons.get(defaultName);
       defaultInstance = EMPTY;
       if (json == null) {

@@ -47,7 +47,7 @@ public class DropLecternBookPacket implements IThreadsafePacket {
       return;
     }
 
-    ServerLevel world = player.serverLevel();
+    ServerLevel world = player.level();
     if(!world.hasChunkAt(pos)) {
       return;
     }

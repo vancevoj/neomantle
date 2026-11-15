@@ -15,7 +15,7 @@ import net.minecraft.commands.synchronization.ArgumentTypeInfo;
 import net.minecraft.core.Registry;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagEntry;
 import net.minecraft.tags.TagKey;
 import slimeknights.mantle.command.argument.ResourceOrTagKeyArgument.Result;
@@ -51,13 +51,13 @@ public record ResourceOrTagKeyArgument<T>(@Nullable ResourceKey<? extends Regist
       int pos = reader.getCursor();
       try {
         reader.skip();
-        return new Result(ResourceLocation.read(reader), true);
+        return new Result(Identifier.read(reader), true);
       } catch (CommandSyntaxException ex) {
         reader.setCursor(pos);
         throw ex;
       }
     }
-    return new Result(ResourceLocation.read(reader), false);
+    return new Result(Identifier.read(reader), false);
   }
 
   @Override
@@ -74,7 +74,7 @@ public record ResourceOrTagKeyArgument<T>(@Nullable ResourceKey<? extends Regist
   }
 
   /** Result for this argument type */
-  public record Result(ResourceLocation location, boolean isTag) {
+  public record Result(Identifier location, boolean isTag) {
     /** Creates a resource key from the result */
     public <T> TagKey<T> resource(ResourceKey<? extends Registry<T>> registry) {
       if (isTag) {
@@ -124,7 +124,7 @@ public record ResourceOrTagKeyArgument<T>(@Nullable ResourceKey<? extends Regist
     @Override
     public void serializeToNetwork(Template template, FriendlyByteBuf buffer) {
       if (template.registry != null) {
-        buffer.writeResourceLocation(template.registry.location());
+        buffer.writeIdentifier(template.registry.location());
       } else {
         buffer.writeUtf("");
       }
@@ -136,7 +136,7 @@ public record ResourceOrTagKeyArgument<T>(@Nullable ResourceKey<? extends Regist
       if (str.isEmpty()) {
         return new Template(null);
       }
-      return new Template(ResourceKey.createRegistryKey(ResourceLocation.parse(str)));
+      return new Template(ResourceKey.createRegistryKey(Identifier.parse(str)));
     }
 
     @Override

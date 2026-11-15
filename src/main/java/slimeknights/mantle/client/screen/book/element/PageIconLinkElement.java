@@ -3,7 +3,7 @@ package slimeknights.mantle.client.screen.book.element;
 import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import slimeknights.mantle.client.book.IHTML;
 import slimeknights.mantle.client.book.action.StringActionProcessor;
@@ -44,7 +44,7 @@ public class PageIconLinkElement extends SizedBookElement implements IHTML {
   }
 
   @Override
-  public void draw(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
+  public void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
     boolean hover = this.isHovered(mouseX, mouseY);
 
     if (hover) {
@@ -56,7 +56,7 @@ public class PageIconLinkElement extends SizedBookElement implements IHTML {
   }
 
   @Override
-  public void drawOverlay(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
+  public void drawOverlay(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
     if (this.name != null && !this.name.getString().isEmpty() && this.isHovered(mouseX, mouseY)) {
       this.drawTooltip(graphics, ImmutableList.of(name), mouseX, mouseY, fontRenderer);
     }

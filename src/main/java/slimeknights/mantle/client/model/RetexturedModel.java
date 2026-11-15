@@ -10,18 +10,18 @@ import com.mojang.datafixers.util.Either;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBaker;
-import net.minecraft.client.resources.model.ModelState;
+import net.minecraft.client.renderer.block.dispatch.ModelState;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -30,7 +30,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.model.data.ModelData;
 import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
 import net.neoforged.neoforge.client.model.geometry.IGeometryLoader;
 import net.neoforged.neoforge.client.model.geometry.IUnbakedGeometry;
@@ -64,7 +64,7 @@ public class RetexturedModel implements IUnbakedGeometry<RetexturedModel> {
   private final Set<String> retextured;
 
   @Override
-  public void resolveParents(Function<ResourceLocation,UnbakedModel> modelGetter, IGeometryBakingContext context) {
+  public void resolveParents(Function<Identifier,UnbakedModel> modelGetter, IGeometryBakingContext context) {
     model.resolveParents(modelGetter, context);
   }
 
@@ -138,7 +138,7 @@ public class RetexturedModel implements IUnbakedGeometry<RetexturedModel> {
   /** Baked variant of the model, used to swap out quads based on the texture */
   public static class Baked extends DynamicBakedWrapper<BakedModel> {
     /** Cache of texture name to baked model */
-    private final Map<ResourceLocation,BakedModel> cache = new ConcurrentHashMap<>();
+    private final Map<Identifier,BakedModel> cache = new ConcurrentHashMap<>();
     /* Properties for rebaking */
     private final IGeometryBakingContext owner;
     private final SimpleBlockModel model;
@@ -160,7 +160,7 @@ public class RetexturedModel implements IUnbakedGeometry<RetexturedModel> {
      * @param name  Texture location
      * @return  Retextured model
      */
-    private BakedModel getRetexturedModel(ResourceLocation name) {
+    private BakedModel getRetexturedModel(Identifier name) {
       return model.bakeDynamic(new RetexturedContext(owner, retextured, name), transform);
     }
 
@@ -236,7 +236,7 @@ public class RetexturedModel implements IUnbakedGeometry<RetexturedModel> {
      * @param retextured  Set of textures that should be retextured
      * @param texture     New texture to replace those in the set
      */
-    public RetexturedContext(IGeometryBakingContext base, Set<String> retextured, ResourceLocation texture) {
+    public RetexturedContext(IGeometryBakingContext base, Set<String> retextured, Identifier texture) {
       super(base);
       this.retextured = retextured;
       this.texture = new Material(InventoryMenu.BLOCK_ATLAS, texture);

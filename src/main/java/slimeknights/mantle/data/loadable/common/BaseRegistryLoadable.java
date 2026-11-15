@@ -5,7 +5,7 @@ import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.EncoderException;
 import net.minecraft.core.Registry;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.mapping.SetLoadable;
 import slimeknights.mantle.data.loadable.primitive.ResourceLocationLoadable;
@@ -21,10 +21,10 @@ public interface BaseRegistryLoadable<T> extends ResourceLocationLoadable<T> {
   Registry<T> registry();
 
   /** Gets the ID of this registry for error messages */
-  ResourceLocation registryId();
+  Identifier registryId();
 
   @Override
-  default T fromKey(ResourceLocation name, String key, TypedMap context) {
+  default T fromKey(Identifier name, String key, TypedMap context) {
     Registry<T> registry = registry();
     if (registry != null && registry.containsKey(name)) {
       T value = registry.get(name);
@@ -36,10 +36,10 @@ public interface BaseRegistryLoadable<T> extends ResourceLocationLoadable<T> {
   }
 
   @Override
-  default ResourceLocation getKey(T object) {
+  default Identifier getKey(T object) {
     Registry<T> registry = registry();
     if (registry != null) {
-      ResourceLocation location = registry.getKey(object);
+      Identifier location = registry.getKey(object);
       if (location != null) {
         return location;
       }

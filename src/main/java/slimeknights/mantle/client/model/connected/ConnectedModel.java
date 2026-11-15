@@ -11,30 +11,30 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.math.Transformation;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.BlockElement;
-import net.minecraft.client.renderer.block.model.BlockElementFace;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.cuboid.CuboidModelElement;
+import net.minecraft.client.resources.model.cuboid.CuboidFace;
 import net.minecraft.client.renderer.block.model.BlockFaceUV;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBaker;
-import net.minecraft.client.resources.model.ModelState;
+import net.minecraft.client.renderer.block.dispatch.ModelState;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Direction.Plane;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.neoforged.neoforge.client.model.data.ModelData;
-import net.neoforged.neoforge.client.model.data.ModelProperty;
+import net.neoforged.neoforge.model.data.ModelData;
+import net.neoforged.neoforge.model.data.ModelProperty;
 import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
 import net.neoforged.neoforge.client.model.geometry.IGeometryLoader;
 import net.neoforged.neoforge.client.model.geometry.IUnbakedGeometry;
@@ -84,7 +84,7 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
   private Map<String,Material> extraTextures;
 
   @Override
-  public void resolveParents(Function<ResourceLocation,UnbakedModel> modelGetter, IGeometryBakingContext owner) {
+  public void resolveParents(Function<Identifier,UnbakedModel> modelGetter, IGeometryBakingContext owner) {
     model.resolveParents(modelGetter, owner);
     // for all connected textures, add suffix textures
     Map<String, Material> extraTextures = new HashMap<>();
@@ -96,8 +96,8 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
         continue;
       }
       Material base = owner.getMaterial(name);
-      ResourceLocation atlas = base.atlasLocation();
-      ResourceLocation texture = base.texture();
+      Identifier atlas = base.atlasLocation();
+      Identifier texture = base.texture();
       String namespace = texture.getNamespace();
       String path = texture.getPath();
 
@@ -115,7 +115,7 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
           if (owner.hasMaterial(suffixedName)) {
             mat = owner.getMaterial(suffixedName);
           } else {
-            mat = new Material(atlas, ResourceLocation.fromNamespaceAndPath(namespace, path + "/" + suffix));
+            mat = new Material(atlas, Identifier.fromNamespaceAndPath(namespace, path + "/" + suffix));
           }
           // cache the texture name, we use it a lot in rebaking
           extraTextures.put(suffixedName, mat);
@@ -295,14 +295,14 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
      */
     private BakedModel applyConnections(byte connections) {
       // copy each element with updated faces
-      List<BlockElement> elements = Lists.newArrayList();
-      for (BlockElement part : parent.model.getElements()) {
-        Map<Direction,BlockElementFace> partFaces = new EnumMap<>(Direction.class);
-        for (Map.Entry<Direction,BlockElementFace> entry : part.faces.entrySet()) {
+      List<CuboidModelElement> elements = Lists.newArrayList();
+      for (CuboidModelElement part : parent.model.getElements()) {
+        Map<Direction,CuboidFace> partFaces = new EnumMap<>(Direction.class);
+        for (Map.Entry<Direction,CuboidFace> entry : part.faces.entrySet()) {
           // first, determine which texture to use on this side
           Direction dir = entry.getKey();
-          BlockElementFace original = entry.getValue();
-          BlockElementFace face = original;
+          CuboidFace original = entry.getValue();
+          CuboidFace face = original;
 
           // follow the texture name back to the original name
           // if it never reaches a connected texture, skip
@@ -313,14 +313,14 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
             if (!suffix.isEmpty()) {
               // suffix the texture
               String fullTexture = connectedTexture + suffix;
-              face = new BlockElementFace(original.cullForDirection(), original.tintIndex(), "#" + fullTexture, original.uv());
+              face = new CuboidFace(original.cullForDirection(), original.tintIndex(), "#" + fullTexture, original.uv());
             }
           }
           // add the updated face
           partFaces.put(dir, face);
         }
         // add the updated parts into a new model part
-        elements.add(new BlockElement(part.from, part.to, partFaces, part.rotation, part.shade));
+        elements.add(new CuboidModelElement(part.from, part.to, partFaces, part.rotation, part.shade));
       }
 
       // bake the model

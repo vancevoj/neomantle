@@ -3,7 +3,7 @@ package slimeknights.mantle.fluid.transfer;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -13,7 +13,7 @@ import slimeknights.mantle.recipe.ingredient.FluidIngredient;
 
 /** Fluid transfer info that fills a fluid into an item, copying its NBT */
 public class FillFluidWithNBTTransfer extends FillFluidContainerTransfer {
-  public static final ResourceLocation ID = Mantle.getResource("fill_nbt");
+  public static final Identifier ID = Mantle.getResource("fill_nbt");
   public FillFluidWithNBTTransfer(Ingredient input, ItemOutput filled, FluidIngredient fluid) {
     super(input, filled, fluid);
   }

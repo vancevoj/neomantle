@@ -1,6 +1,6 @@
 package slimeknights.mantle;
 
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.commands.synchronization.ArgumentTypeInfos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
@@ -9,7 +9,7 @@ import net.minecraft.data.PackOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.api.distmarker.Dist;
@@ -113,7 +113,7 @@ public class Mantle {
     MantleRecipes.init(modBus);
     NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, PlayerInteractEvent.RightClickBlock.class, LecternBookItem::interactWithBlock);
 
-    if (FMLEnvironment.dist == Dist.CLIENT) {
+    if (FMLEnvironment.getDist() == Dist.CLIENT) {
       ClientEvents.onConstruct();
     }
   }
@@ -179,10 +179,10 @@ public class Mantle {
         LivingEntityPredicate.LOADER.register(getResource("has_effect"), HasMobEffectPredicate.LOADER);
         LivingEntityPredicate.LOADER.register(getResource("block_at_entity"), BlockAtEntityPredicate.LOADER);
         // register mob types (former MobType values are now entity type tags)
-        MobTypePredicate.MOB_TYPES.register(ResourceLocation.parse("undead"), EntityTypeTags.UNDEAD);
-        MobTypePredicate.MOB_TYPES.register(ResourceLocation.parse("arthropod"), EntityTypeTags.ARTHROPOD);
-        MobTypePredicate.MOB_TYPES.register(ResourceLocation.parse("illager"), EntityTypeTags.ILLAGER);
-        MobTypePredicate.MOB_TYPES.register(ResourceLocation.parse("water"), EntityTypeTags.AQUATIC);
+        MobTypePredicate.MOB_TYPES.register(Identifier.parse("undead"), EntityTypeTags.UNDEAD);
+        MobTypePredicate.MOB_TYPES.register(Identifier.parse("arthropod"), EntityTypeTags.ARTHROPOD);
+        MobTypePredicate.MOB_TYPES.register(Identifier.parse("illager"), EntityTypeTags.ILLAGER);
+        MobTypePredicate.MOB_TYPES.register(Identifier.parse("water"), EntityTypeTags.AQUATIC);
 
         // damage predicates
         // simple
@@ -236,8 +236,8 @@ public class Mantle {
    * @param name  Name
    * @return  Resource location instance
    */
-  public static ResourceLocation getResource(String name) {
-    return ResourceLocation.fromNamespaceAndPath(modId, name);
+  public static Identifier getResource(String name) {
+    return Identifier.fromNamespaceAndPath(modId, name);
   }
 
   /**
@@ -245,8 +245,8 @@ public class Mantle {
    * @param name  Name
    * @return  Resource location instance
    */
-  public static ResourceLocation commonResource(String name) {
-    return ResourceLocation.fromNamespaceAndPath(COMMON, name);
+  public static Identifier commonResource(String name) {
+    return Identifier.fromNamespaceAndPath(COMMON, name);
   }
 
   /**

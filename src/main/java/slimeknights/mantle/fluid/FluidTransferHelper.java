@@ -137,7 +137,7 @@ public class FluidTransferHelper {
   @Deprecated(forRemoval = true)
   public static boolean interactWithBucket(Level world, BlockPos pos, Player player, InteractionHand hand, Direction hit, Direction offset) {
     if (player.getItemInHand(hand).getItem() instanceof BucketItem) {
-      IFluidHandler handler = world.getCapability(Capabilities.FluidHandler.BLOCK, pos, hit);
+      IFluidHandler handler = world.getCapability(Capabilities.Fluid.BLOCK, pos, hit);
       if (handler != null) {
         return interactWithFilledBucket(world, pos, handler, player, hand, offset).hasContainer();
       }
@@ -160,7 +160,7 @@ public class FluidTransferHelper {
     if (held.getItem() instanceof BucketItem bucket) {
       Fluid fluid = bucket.content;
       if (fluid != Fluids.EMPTY) {
-        if (!world.isClientSide) {
+        if (!world.isClientSide()) {
           FluidStack fluidStack = new FluidStack(bucket.content, FluidType.BUCKET_VOLUME);
           // must empty the whole bucket
           if (handler.fill(fluidStack, FluidAction.SIMULATE) == FluidType.BUCKET_VOLUME) {
@@ -212,7 +212,7 @@ public class FluidTransferHelper {
   public static FluidInteractionResult interactWithContainer(Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
     if (!player.getItemInHand(hand).isEmpty()) {
       // block must have a fluid handler capability
-      IFluidHandler handler = world.getCapability(Capabilities.FluidHandler.BLOCK, pos, hit.getDirection());
+      IFluidHandler handler = world.getCapability(Capabilities.Fluid.BLOCK, pos, hit.getDirection());
       if (handler != null) {
         return interactWithContainer(world, pos, handler, player, hand);
       }
@@ -235,7 +235,7 @@ public class FluidTransferHelper {
     ItemStack stack = player.getItemInHand(hand);
     if (FluidContainerTransferManager.INSTANCE.mayHaveTransfer(stack)) {
       // only actually transfer on the serverside, client just has items
-      if (!world.isClientSide) {
+      if (!world.isClientSide()) {
         FluidStack currentFluid = teHandler.drain(Integer.MAX_VALUE, FluidAction.SIMULATE);
         IFluidContainerTransfer transfer = FluidContainerTransferManager.INSTANCE.getTransfer(stack, currentFluid);
         if (transfer != null) {
@@ -256,10 +256,10 @@ public class FluidTransferHelper {
 
     // if the item has a capability, do a direct transfer
     ItemStack copy = stack.copyWithCount(1);
-    IFluidHandlerItem itemHandler = copy.getCapability(Capabilities.FluidHandler.ITEM);
+    IFluidHandlerItem itemHandler = copy.getCapability(Capabilities.Fluid.ITEM);
     if (itemHandler != null) {
       FluidInteractionResult result = FluidInteractionResult.CONTAINER;
-      if (!world.isClientSide) {
+      if (!world.isClientSide()) {
         // first, try filling the TE from the item
         FluidStack transferred = tryTransfer(itemHandler, teHandler, Integer.MAX_VALUE);
         if (!transferred.isEmpty()) {
@@ -313,7 +313,7 @@ public class FluidTransferHelper {
    */
   public static boolean interactWithTank(Level world, BlockPos pos, Player player, InteractionHand hand, Direction hit, Direction offset) {
     if (!player.getItemInHand(hand).isEmpty()) {
-      IFluidHandler handler = world.getCapability(Capabilities.FluidHandler.BLOCK, pos, hit);
+      IFluidHandler handler = world.getCapability(Capabilities.Fluid.BLOCK, pos, hit);
       if (handler != null) {
         return interactWithContainer(world, pos, handler, player, hand).hasContainer()
           || interactWithFilledBucket(world, pos, handler, player, hand, offset).hasContainer();
@@ -360,7 +360,7 @@ public class FluidTransferHelper {
 
       // if the item has a capability, do a direct transfer
       ItemStack copy = stack.copyWithCount(1);
-      IFluidHandlerItem itemHandler = copy.getCapability(Capabilities.FluidHandler.ITEM);
+      IFluidHandlerItem itemHandler = copy.getCapability(Capabilities.Fluid.ITEM);
       if (itemHandler != null) {
         // first, try filling the TE from the item
         FluidStack transferred = FluidStack.EMPTY;
@@ -429,7 +429,7 @@ public class FluidTransferHelper {
 
       // if the item has a capability, do a direct transfer
       ItemStack copy = stack.copyWithCount(1);
-      IFluidHandlerItem itemHandler = copy.getCapability(Capabilities.FluidHandler.ITEM);
+      IFluidHandlerItem itemHandler = copy.getCapability(Capabilities.Fluid.ITEM);
       if (itemHandler != null) {
         // first, try filling the TE from the item
         FluidStack transferred = tryTransfer(teHandler, itemHandler, fluid.copy());
@@ -460,7 +460,7 @@ public class FluidTransferHelper {
   /** Plays sound only to the targeted player. Works by sending a targeted packet to server players, or a local packet to client. */
   @SuppressWarnings("deprecation")
   public static void playUISound(Player player, SoundEvent sound) {
-    if (player.level().isClientSide) {
+    if (player.level().isClientSide()) {
       player.playSound(sound);
     } else if (player instanceof ServerPlayer serverPlayer) {
       serverPlayer.connection.send(new ClientboundSoundPacket(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(sound), player.getSoundSource(), player.getX(), player.getY(), player.getZ(), 1, 1, player.getRandom().nextLong()));

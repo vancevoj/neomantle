@@ -12,7 +12,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
@@ -33,7 +33,7 @@ import java.util.stream.Stream;
  * Recipe serializer instance using loadables. Bridges a {@link RecordLoadable} to the vanilla
  * {@link MapCodec} + {@link net.minecraft.network.codec.StreamCodec} pair required by {@link RecipeSerializer}.
  * <p>
- * In 1.21 the recipe's {@link ResourceLocation} is no longer available during decode (it is the registry key,
+ * In 1.21 the recipe's {@link Identifier} is no longer available during decode (it is the registry key,
  * assigned to the {@link net.minecraft.world.item.crafting.RecipeHolder} only after decoding). Recipes that need a
  * non-null {@link ContextKey#ID} (for JEI display and logging) therefore receive a stable synthetic id derived from
  * the serializer's registry name plus the recipe contents. Nothing in game logic keys off this id; matching, caches,
@@ -73,13 +73,13 @@ public class LoadableRecipeSerializer<T extends Recipe<?>> implements LoggingRec
    * recipe type and typed serializer) plus the id and debug info.
    * @param id  Recipe id. In 1.21 this is a synthetic stable id, as the real id is not available during decode.
    */
-  protected TypedMapBuilder buildContext(ResourceLocation id) {
+  protected TypedMapBuilder buildContext(Identifier id) {
     return TypedMapBuilder.builder().put(ContextKey.ID, id).put(ContextKey.DEBUG, "Recipe " + id).put(SERIALIZER, this);
   }
 
   /** Namespace for synthetic recipe ids, the registry name of this serializer if available */
   private String syntheticNamespace() {
-    ResourceLocation key = BuiltInRegistries.RECIPE_SERIALIZER.getKey(this);
+    Identifier key = BuiltInRegistries.RECIPE_SERIALIZER.getKey(this);
     return key != null ? key.getNamespace() : FALLBACK_NAMESPACE;
   }
 
@@ -88,9 +88,9 @@ public class LoadableRecipeSerializer<T extends Recipe<?>> implements LoggingRec
    * key assigned to the {@link net.minecraft.world.item.crafting.RecipeHolder} after decoding), so we derive a
    * deterministic placeholder. Uniqueness keeps JEI recipe UIDs from colliding; nothing in game logic depends on it.
    */
-  private ResourceLocation syntheticId(int hash) {
+  private Identifier syntheticId(int hash) {
     // mask off the sign so the path is always a valid lowercase hex string
-    return ResourceLocation.fromNamespaceAndPath(syntheticNamespace(), "synthetic/" + Integer.toHexString(hash & 0x7fffffff));
+    return Identifier.fromNamespaceAndPath(syntheticNamespace(), "synthetic/" + Integer.toHexString(hash & 0x7fffffff));
   }
 
   @Override
@@ -179,7 +179,7 @@ public class LoadableRecipeSerializer<T extends Recipe<?>> implements LoggingRec
     }
 
     @Override
-    protected TypedMapBuilder buildContext(ResourceLocation id) {
+    protected TypedMapBuilder buildContext(Identifier id) {
       return super.buildContext(id).put(TYPE, getType()).put(TYPED_SERIALIZER, this);
     }
 

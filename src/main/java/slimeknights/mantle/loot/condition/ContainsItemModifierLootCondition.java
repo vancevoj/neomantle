@@ -10,7 +10,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.util.GsonHelper;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import slimeknights.mantle.Mantle;
 
 import java.lang.reflect.Type;
@@ -18,7 +18,7 @@ import java.util.List;
 
 /** Loot condition requiring one of the existing items is the given stack */
 public class ContainsItemModifierLootCondition implements ILootModifierCondition {
-  public static final ResourceLocation ID = Mantle.getResource("contains_item");
+  public static final Identifier ID = Mantle.getResource("contains_item");
   private final Ingredient ingredient;
   private final int amountNeeded;
 

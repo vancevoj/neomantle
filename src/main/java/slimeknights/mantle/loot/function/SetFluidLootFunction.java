@@ -33,7 +33,7 @@ public class SetFluidLootFunction extends LootItemConditionalFunction {
 
   @Override
   protected ItemStack run(ItemStack stack, LootContext context) {
-    IFluidHandlerItem handler = stack.getCapability(Capabilities.FluidHandler.ITEM);
+    IFluidHandlerItem handler = stack.getCapability(Capabilities.Fluid.ITEM);
     if (handler != null) {
       handler.fill(fluid.copy(), FluidAction.EXECUTE);
       return handler.getContainer();

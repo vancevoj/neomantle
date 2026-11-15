@@ -7,7 +7,7 @@ import com.google.gson.JsonSerializationContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.util.GsonHelper;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import slimeknights.mantle.Mantle;
 
 import java.lang.reflect.Type;
@@ -15,7 +15,7 @@ import java.util.List;
 
 /** Loot modifier condition that inverts the base condition */
 public class InvertedModifierLootCondition implements ILootModifierCondition {
-  public static final ResourceLocation ID = Mantle.getResource("inverted");
+  public static final Identifier ID = Mantle.getResource("inverted");
 
   /** Condition to invert */
   private final ILootModifierCondition base;

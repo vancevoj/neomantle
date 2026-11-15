@@ -7,7 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -45,7 +45,7 @@ public class FluidContainerTransferManager extends SimpleJsonResourceReloadListe
   public static final String FOLDER = "mantle/fluid_transfer";
   /** GSON instance */
   public static final Gson GSON = (new GsonBuilder())
-    .registerTypeAdapter(ResourceLocation.class, new ResourceLocation.Serializer())
+    .registerTypeAdapter(Identifier.class, new Identifier.Serializer())
     .registerTypeHierarchyAdapter(IFluidContainerTransfer.class, TRANSFER_LOADERS)
     .setPrettyPrinting()
     .disableHtmlEscaping()
@@ -93,7 +93,7 @@ public class FluidContainerTransferManager extends SimpleJsonResourceReloadListe
 
   /** Loads transfer from JSON */
   @Nullable
-  private IFluidContainerTransfer loadFluidTransfer(ResourceLocation key, JsonObject json) {
+  private IFluidContainerTransfer loadFluidTransfer(Identifier key, JsonObject json) {
     try {
       // conditions are now embedded in the object under the "neoforge:conditions" key and evaluated via the codec system
       if (conditionOps == null || ICondition.conditionsMatched(conditionOps, json)) {
@@ -106,7 +106,7 @@ public class FluidContainerTransferManager extends SimpleJsonResourceReloadListe
   }
 
   @Override
-  protected void apply(Map<ResourceLocation,JsonElement> splashList, ResourceManager manager, ProfilerFiller profiler) {
+  protected void apply(Map<Identifier,JsonElement> splashList, ResourceManager manager, ProfilerFiller profiler) {
     long time = System.nanoTime();
     this.transfers = splashList.entrySet().stream()
                                .map(entry -> loadFluidTransfer(entry.getKey(), entry.getValue().getAsJsonObject()))

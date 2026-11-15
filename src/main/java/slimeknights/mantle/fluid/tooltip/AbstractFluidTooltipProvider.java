@@ -3,11 +3,11 @@ package slimeknights.mantle.fluid.tooltip;
 import com.google.gson.JsonObject;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.PackOutput.Target;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.material.Fluid;
 import slimeknights.mantle.data.GenericDataProvider;
@@ -23,8 +23,8 @@ import java.util.stream.Stream;
 /** Provider for fluid tooltip information */
 @SuppressWarnings({"unused", "SameParameterValue"})  // API
 public abstract class AbstractFluidTooltipProvider extends GenericDataProvider {
-  private final Map<ResourceLocation,ResourceLocation> redirects = new HashMap<>();
-  private final Map<ResourceLocation,FluidUnitListBuilder> builders = new HashMap<>();
+  private final Map<Identifier,Identifier> redirects = new HashMap<>();
+  private final Map<Identifier,FluidUnitListBuilder> builders = new HashMap<>();
   private final String modId;
 
   public AbstractFluidTooltipProvider(PackOutput output, String modId) {
@@ -50,13 +50,13 @@ public abstract class AbstractFluidTooltipProvider extends GenericDataProvider {
 
   /* Helpers */
 
-  /** Creates a ResourceLocation for the local mod */
-  protected ResourceLocation id(String name) {
-    return ResourceLocation.fromNamespaceAndPath(modId, name);
+  /** Creates a Identifier for the local mod */
+  protected Identifier id(String name) {
+    return Identifier.fromNamespaceAndPath(modId, name);
   }
 
   /** Adds a fluid to the builder */
-  protected FluidUnitListBuilder add(ResourceLocation id, @Nullable TagKey<Fluid> tag) {
+  protected FluidUnitListBuilder add(Identifier id, @Nullable TagKey<Fluid> tag) {
     if (redirects.containsKey(id)) {
       throw new IllegalArgumentException(id + " is already registered as a redirect");
     }
@@ -79,7 +79,7 @@ public abstract class AbstractFluidTooltipProvider extends GenericDataProvider {
   }
 
   /** Adds a fluid to the builder with no tag */
-  protected FluidUnitListBuilder add(ResourceLocation id) {
+  protected FluidUnitListBuilder add(Identifier id) {
     return add(id, null);
   }
 
@@ -89,11 +89,11 @@ public abstract class AbstractFluidTooltipProvider extends GenericDataProvider {
   }
 
   /** Adds a redirect from a named builder to a target */
-  protected void addRedirect(ResourceLocation id, ResourceLocation target) {
+  protected void addRedirect(Identifier id, Identifier target) {
     if (builders.containsKey(id)) {
       throw new IllegalArgumentException(id + " is already registered as a unit list");
     }
-    ResourceLocation original = redirects.put(id, target);
+    Identifier original = redirects.put(id, target);
     if (original != null) {
       throw new IllegalArgumentException(id + " is already redirecting to " + original);
     }
@@ -120,7 +120,7 @@ public abstract class AbstractFluidTooltipProvider extends GenericDataProvider {
 
     /** Adds a unit local to the given mod */
     public FluidUnitListBuilder addUnit(String key, String domain, int amount) {
-      return addUnitRaw(Util.makeDescriptionId("gui", ResourceLocation.fromNamespaceAndPath(domain, "fluid." + key)), amount);
+      return addUnitRaw(Util.makeDescriptionId("gui", Identifier.fromNamespaceAndPath(domain, "fluid." + key)), amount);
     }
 
     /** Builds the final instance */

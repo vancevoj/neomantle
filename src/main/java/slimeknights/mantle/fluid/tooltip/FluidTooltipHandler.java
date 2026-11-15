@@ -10,7 +10,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.tags.TagKey;
@@ -51,7 +51,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   /** GSON instance */
   // TODO: do we even need GSON here? I feel a classical serializer is sufficient as this class is pretty simple
   public static final Gson GSON = (new GsonBuilder())
-    .registerTypeAdapter(ResourceLocation.class, new ResourceLocation.Serializer())
+    .registerTypeAdapter(Identifier.class, new Identifier.Serializer())
     .registerTypeAdapter(FluidIngredient.class, FluidIngredient.LOADABLE)
     .registerTypeAdapter(TagKey.class, new TagKeySerializer<Fluid>(Registries.FLUID))
     .setPrettyPrinting()
@@ -59,7 +59,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
     .create();
 
   /** ID of the default fallback */
-  public static final ResourceLocation DEFAULT_ID = Mantle.getResource("fallback");
+  public static final Identifier DEFAULT_ID = Mantle.getResource("fallback");
 
   /* Base units */
   private static final FluidUnit BUCKET = new FluidUnit(Mantle.makeDescriptionId("gui", "fluid.bucket"), 1000);
@@ -76,7 +76,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   /** Fallback to use when no list matches */
   private FluidUnitList fallback = DEFAULT_LIST;
   /** List of tooltip options */
-  private Map<ResourceLocation,FluidUnitList> unitLists = Collections.emptyMap();
+  private Map<Identifier,FluidUnitList> unitLists = Collections.emptyMap();
   /** Cache of fluid to entry */
   private final Map<Fluid,FluidUnitList> listCache = new HashMap<>();
 
@@ -96,7 +96,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
 
   /** Loads from JSON */
   @Nullable
-  private static FluidUnitList loadList(ResourceLocation key, JsonElement json) {
+  private static FluidUnitList loadList(Identifier key, JsonElement json) {
     try {
       return GSON.fromJson(json, FluidUnitList.class);
     } catch (JsonSyntaxException e) {
@@ -106,19 +106,19 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   }
 
   @Override
-  protected void apply(Map<ResourceLocation,JsonElement> splashList, ResourceManager manager, ProfilerFiller profiler) {
+  protected void apply(Map<Identifier,JsonElement> splashList, ResourceManager manager, ProfilerFiller profiler) {
     long time = System.nanoTime();
-    Map<ResourceLocation,FluidUnitList> builder = new HashMap<>();
-    Map<ResourceLocation,ResourceLocation> redirects = new HashMap<>();
-    for (Entry<ResourceLocation,JsonElement> entry : splashList.entrySet()) {
-      ResourceLocation key = entry.getKey();
+    Map<Identifier,FluidUnitList> builder = new HashMap<>();
+    Map<Identifier,Identifier> redirects = new HashMap<>();
+    for (Entry<Identifier,JsonElement> entry : splashList.entrySet()) {
+      Identifier key = entry.getKey();
       JsonElement element = entry.getValue();
 
       // if a redirect, store in the map for later
       if (element.isJsonObject()) {
         JsonObject object = element.getAsJsonObject();
         if (object.has("redirect")) {
-          ResourceLocation redirect = JsonHelper.getResourceLocation(object, "redirect");
+          Identifier redirect = JsonHelper.getResourceLocation(object, "redirect");
           redirects.put(key, redirect);
           continue;
         }
@@ -130,10 +130,10 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
       }
     }
     // process redirects
-    Map<ResourceLocation,FluidUnitList> mapBeforeRedirects = Map.copyOf(builder);
-    for (Entry<ResourceLocation,ResourceLocation> entry : redirects.entrySet()) {
-      ResourceLocation from = entry.getKey();
-      ResourceLocation to = entry.getValue();
+    Map<Identifier,FluidUnitList> mapBeforeRedirects = Map.copyOf(builder);
+    for (Entry<Identifier,Identifier> entry : redirects.entrySet()) {
+      Identifier from = entry.getKey();
+      Identifier to = entry.getValue();
       FluidUnitList list = mapBeforeRedirects.get(to);
       if (list != null) {
         builder.put(from, list);
@@ -165,7 +165,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   }
 
   /** Gets the unit list for the given ID */
-  private FluidUnitList getUnitList(ResourceLocation id) {
+  private FluidUnitList getUnitList(Identifier id) {
     return unitLists.getOrDefault(id, fallback);
   }
 
@@ -182,14 +182,14 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   }
 
   /** Appends the ID in advanced tooltips */
-  public static void appendAdvanced(ResourceLocation id, List<Component> tooltip) {
+  public static void appendAdvanced(Identifier id, List<Component> tooltip) {
     if (SafeClientAccess.isAdvancedTooltip()) {
       tooltip.add(Component.literal(id.toString()).withStyle(ChatFormatting.DARK_GRAY));
     }
   }
 
   /** Gets the mod name for display in the tooltip */
-  public static <T> Component formatModName(ResourceLocation key) {
+  public static <T> Component formatModName(Identifier key) {
     String name = key.getNamespace();
     Optional<? extends ModContainer> mod = ModList.get().getModContainerById(name);
     if (mod.isPresent()) {
@@ -207,7 +207,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
   @SuppressWarnings("deprecation")
   public static List<Component> getFluidTooltip(FluidStack fluid, int amount) {
     List<Component> tooltip = new ArrayList<>();
-    ResourceLocation key = BuiltInRegistries.FLUID.getKey(fluid.getFluid());
+    Identifier key = BuiltInRegistries.FLUID.getKey(fluid.getFluid());
     // fluid name, not sure if there is a cleaner way to do this
     tooltip.add(fluid.getDisplayName());
     // add ID if advanced
@@ -290,7 +290,7 @@ public class FluidTooltipHandler extends SimpleJsonResourceReloadListener {
    * @param amount   Fluid amount
    * @param tooltip  Tooltip to append information
    */
-  public static void appendNamedList(ResourceLocation id, int amount, List<Component> tooltip) {
+  public static void appendNamedList(Identifier id, int amount, List<Component> tooltip) {
     amount = INSTANCE.getUnitList(id).getText(tooltip, amount);
     appendBuckets(amount, tooltip);
   }

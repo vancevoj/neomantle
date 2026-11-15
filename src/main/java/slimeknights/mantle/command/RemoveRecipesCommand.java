@@ -13,7 +13,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.ResourceArgument;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.commands.arguments.ResourceOrTagKeyArgument;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
@@ -22,7 +22,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.Resource;
@@ -34,7 +34,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.neoforged.neoforge.common.conditions.FalseCondition;
+import net.neoforged.neoforge.common.conditions.NeverCondition;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.Loadable;
@@ -94,7 +94,7 @@ public class RemoveRecipesCommand {
   public static void register(LiteralArgumentBuilder<CommandSourceStack> subCommand, CommandBuildContext context) {
     subCommand
       .then(Commands.literal("preset")
-        .then(Commands.argument("preset", ResourceLocationArgument.id()).suggests(SUGGEST_PRESETS)
+        .then(Commands.argument("preset", IdentifierArgument.id()).suggests(SUGGEST_PRESETS)
           .executes(RemoveRecipesCommand::runPreset)))
       .then(Commands.literal("result")
         .then(Commands.argument("recipe_type", ResourceArgument.resource(context, Registries.RECIPE_TYPE))
@@ -107,7 +107,7 @@ public class RemoveRecipesCommand {
           .then(Commands.argument("input", ResourceOrTagKeyArgument.resourceOrTagKey(Registries.ITEM))
             .executes(RemoveRecipesCommand::runByInput))))
       .then(Commands.literal("id")
-        .then(Commands.argument("recipe", ResourceLocationArgument.id()).suggests(SUGGESTS_RECIPES)
+        .then(Commands.argument("recipe", IdentifierArgument.id()).suggests(SUGGESTS_RECIPES)
           .executes(RemoveRecipesCommand::byId)));
   }
 
@@ -144,10 +144,10 @@ public class RemoveRecipesCommand {
   /** Runs the command using a JSON preset */
   private static int runPreset(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
     long startTime = System.nanoTime();
-    ResourceLocation preset = ResourceLocationArgument.getId(context, "preset");
+    Identifier preset = IdentifierArgument.getId(context, "preset");
 
     // load in the preset JSON
-    ResourceLocation presetLocation = PRESETS.idToFile(preset);
+    Identifier presetLocation = PRESETS.idToFile(preset);
     ServerLevel level = context.getSource().getLevel();
     Optional<Resource> resource = level.getServer().getResourceManager().getResource(presetLocation);
     if (resource.isPresent()) {
@@ -176,10 +176,10 @@ public class RemoveRecipesCommand {
   }
 
   /** Finds all advancements relevant to the given list of recipes and places their IDs in {@code advancements}. */
-  private static void findAdvancements(ServerLevel level, List<ResourceLocation> recipes, List<ResourceLocation> advancements) {
-    Set<ResourceLocation> isRelevant = new HashSet<>(recipes);
+  private static void findAdvancements(ServerLevel level, List<Identifier> recipes, List<Identifier> advancements) {
+    Set<Identifier> isRelevant = new HashSet<>(recipes);
     for (AdvancementHolder advancement : level.getServer().getAdvancements().getAllAdvancements()) {
-      for (ResourceLocation reward : advancement.value().rewards().recipes()) {
+      for (Identifier reward : advancement.value().rewards().recipes()) {
         if (isRelevant.contains(reward)) {
           advancements.add(advancement.id());
         }
@@ -190,12 +190,12 @@ public class RemoveRecipesCommand {
   /** Gets the JSON to remove a recipe */
   private static String getRemoveJson(HolderLookup.Provider registries) {
     JsonObject json = new JsonObject();
-    ICondition.writeConditions(registries, json, FalseCondition.INSTANCE);
+    ICondition.writeConditions(registries, json, NeverCondition.INSTANCE);
     return DEFAULT_GSON.toJson(json);
   }
 
   /** Saves the JSON string at the given ID */
-  private static boolean saveJson(Path data, String folder, ResourceLocation id, String json) {
+  private static boolean saveJson(Path data, String folder, Identifier id, String json) {
     Path path = data.resolve(id.getNamespace() + '/' + folder + '/' + id.getPath() + ".json");
     try {
       Files.createDirectories(path.getParent());
@@ -210,9 +210,9 @@ public class RemoveRecipesCommand {
   }
 
   /** Saves the JSON string at the given ID */
-  private static int saveJsons(Path data, String folder, List<ResourceLocation> ids, String json) {
+  private static int saveJsons(Path data, String folder, List<Identifier> ids, String json) {
     int successes = 0;
-    for (ResourceLocation id : ids) {
+    for (Identifier id : ids) {
       if (saveJson(data, folder, id, json)) {
         successes += 1;
       }
@@ -227,7 +227,7 @@ public class RemoveRecipesCommand {
     // iterate all recipes for the type storing recipes that craft the tag
     ServerLevel level = context.getSource().getLevel();
     RegistryAccess access = level.registryAccess();
-    List<ResourceLocation> recipes = new ArrayList<>();
+    List<Identifier> recipes = new ArrayList<>();
     for (RecipeType<?> recipeType : recipeTypes) {
       for (RecipeHolder<T> holder : level.getRecipeManager().getAllRecipesFor((RecipeType<T>) recipeType)) {
         Recipe<I> recipe = holder.value();
@@ -253,7 +253,7 @@ public class RemoveRecipesCommand {
     }
 
     // find advancements that grant those recipes
-    List<ResourceLocation> advancements = new ArrayList<>();
+    List<Identifier> advancements = new ArrayList<>();
     findAdvancements(level, recipes, advancements);
 
     // determine the path for the resulting datapack
@@ -277,14 +277,14 @@ public class RemoveRecipesCommand {
   /** Removes a recipe by ID */
   private static int byId(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
     long startTime = System.nanoTime();
-    ResourceLocation id = ResourceLocationArgument.getId(context, "recipe");
+    Identifier id = IdentifierArgument.getId(context, "recipe");
 
     // determine the path for the resulting datapack
     Path pack = GeneratePackHelper.getDatapackPath(context.getSource().getServer());
     GeneratePackHelper.saveMcmeta(pack);
 
     // find advancements that grant those recipes
-    List<ResourceLocation> advancements = new ArrayList<>();
+    List<Identifier> advancements = new ArrayList<>();
     findAdvancements(context.getSource().getLevel(), List.of(id), advancements);
 
     // create the object for removing recipes

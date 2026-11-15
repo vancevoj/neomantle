@@ -72,7 +72,7 @@ public class GaugeBlock extends Block {
       BlockPos neighbor = pos.relative(side.getOpposite());
       BlockEntity te = world.getBlockEntity(neighbor);
       if (te != null) {
-        IFluidHandler handler = world.getCapability(Capabilities.FluidHandler.BLOCK, neighbor, side);
+        IFluidHandler handler = world.getCapability(Capabilities.Fluid.BLOCK, neighbor, side);
         if (handler == null) {
           handler = EmptyFluidHandler.INSTANCE;
         }
@@ -109,7 +109,7 @@ public class GaugeBlock extends Block {
     if (!(world instanceof Level level)) {
       return world.getBlockEntity(neighbor) != null;
     }
-    return level.getCapability(Capabilities.FluidHandler.BLOCK, neighbor, direction) != null;
+    return level.getCapability(Capabilities.Fluid.BLOCK, neighbor, direction) != null;
   }
 
   @Override

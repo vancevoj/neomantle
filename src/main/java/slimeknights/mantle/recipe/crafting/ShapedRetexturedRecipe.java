@@ -121,7 +121,7 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
 
     @Override
     public void toNetworkSafe(RegistryFriendlyByteBuf buffer, ShapedRetexturedRecipe recipe) {
-      buffer.writeUtf(recipe.getGroup());
+      buffer.writeUtf(recipe.group());
       buffer.writeEnum(recipe.category());
       ShapedRecipePattern.STREAM_CODEC.encode(buffer, recipe.pattern);
       ItemStack.STREAM_CODEC.encode(buffer, recipe.getResultItem(null));

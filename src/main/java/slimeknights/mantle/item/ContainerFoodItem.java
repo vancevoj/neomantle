@@ -12,7 +12,7 @@ import net.minecraft.world.food.FoodProperties.PossibleEffect;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
@@ -26,18 +26,18 @@ import java.util.function.Supplier;
  */
 @SuppressWarnings("unused") // API
 public class ContainerFoodItem extends Item {
-  private final UseAnim useAnim;
-  public ContainerFoodItem(Properties props, UseAnim useAnim) {
+  private final ItemUseAnimation useAnim;
+  public ContainerFoodItem(Properties props, ItemUseAnimation useAnim) {
     super(props);
     this.useAnim = useAnim;
   }
 
   public ContainerFoodItem(Properties props) {
-    this(props, UseAnim.DRINK);
+    this(props, ItemUseAnimation.DRINK);
   }
 
   @Override
-  public UseAnim getUseAnimation(ItemStack pStack) {
+  public ItemUseAnimation getUseAnimation(ItemStack pStack) {
     return useAnim;
   }
 
@@ -89,7 +89,7 @@ public class ContainerFoodItem extends Item {
    * <p>
    * In NeoForge 1.21.1 item capabilities are no longer provided via {@code initCapabilities}; instead the owning mod must
    * register the fluid handler for this item in {@code RegisterCapabilitiesEvent} via
-   * {@code event.registerItem(Capabilities.FluidHandler.ITEM, (stack, ctx) -> item.getFluidHandler(stack), item)}.
+   * {@code event.registerItem(Capabilities.Fluid.ITEM, (stack, ctx) -> item.getFluidHandler(stack), item)}.
    * {@link #getFluidHandler(ItemStack)} builds the handler for that registration.
    */
   public static class FluidContainerFoodItem extends ContainerFoodItem {

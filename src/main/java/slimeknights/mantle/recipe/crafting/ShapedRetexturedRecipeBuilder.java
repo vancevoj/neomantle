@@ -5,7 +5,7 @@ import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -65,7 +65,7 @@ public class ShapedRetexturedRecipeBuilder {
    * @param output   Recipe output
    * @param location Recipe location
    */
-  public void build(RecipeOutput output, ResourceLocation location) {
+  public void build(RecipeOutput output, Identifier location) {
     this.validate();
     parent.save(new Output(output), location);
   }
@@ -89,10 +89,10 @@ public class ShapedRetexturedRecipeBuilder {
     }
 
     @Override
-    public void accept(ResourceLocation id, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
+    public void accept(Identifier id, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
       ShapedRecipe shaped = (ShapedRecipe) recipe;
       // ShapedRecipe.getResultItem ignores the provider and returns the stored result, so null is safe here
-      ShapedRetexturedRecipe retextured = new ShapedRetexturedRecipe(shaped.getGroup(), shaped.category(), shaped.pattern, shaped.getResultItem(null), shaped.showNotification(), texture, matchAll);
+      ShapedRetexturedRecipe retextured = new ShapedRetexturedRecipe(shaped.group(), shaped.category(), shaped.pattern, shaped.getResultItem(null), shaped.showNotification(), texture, matchAll);
       wrapped.accept(id, retextured, advancement, conditions);
     }
 

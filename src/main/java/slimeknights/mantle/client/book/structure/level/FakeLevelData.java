@@ -4,7 +4,7 @@ package slimeknights.mantle.client.book.structure.level;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.storage.WritableLevelData;
 
 public class FakeLevelData implements WritableLevelData {

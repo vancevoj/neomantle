@@ -14,7 +14,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -121,14 +121,14 @@ public class TagsForCommand {
    * @param <T>         Collection type
    * @return  Number of tags printed
    */
-  private static <T> int printOwningTags(CommandContext<CommandSourceStack> context, TagSource<T> registry, T value, @Nullable ResourceLocation key) {
-    MutableComponent output = Component.translatable("command.mantle.tags_for.success", registry.key().location(), key);
-    List<ResourceLocation> tags = registry.tagsFor(value).map(TagKey::location).toList();
+  private static <T> int printOwningTags(CommandContext<CommandSourceStack> context, TagSource<T> registry, T value, @Nullable Identifier key) {
+    MutableComponent output = Component.translatable("command.mantle.tags_for.success", registry.key().identifier(), key);
+    List<Identifier> tags = registry.tagsFor(value).map(TagKey::location).toList();
     if (tags.isEmpty()) {
       output.append("\n* ").append(NO_TAGS);
     } else {
       tags.stream()
-          .sorted(ResourceLocation::compareNamespaced)
+          .sorted(Identifier::compareNamespaced)
           .forEach(tag -> output.append("\n* " + tag));
     }
     context.getSource().sendSuccess(() -> output, true);
@@ -145,11 +145,11 @@ public class TagsForCommand {
 
   /** Runs the registry ID subcommand making generics happy */
   private static <T> int runForIdGeneric(CommandContext<CommandSourceStack> context, TagSource<T> registry) throws CommandSyntaxException {
-    ResourceLocation name = context.getArgument("name", ResourceLocation.class);
+    Identifier name = context.getArgument("name", Identifier.class);
     // first, fetch value
     T value = registry.getValue(name);
     if (value == null) {
-      throw VALUE_NOT_FOUND.create(registry.key().location(), name);
+      throw VALUE_NOT_FOUND.create(registry.key().identifier(), name);
     }
     return printOwningTags(context, registry, value, name);
   }
@@ -179,7 +179,7 @@ public class TagsForCommand {
   private static int heldFluid(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
     CommandSourceStack source = context.getSource();
     ItemStack stack = source.getPlayerOrException().getMainHandItem();
-    IFluidHandlerItem handler = stack.getCapability(Capabilities.FluidHandler.ITEM);
+    IFluidHandlerItem handler = stack.getCapability(Capabilities.Fluid.ITEM);
     if (handler != null && handler.getTanks() > 0) {
       FluidStack fluidStack = handler.getFluidInTank(0);
       if (!fluidStack.isEmpty()) {
@@ -209,7 +209,7 @@ public class TagsForCommand {
     CommandSourceStack source = context.getSource();
     ItemStack stack = source.getPlayerOrException().getMainHandItem();
     // enchantments are a datapack registry in 1.21, fetch from the dynamic registries
-    Registry<Enchantment> registry = source.registryAccess().registryOrThrow(Registries.ENCHANTMENT);
+    Registry<Enchantment> registry = source.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
     Set<Holder<Enchantment>> enchantments = EnchantmentHelper.getEnchantmentsForCrafting(stack).keySet();
     if (!enchantments.isEmpty()) {
       int totalTags = 0;
@@ -276,7 +276,7 @@ public class TagsForCommand {
         return printOwningTags(context, BuiltInRegistries.FLUID, fluid.getType());
       }
       // next try fluid capability
-      IFluidHandler fluidHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, pos, blockTrace.getDirection());
+      IFluidHandler fluidHandler = level.getCapability(Capabilities.Fluid.BLOCK, pos, blockTrace.getDirection());
       if (fluidHandler != null) {
         if (fluidHandler.getTanks() > 0) {
           FluidStack fluidStack = fluidHandler.getFluidInTank(0);

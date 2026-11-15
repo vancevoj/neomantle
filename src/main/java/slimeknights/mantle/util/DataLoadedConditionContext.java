@@ -4,7 +4,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.neoforged.neoforge.common.conditions.ICondition;
 
@@ -31,7 +31,7 @@ public enum DataLoadedConditionContext implements ICondition.IContext {
   }
 
   @Override
-  public <T> Map<ResourceLocation,Collection<Holder<T>>> getAllTags(ResourceKey<? extends Registry<T>> key) {
+  public <T> Map<Identifier,Collection<Holder<T>>> getAllTags(ResourceKey<? extends Registry<T>> key) {
     Registry<T> registry = RegistryHelper.getRegistry(key);
     if (registry != null) {
       return registry.getTags().collect(Collectors.toMap(entry -> entry.getFirst().location(), entry -> entry.getSecond().stream().toList()));

@@ -1,7 +1,7 @@
 package slimeknights.mantle.registration.object;
 
 import lombok.Getter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.LiquidBlock;
@@ -29,7 +29,7 @@ public class FlowingFluidObject<F extends FlowingFluid> extends FluidObject<F> {
   private final Supplier<? extends LiquidBlock> block;
 
   /** Main constructor */
-  public FlowingFluidObject(ResourceLocation id, @Nullable String tagName, Supplier<? extends FluidType> type, Supplier<? extends F> still, Supplier<? extends F> flowing, @Nullable Supplier<? extends LiquidBlock> block) {
+  public FlowingFluidObject(Identifier id, @Nullable String tagName, Supplier<? extends FluidType> type, Supplier<? extends F> still, Supplier<? extends F> flowing, @Nullable Supplier<? extends LiquidBlock> block) {
     super(id, tagName, type, still);
     this.localTag = FluidTags.create(id);
     this.flowing = flowing;

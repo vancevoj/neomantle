@@ -3,7 +3,7 @@ package slimeknights.mantle.client.screen.book.element;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import slimeknights.mantle.client.book.data.SectionData;
 import slimeknights.mantle.client.screen.book.BookScreen;
@@ -42,7 +42,7 @@ public class SelectionElement extends SizedBookElement {
   }
 
   @Override
-  public void draw(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
+  public void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
     boolean unlocked = this.section.isUnlocked(this.parent.advancementCache);
     boolean hover = this.isHovered(mouseX, mouseY);
 
@@ -69,13 +69,13 @@ public class SelectionElement extends SizedBookElement {
         int textW = fontRenderer.width(splitTitle[i]);
         int textX = this.x + WIDTH / 2 - textW / 2;
         int textY = this.y + HEIGHT - fontRenderer.lineHeight / 2 + fontRenderer.lineHeight * i;
-        graphics.drawString(fontRenderer, splitTitle[i], textX, textY, hover ? 0xFF000000 : 0x7F000000, false);
+        graphics.text(fontRenderer, splitTitle[i], textX, textY, hover ? 0xFF000000 : 0x7F000000, false);
       }
     }
   }
 
   @Override
-  public void drawOverlay(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
+  public void drawOverlay(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
     if (this.section != null && this.isHovered(mouseX, mouseY)) {
       List<Component> text = new ArrayList<>();
 

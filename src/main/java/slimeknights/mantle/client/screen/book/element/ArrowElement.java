@@ -1,7 +1,7 @@
 package slimeknights.mantle.client.screen.book.element;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button.OnPress;
 import slimeknights.mantle.client.screen.book.ArrowButton;
 
@@ -16,7 +16,7 @@ public class ArrowElement extends ButtonElement {
   }
 
   @Override
-  public void draw(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
+  public void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
     this.button.renderButton(graphics, mouseX, mouseY, partialTicks, parent.book);
   }
 

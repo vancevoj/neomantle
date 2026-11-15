@@ -4,7 +4,7 @@ import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
@@ -34,7 +34,7 @@ import java.util.List;
 import static slimeknights.mantle.client.screen.book.Textures.TEX_SMELTING;
 
 public class ContentSmelting extends PageContent {
-  public static final ResourceLocation ID = Mantle.getResource("smelting");
+  public static final Identifier ID = Mantle.getResource("smelting");
 
   private static final NonNullList<ItemStack> FUELS;
 
@@ -102,14 +102,14 @@ public class ContentSmelting extends PageContent {
   public void load() {
     super.load();
 
-    if (!StringUtils.isEmpty(this.recipe) && ResourceLocation.tryParse(this.recipe) != null) {
+    if (!StringUtils.isEmpty(this.recipe) && Identifier.tryParse(this.recipe) != null) {
       Level level = Minecraft.getInstance().level;
       assert level != null;
-      Recipe<?> recipe = level.getRecipeManager().byKey(ResourceLocation.parse(this.recipe)).map(RecipeHolder::value).orElse(null);
+      Recipe<?> recipe = level.getRecipeManager().byKey(Identifier.parse(this.recipe)).map(RecipeHolder::value).orElse(null);
 
       if (recipe instanceof AbstractCookingRecipe) {
         this.input = IngredientData.getItemStackData(NonNullList.of(ItemStack.EMPTY, recipe.getIngredients().get(0).getItems()));
-        this.cookTime = ((AbstractCookingRecipe) recipe).getCookingTime();
+        this.cookTime = ((AbstractCookingRecipe) recipe).cookingTime();
         this.result = IngredientData.getItemStackData(recipe.getResultItem(level.registryAccess()));
       }
     }

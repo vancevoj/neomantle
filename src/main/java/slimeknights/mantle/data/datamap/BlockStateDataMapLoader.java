@@ -6,7 +6,7 @@ import com.google.gson.JsonSyntaxException;
 import lombok.Getter;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.GsonHelper;
@@ -45,27 +45,27 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
   }
 
   /** Creates the parsing context for this loader */
-  protected Loadable<T> prepareLoader(Map<ResourceLocation,JsonElement> jsons) {
+  protected Loadable<T> prepareLoader(Map<Identifier,JsonElement> jsons) {
     return dataLoader;
   }
 
 
   @SuppressWarnings("deprecation")  // no its not
   @Override
-  protected void apply(Map<ResourceLocation,JsonElement> jsons, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
+  protected void apply(Map<Identifier,JsonElement> jsons, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
     long time = System.nanoTime();
     // final map being parsed
     Map<BlockState,T> dataMap = new HashMap<>();
     // temporary map to ensure we don't store partial value list
     Map<BlockState,T> localMap = new HashMap<>();
     // map of parsed data from entries fetching other data
-    Map<ResourceLocation,T> locationMap = new HashMap<>();
+    Map<Identifier,T> locationMap = new HashMap<>();
 
     Loadable<T> dataLoader = prepareLoader(jsons);
 
     // parse through block registry, don't care about non-block entries
     for (Entry<ResourceKey<Block>,Block> entry : BuiltInRegistries.BLOCK.entrySet()) {
-      ResourceLocation location = entry.getKey().location();
+      Identifier location = entry.getKey().location();
       JsonElement element = jsons.get(location);
       if (element != null) {
         try {
@@ -85,7 +85,7 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
             // if its a string, treat it as a location to another JSON
             T data;
             if (variantElement.isJsonPrimitive()) {
-              ResourceLocation parent = JsonHelper.convertToResourceLocation(variantElement, key);
+              Identifier parent = JsonHelper.convertToResourceLocation(variantElement, key);
               data = locationMap.get(parent);
               if (data == null) {
                 JsonElement parentElement = jsons.get(parent);

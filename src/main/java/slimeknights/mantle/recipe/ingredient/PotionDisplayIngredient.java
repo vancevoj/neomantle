@@ -50,7 +50,7 @@ public class PotionDisplayIngredient extends ItemIngredient {
   public Stream<ItemStack> getItems() {
     // show every registered potion on each matched item (1.21 has no empty potion to skip)
     List<ItemStack> parentStacks = super.getItems().toList();
-    return BuiltInRegistries.POTION.holders()
+    return BuiltInRegistries.POTION.listElements()
       .flatMap(potion -> parentStacks.stream().map(item -> {
         ItemStack copy = item.copy();
         copy.set(DataComponents.POTION_CONTENTS, new PotionContents(potion));

@@ -1,7 +1,7 @@
 package slimeknights.mantle.registration.object;
 
 import lombok.Getter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 public class FluidObject<F extends Fluid> implements Supplier<F>, ItemLike, IdAwareObject {
   /** Fluid name, used for tag creation */
   @Getter @Nonnull
-  protected final ResourceLocation id;
+  protected final Identifier id;
 
   /** Tag in the forge namespace, crafting equivalence */
   @Getter @Nullable
@@ -36,7 +36,7 @@ public class FluidObject<F extends Fluid> implements Supplier<F>, ItemLike, IdAw
   private final Supplier<? extends F> still;
 
   /** Main constructor */
-  public FluidObject(ResourceLocation id, @Nullable String tagName, Supplier<? extends FluidType> type, Supplier<? extends F> still) {
+  public FluidObject(Identifier id, @Nullable String tagName, Supplier<? extends FluidType> type, Supplier<? extends F> still) {
     this.id = id;
     this.commonTag = tagName == null ? null : FluidTags.create(Mantle.commonResource(tagName));
     this.type = type;

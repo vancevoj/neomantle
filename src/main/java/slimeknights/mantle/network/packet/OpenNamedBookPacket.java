@@ -5,7 +5,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.book.BookLoader;
@@ -17,15 +17,15 @@ public class OpenNamedBookPacket implements IThreadsafePacket {
   public static final Type<OpenNamedBookPacket> TYPE = new Type<>(Mantle.getResource("open_named_book"));
   public static final StreamCodec<RegistryFriendlyByteBuf,OpenNamedBookPacket> STREAM_CODEC = ISimplePacket.codec(OpenNamedBookPacket::new);
 
-  private final ResourceLocation book;
+  private final Identifier book;
 
   public OpenNamedBookPacket(FriendlyByteBuf buffer) {
-    this.book = buffer.readResourceLocation();
+    this.book = buffer.readIdentifier();
   }
 
   @Override
   public void encode(FriendlyByteBuf buf) {
-    buf.writeResourceLocation(book);
+    buf.writeIdentifier(book);
   }
 
   @Override
@@ -44,7 +44,7 @@ public class OpenNamedBookPacket implements IThreadsafePacket {
   }
 
   static class ClientOnly {
-    static void errorStatus(ResourceLocation book) {
+    static void errorStatus(Identifier book) {
       BookCommand.bookNotFound(book);
     }
   }

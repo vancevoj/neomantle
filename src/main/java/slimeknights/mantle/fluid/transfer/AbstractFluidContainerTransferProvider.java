@@ -5,7 +5,7 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.PackOutput.Target;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture;
 /** Data gen for fluid transfer logic */
 @SuppressWarnings("unused")
 public abstract class AbstractFluidContainerTransferProvider extends GenericDataProvider {
-  private final Map<ResourceLocation,TransferJson> allTransfers = new HashMap<>();
+  private final Map<Identifier,TransferJson> allTransfers = new HashMap<>();
   private final String modId;
 
   public AbstractFluidContainerTransferProvider(PackOutput packOutput, String modId) {
@@ -37,7 +37,7 @@ public abstract class AbstractFluidContainerTransferProvider extends GenericData
   protected abstract void addTransfers();
 
   /** Adds a transfer to be saved */
-  protected void addTransfer(ResourceLocation id, IFluidContainerTransfer transfer, ICondition... conditions) {
+  protected void addTransfer(Identifier id, IFluidContainerTransfer transfer, ICondition... conditions) {
     TransferJson previous = allTransfers.putIfAbsent(id, new TransferJson(transfer, conditions));
     if (previous != null) {
       throw new IllegalArgumentException("Duplicate fluid container transfer " + id);
@@ -46,7 +46,7 @@ public abstract class AbstractFluidContainerTransferProvider extends GenericData
 
   /** Adds a transfer to be saved */
   protected void addTransfer(String name, IFluidContainerTransfer transfer, ICondition... conditions) {
-    addTransfer(ResourceLocation.fromNamespaceAndPath(modId, name), transfer, conditions);
+    addTransfer(Identifier.fromNamespaceAndPath(modId, name), transfer, conditions);
   }
 
   /** Adds generic fill and empty for a container */

@@ -9,9 +9,9 @@ import com.google.gson.JsonSyntaxException;
 import com.mojang.datafixers.util.Either;
 import com.mojang.math.Transformation;
 import lombok.Getter;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.BlockElement;
-import net.minecraft.client.renderer.block.model.BlockElementFace;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.cuboid.CuboidModelElement;
+import net.minecraft.client.resources.model.cuboid.CuboidFace;
 import net.minecraft.client.renderer.block.model.BlockModel;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -19,12 +19,12 @@ import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ModelBakery;
-import net.minecraft.client.resources.model.ModelState;
+import net.minecraft.client.renderer.block.dispatch.ModelState;
 import net.minecraft.client.resources.model.SimpleBakedModel;
 import net.minecraft.client.resources.model.SimpleBakedModel.Builder;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.neoforged.neoforge.client.RenderTypeGroup;
@@ -55,14 +55,14 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
   /** Model loader for vanilla block model, mainly intended for use in fallback registration */
   public static final IGeometryLoader<SimpleBlockModel> LOADER = SimpleBlockModel::deserialize;
   /** Location used for baking dynamic models, name does not matter so just using a constant */
-  static final ResourceLocation BAKE_LOCATION = Mantle.getResource("dynamic_model_baking");
+  static final Identifier BAKE_LOCATION = Mantle.getResource("dynamic_model_baking");
 
   /** Parent model location, used to fetch parts and for textures if the owner is not a block model */
   @Getter
   @Nullable
-  private ResourceLocation parentLocation;
+  private Identifier parentLocation;
   /** Model parts for baked model, if empty uses parent parts */
-  private final List<BlockElement> parts;
+  private final List<CuboidModelElement> parts;
   /** Fallback textures in case the owner does not contain a block model */
   @Getter
   private final Map<String,Either<Material, String>> textures;
@@ -75,7 +75,7 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
    * @param textures        List of textures for iteration, in case the owner is not BlockModel
    * @param parts           List of parts in the model
    */
-  public SimpleBlockModel(@Nullable ResourceLocation parentLocation, Map<String,Either<Material,String>> textures, List<BlockElement> parts) {
+  public SimpleBlockModel(@Nullable Identifier parentLocation, Map<String,Either<Material,String>> textures, List<CuboidModelElement> parts) {
     this.parts = parts;
     this.textures = textures;
     this.parentLocation = parentLocation;
@@ -96,14 +96,14 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
    * @return  Elements in the model
    */
   @SuppressWarnings("deprecation")
-  public List<BlockElement> getElements() {
+  public List<CuboidModelElement> getElements() {
     return parts.isEmpty() && parent != null ? parent.getElements() : parts;
   }
 
   /* Textures */
 
   @Override
-  public void resolveParents(Function<ResourceLocation,UnbakedModel> modelGetter, IGeometryBakingContext owner) {
+  public void resolveParents(Function<Identifier,UnbakedModel> modelGetter, IGeometryBakingContext owner) {
     // no work if no parent or the parent is fetched already
     if (parent != null || parentLocation == null) {
       return;
@@ -144,7 +144,7 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
    * @return  Block model instance, null if there was an error
    */
   @Nullable
-  private static BlockModel getParent(Function<ResourceLocation,UnbakedModel> modelGetter, Set<UnbakedModel> chain, ResourceLocation location, String name) {
+  private static BlockModel getParent(Function<Identifier,UnbakedModel> modelGetter, Set<UnbakedModel> chain, Identifier location, String name) {
     // model must exist
     UnbakedModel unbaked = modelGetter.apply(location);
     if (unbaked == null) {
@@ -169,7 +169,7 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
    * @return  Missing model as a {@link BlockModel}
    */
   @Nonnull
-  private static BlockModel getMissing(Function<ResourceLocation,UnbakedModel> modelGetter) {
+  private static BlockModel getMissing(Function<Identifier,UnbakedModel> modelGetter) {
     UnbakedModel model = modelGetter.apply(ModelBakery.MISSING_MODEL_LOCATION);
     if (!(model instanceof BlockModel)) {
       throw new IllegalStateException("Failed to load missing model");
@@ -194,9 +194,9 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
    * @param quadTransformer  Additional forge transforms
    * @param location         Model location
    */
-  public static void bakePart(Builder builder, IGeometryBakingContext owner, BlockElement part, Function<Material,TextureAtlasSprite> spriteGetter, ModelState transform, IQuadTransformer quadTransformer, ResourceLocation location) {
+  public static void bakePart(Builder builder, IGeometryBakingContext owner, CuboidModelElement part, Function<Material,TextureAtlasSprite> spriteGetter, ModelState transform, IQuadTransformer quadTransformer, Identifier location) {
     for(Direction direction : part.faces.keySet()) {
-      BlockElementFace face = part.faces.get(direction);
+      CuboidFace face = part.faces.get(direction);
       // ensure the name is not prefixed (it always is)
       String texture = face.texture();
       if (texture.charAt(0) == '#') {
@@ -218,7 +218,7 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
 
   /** Gets the render type group from the given model context */
   public static RenderTypeGroup getRenderTypeGroup(IGeometryBakingContext owner) {
-    ResourceLocation renderTypeHint = owner.getRenderTypeHint();
+    Identifier renderTypeHint = owner.getRenderTypeHint();
     return renderTypeHint != null ? owner.getRenderType(renderTypeHint) : RenderTypeGroup.EMPTY;
   }
 
@@ -243,12 +243,12 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
    * @param location      Model bake location
    * @return  Baked model
    */
-  public static BakedModel bakeModel(IGeometryBakingContext owner, List<BlockElement> elements, Function<Material,TextureAtlasSprite> spriteGetter, ModelState transform, ItemOverrides overrides, ResourceLocation location) {
+  public static BakedModel bakeModel(IGeometryBakingContext owner, List<CuboidModelElement> elements, Function<Material,TextureAtlasSprite> spriteGetter, ModelState transform, ItemOverrides overrides, Identifier location) {
     // iterate parts, adding to the builder
     TextureAtlasSprite particle = spriteGetter.apply(owner.getMaterial("particle"));
     SimpleBakedModel.Builder builder = bakedBuilder(owner, overrides).particle(particle);
     IQuadTransformer quadTransformer = applyTransform(transform, owner.getRootTransform());
-    for(BlockElement part : elements) {
+    for(CuboidModelElement part : elements) {
       bakePart(builder, owner, part, spriteGetter, transform, quadTransformer, location);
     }
     return builder.build(getRenderTypeGroup(owner));
@@ -265,12 +265,12 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
    * @param transform     Transform to apply
    * @return  Baked model
    */
-  public BakedModel bakeWithElements(IGeometryBakingContext owner, List<BlockElement> elements, ModelState transform) {
+  public BakedModel bakeWithElements(IGeometryBakingContext owner, List<CuboidModelElement> elements, ModelState transform) {
     return bakeModel(owner, elements, Material::sprite, transform, ItemOverrides.EMPTY, BAKE_LOCATION);
   }
 
   /**
-   * Same as {@link #bake(IGeometryBakingContext, ModelBaker, Function, ModelState, ItemOverrides, ResourceLocation)}, but passes in sensible defaults for values unneeded in dynamic models
+   * Same as {@link #bake(IGeometryBakingContext, ModelBaker, Function, ModelState, ItemOverrides, Identifier)}, but passes in sensible defaults for values unneeded in dynamic models
    * @param owner         Model configuration
    * @param transform     Transform to apply
    * @return  Baked model
@@ -291,12 +291,12 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
   public static SimpleBlockModel deserialize(JsonObject json, JsonDeserializationContext context) {
     // parent, null if missing
     String parentName = GsonHelper.getAsString(json, "parent", "");
-    ResourceLocation parent = parentName.isEmpty() ? null : ResourceLocation.parse(parentName);
+    Identifier parent = parentName.isEmpty() ? null : Identifier.parse(parentName);
 
     // textures, empty map if missing
     Map<String, Either<Material, String>> textureMap;
     if (json.has("textures")) {
-      ResourceLocation atlas = InventoryMenu.BLOCK_ATLAS;
+      Identifier atlas = InventoryMenu.BLOCK_ATLAS;
       JsonObject textures = GsonHelper.getAsJsonObject(json, "textures");
       Map<String, Either<Material, String>> builder = new HashMap<>(textures.size());
       for(Entry<String, JsonElement> entry : textures.entrySet()) {
@@ -308,7 +308,7 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
     }
 
     // elements, empty list if missing
-    List<BlockElement> parts;
+    List<CuboidModelElement> parts;
     if (json.has("elements")) {
       parts = getModelElements(context, GsonHelper.getAsJsonArray(json, "elements"), "elements");
     } else {
@@ -323,18 +323,18 @@ public class SimpleBlockModel implements IUnbakedGeometry<SimpleBlockModel> {
    * @param element  Json array
    * @return  Model list
    */
-  public static List<BlockElement> getModelElements(JsonDeserializationContext context, JsonElement element, String name) {
+  public static List<CuboidModelElement> getModelElements(JsonDeserializationContext context, JsonElement element, String name) {
     // if just one element, array is optional
     if (element.isJsonObject()) {
-      // cast ensures we call List.of(BlockElement) instead of List.of(BlockElement[]) as the type is vague
-      return List.of((BlockElement)context.deserialize(element.getAsJsonObject(), BlockElement.class));
+      // cast ensures we call List.of(CuboidModelElement) instead of List.of(CuboidModelElement[]) as the type is vague
+      return List.of((CuboidModelElement)context.deserialize(element.getAsJsonObject(), CuboidModelElement.class));
     }
     // if an array, get array of elements
     if (element.isJsonArray()) {
       JsonArray array = element.getAsJsonArray();
-      List<BlockElement> builder = new ArrayList<>(array.size());
+      List<CuboidModelElement> builder = new ArrayList<>(array.size());
       for(JsonElement json : array) {
-        builder.add(context.deserialize(json, BlockElement.class));
+        builder.add(context.deserialize(json, CuboidModelElement.class));
       }
       return List.copyOf(builder);
     }

@@ -1,7 +1,7 @@
 package slimeknights.mantle.fluid.texture;
 
 import net.minecraft.data.PackOutput;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.neoforged.neoforge.fluids.FluidType;
 import slimeknights.mantle.data.client.DeanimateTextureGenerator;
@@ -30,7 +30,7 @@ public class FluidTextureCameraProvider extends DeanimateTextureGenerator {
     for (Entry<FluidType, FluidTexture.Builder> entry : provider.getAllTextures().entrySet()) {
       if (!skip.contains(entry.getKey())) {
         FluidTexture.Builder builder = entry.getValue();
-        ResourceLocation camera = builder.getCamera();
+        Identifier camera = builder.getCamera();
         if (camera != null) {
           deanimate(builder.getStill(), camera);
         }

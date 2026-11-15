@@ -6,12 +6,12 @@ import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.ingredients.IIngredientRenderer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -35,7 +35,7 @@ import java.util.Set;
  */
 @RequiredArgsConstructor
 public class EntityIngredientRenderer implements IIngredientRenderer<EntityIngredient.EntityInput> {
-  private static final ResourceLocation MISSING = Mantle.getResource("textures/item/missingno.png");
+  private static final Identifier MISSING = Mantle.getResource("textures/item/missingno.png");
   /** Entity types that will not render, as they either errored or are the wrong type */
   private static final Set<EntityType<?>> IGNORED_ENTITIES = new HashSet<>();
 
@@ -56,7 +56,7 @@ public class EntityIngredientRenderer implements IIngredientRenderer<EntityIngre
   }
 
   @Override
-  public void render(GuiGraphics graphics, @Nullable EntityIngredient.EntityInput input) {
+  public void render(GuiGraphicsExtractor graphics, @Nullable EntityIngredient.EntityInput input) {
     if (input != null) {
       Level world = Minecraft.getInstance().level;
       EntityType<?> type = input.type();
@@ -64,7 +64,7 @@ public class EntityIngredientRenderer implements IIngredientRenderer<EntityIngre
         Entity entity;
         // players cannot be created using the type, but we can use the client player
         // side effect is it renders armor/items
-        if (type == EntityType.PLAYER) {
+        if (type == EntityTypes.PLAYER) {
           entity = Minecraft.getInstance().player;
         } else {
           // entity is created with the client world, but the entity map is thrown away when JEI restarts so they should be okay I think

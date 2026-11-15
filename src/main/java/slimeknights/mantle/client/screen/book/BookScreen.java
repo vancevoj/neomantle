@@ -8,14 +8,14 @@ import net.minecraft.advancements.AdvancementNode;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.font.FontManager;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientAdvancements;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
 import org.joml.Vector3f;
@@ -142,24 +142,24 @@ public class BookScreen extends Screen {
   }
 
   private Vector3f splitRGB(int color) {
-    float r = FastColor.ARGB32.red(color) / 255.F;
-    float g = FastColor.ARGB32.green(color)  / 255.F;
-    float b = FastColor.ARGB32.blue(color)  / 255.F;
+    float r = ARGB.red(color) / 255.F;
+    float g = ARGB.green(color)  / 255.F;
+    float b = ARGB.blue(color)  / 255.F;
 
     return new Vector3f(r, g, b);
   }
 
   private Vector4f splitRGBA(int color) {
-    float r = FastColor.ARGB32.red(color) / 255.F;
-    float g = FastColor.ARGB32.green(color)  / 255.F;
-    float b = FastColor.ARGB32.blue(color)  / 255.F;
-    float a = FastColor.ARGB32.alpha(color)  / 255.F;
+    float r = ARGB.red(color) / 255.F;
+    float g = ARGB.green(color)  / 255.F;
+    float b = ARGB.blue(color)  / 255.F;
+    float a = ARGB.alpha(color)  / 255.F;
 
     return new Vector4f(r, g, b, a);
   }
 
   @Override
-  public void render(GuiGraphics graphics, int mouseX ,int mouseY, float partialTicks) {
+  public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX ,int mouseY, float partialTicks) {
     if(this.minecraft == null) {
       return;
     }
@@ -169,13 +169,13 @@ public class BookScreen extends Screen {
     // The old code drew the book first and only called super.render() at the end, so the blur
     // pass smeared the whole book (and held item, and world). Render the backdrop first, then the
     // book content, then the widgets manually (end of method) so the blur stays behind the book.
-    this.renderBackground(graphics, mouseX, mouseY, partialTicks);
+    this.extractBackground(graphics, mouseX, mouseY, partialTicks);
 
     Font fontRenderer = getFontRenderer();
 
     if (debug) {
       graphics.fill(0, 0, fontRenderer.width("DEBUG") + 4, fontRenderer.lineHeight + 4, 0x55000000);
-      graphics.drawString(this.font, "DEBUG", 2, 2, 0xFFFFFFFF, false);
+      graphics.text(this.font, "DEBUG", 2, 2, 0xFFFFFFFF, false);
     }
 
     RenderSystem.setShader(GameRenderer::getPositionTexShader);
@@ -223,14 +223,14 @@ public class BookScreen extends Screen {
           String pNum = this.page * 2 + "";
           matrixStack.pushPose();
           drawerTransform(matrixStack, false);
-          graphics.drawString(fontRenderer, pNum, (PAGE_WIDTH - fontRenderer.width(pNum)) / 2f, PAGE_HEIGHT - 10, 0xFFAAAAAA, false);
+          graphics.text(fontRenderer, pNum, (PAGE_WIDTH - fontRenderer.width(pNum)) / 2f, PAGE_HEIGHT - 10, 0xFFAAAAAA, false);
           matrixStack.popPose();
         }
         if (renderRight) {
           String pNum = this.page * 2 + 1 + "";
           matrixStack.pushPose();
           drawerTransform(matrixStack, true);
-          graphics.drawString(fontRenderer, pNum, (PAGE_WIDTH - fontRenderer.width(pNum)) / 2f, PAGE_HEIGHT - 10, 0xFFAAAAAA, false);
+          graphics.text(fontRenderer, pNum, (PAGE_WIDTH - fontRenderer.width(pNum)) / 2f, PAGE_HEIGHT - 10, 0xFFAAAAAA, false);
           matrixStack.popPose();
         }
       }
@@ -277,10 +277,10 @@ public class BookScreen extends Screen {
     return this.page < fullPageCount - 1 || this.book.getPageCount(this.advancementCache) % 2 != 0;
   }
 
-  private void renderCover(GuiGraphics graphics, Vector3f coverColor) {
+  private void renderCover(GuiGraphicsExtractor graphics, Vector3f coverColor) {
     Font fontRenderer = getFontRenderer();
 
-    ResourceLocation cover = book.appearance.getCoverTexture();
+    Identifier cover = book.appearance.getCoverTexture();
 
     int centerX = this.width / 2 - PAGE_WIDTH_UNSCALED / 2;
     int centerY = this.height / 2 - PAGE_HEIGHT_UNSCALED / 2;
@@ -300,7 +300,7 @@ public class BookScreen extends Screen {
 
       matrixStack.scale(scale, scale, 1F);
 
-      graphics.drawString(this.font, this.book.appearance.title, (int)((this.width / 2F) / scale + 3 - width / 2F), (int)((this.height / 2F - fontRenderer.lineHeight / 2F) / scale - 4), this.book.appearance.getCoverTextColor(), true);
+      graphics.text(this.font, this.book.appearance.title, (int)((this.width / 2F) / scale + 3 - width / 2F), (int)((this.height / 2F - fontRenderer.lineHeight / 2F) / scale - 4), this.book.appearance.getCoverTextColor(), true);
       matrixStack.popPose();
     }
 
@@ -311,18 +311,18 @@ public class BookScreen extends Screen {
       float scale = Mth.clamp((float)PAGE_WIDTH / width, 0F, 1.5F);
 
       matrixStack.scale(scale, scale, 1F);
-      graphics.drawString(this.font, this.book.appearance.subtitle, (int)((this.width / 2F) / scale + 7 - width / 2F), (int)((this.height / 2F + 100 - fontRenderer.lineHeight * 2) / scale), this.book.appearance.getCoverTextColor(), true);
+      graphics.text(this.font, this.book.appearance.subtitle, (int)((this.width / 2F) / scale + 7 - width / 2F), (int)((this.height / 2F + 100 - fontRenderer.lineHeight * 2) / scale), this.book.appearance.getCoverTextColor(), true);
       matrixStack.popPose();
     }
   }
 
-  private void renderUnderLayer(GuiGraphics graphics, Vector3f coverColor) {
+  private void renderUnderLayer(GuiGraphicsExtractor graphics, Vector3f coverColor) {
     graphics.setColor(coverColor.x(), coverColor.y(), coverColor.z(), 1f);
     graphics.blit(this.book.appearance.getBookTexture(), this.width / 2 - PAGE_WIDTH_UNSCALED, this.height / 2 - PAGE_HEIGHT_UNSCALED / 2, 0, 0, PAGE_WIDTH_UNSCALED * 2, PAGE_HEIGHT_UNSCALED, TEX_SIZE, TEX_SIZE);
     graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
   }
 
-  private void renderPageBackground(GuiGraphics graphics, boolean rightSide) {
+  private void renderPageBackground(GuiGraphicsExtractor graphics, boolean rightSide) {
     Vector3f pageTint = splitRGB(this.book.appearance.getPageTint());
     graphics.setColor(pageTint.x(), pageTint.y(), pageTint.z(), 1f);
     if(!rightSide) {
@@ -333,7 +333,7 @@ public class BookScreen extends Screen {
     graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
   }
 
-  private void renderPageLayer(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks, List<BookElement> elements, ILayerRenderFunction layerFunc) {
+  private void renderPageLayer(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, List<BookElement> elements, ILayerRenderFunction layerFunc) {
     RenderSystem.setShaderTexture(0, book.appearance.getCoverTexture());
 
     Font font = getFontRenderer();
@@ -833,7 +833,7 @@ public class BookScreen extends Screen {
   public static class AdvancementCache implements ClientAdvancements.Listener {
 
     private final HashMap<Advancement, AdvancementProgress> progress = new HashMap<>();
-    private final HashMap<ResourceLocation, Advancement> nameCache = new HashMap<>();
+    private final HashMap<Identifier, Advancement> nameCache = new HashMap<>();
 
     @Nullable
     public AdvancementProgress getProgress(String id) {
@@ -846,7 +846,7 @@ public class BookScreen extends Screen {
     }
 
     public Advancement getAdvancement(String id) {
-      return this.nameCache.get(ResourceLocation.parse(id));
+      return this.nameCache.get(Identifier.parse(id));
     }
 
     @Override

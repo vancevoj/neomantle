@@ -6,18 +6,18 @@ import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.ItemUseAnimation;
 import slimeknights.mantle.util.TranslationHelper;
 
 import java.util.List;
 
 public class EdibleItem extends Item {
-  private final UseAnim useAnim;
+  private final ItemUseAnimation useAnim;
   public EdibleItem(FoodProperties foodIn) {
     this(new Properties().food(foodIn));
   }
 
-  public EdibleItem(UseAnim useAnim, Item.Properties properties) {
+  public EdibleItem(ItemUseAnimation useAnim, Item.Properties properties) {
     super(properties);
     this.useAnim = useAnim;
     if (!this.components().has(DataComponents.FOOD)) {
@@ -26,11 +26,11 @@ public class EdibleItem extends Item {
   }
 
   public EdibleItem(Item.Properties properties) {
-    this(UseAnim.EAT, properties);
+    this(ItemUseAnimation.EAT, properties);
   }
 
   @Override
-  public UseAnim getUseAnimation(ItemStack stack) {
+  public ItemUseAnimation getUseAnimation(ItemStack stack) {
     return useAnim;
   }
 

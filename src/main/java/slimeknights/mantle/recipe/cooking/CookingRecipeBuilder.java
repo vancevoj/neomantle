@@ -5,7 +5,7 @@ import com.mojang.datafixers.util.Function6;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.data.recipes.RecipeOutput;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -78,9 +78,9 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
 
 
   /**
-   * Sets the type of {@link #save(RecipeOutput, ResourceLocation)} for the sake of {@link net.neoforged.neoforge.common.crafting.ConditionalRecipe}.
-   * Note you can also just directly use {@link #saveSmelting(RecipeOutput, ResourceLocation)}, {@link #saveBlasting(RecipeOutput, ResourceLocation)},
-   * {@link #saveSmoking(RecipeOutput, ResourceLocation)}, and {@link #saveCampfire(RecipeOutput, ResourceLocation)} directly.
+   * Sets the type of {@link #save(RecipeOutput, Identifier)} for the sake of {@link net.neoforged.neoforge.common.crafting.ConditionalRecipe}.
+   * Note you can also just directly use {@link #saveSmelting(RecipeOutput, Identifier)}, {@link #saveBlasting(RecipeOutput, Identifier)},
+   * {@link #saveSmoking(RecipeOutput, Identifier)}, and {@link #saveCampfire(RecipeOutput, Identifier)} directly.
    */
   public T type(CookingType type) {
     this.type = type;
@@ -129,7 +129,7 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
 
 
   /** Helper to save a recipe */
-  protected T save(RecipeOutput output, ResourceLocation id, CookingType cookingType) {
+  protected T save(RecipeOutput output, Identifier id, CookingType cookingType) {
     if (ingredient == Ingredient.EMPTY) {
       throw new IllegalStateException("Ingredient must be set");
     }
@@ -138,22 +138,22 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
   }
 
   /** Saves the smelting recipe */
-  public T saveSmelting(RecipeOutput output, ResourceLocation id) {
+  public T saveSmelting(RecipeOutput output, Identifier id) {
     return save(output, id, CookingType.SMELTING);
   }
 
   /** Saves the blasting recipe */
-  public T saveBlasting(RecipeOutput output, ResourceLocation id) {
+  public T saveBlasting(RecipeOutput output, Identifier id) {
     return save(output, id, CookingType.BLASTING);
   }
 
   /** Saves the smoking recipe */
-  public T saveSmoking(RecipeOutput output, ResourceLocation id) {
+  public T saveSmoking(RecipeOutput output, Identifier id) {
     return save(output, id, CookingType.SMOKING);
   }
 
   /** Saves the campfire recipe */
-  public T saveCampfire(RecipeOutput output, ResourceLocation id) {
+  public T saveCampfire(RecipeOutput output, Identifier id) {
     return save(output, id, CookingType.CAMPFIRE);
   }
 
@@ -163,11 +163,11 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
   }
 
   @Override
-  public void save(RecipeOutput output, ResourceLocation id) {
+  public void save(RecipeOutput output, Identifier id) {
     save(output, id, type);
   }
 
-  /** Helper to change the cooking type in {@link #save(RecipeOutput, ResourceLocation)} for the sake of {@link net.neoforged.neoforge.common.crafting.ConditionalRecipe} */
+  /** Helper to change the cooking type in {@link #save(RecipeOutput, Identifier)} for the sake of {@link net.neoforged.neoforge.common.crafting.ConditionalRecipe} */
   @RequiredArgsConstructor
   public enum CookingType {
     SMELTING(SmeltingRecipe::new, SmeltingResultRecipe::new),

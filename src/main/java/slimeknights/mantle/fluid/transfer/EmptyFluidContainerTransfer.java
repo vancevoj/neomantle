@@ -8,7 +8,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -28,7 +28,7 @@ import java.util.function.Consumer;
 /** Fluid transfer info that empties a fluid from an item */
 @RequiredArgsConstructor
 public class EmptyFluidContainerTransfer implements IFluidContainerTransfer.WithDirection {
-  public static final ResourceLocation ID = Mantle.getResource("empty_item");
+  public static final Identifier ID = Mantle.getResource("empty_item");
 
   protected final Ingredient input;
   protected final ItemOutput result;

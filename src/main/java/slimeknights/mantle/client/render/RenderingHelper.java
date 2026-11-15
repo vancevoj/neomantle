@@ -45,7 +45,7 @@ public class RenderingHelper {
     if (facing.getAxis().isHorizontal() && facing != Direction.SOUTH) {
       matrices.pushPose();
       matrices.translate(0.5, 0, 0.5);
-      matrices.mulPose(Axis.YP.rotationDegrees(-90f * (facing.get2DDataValue())));
+      matrices.rotate(Axis.YP.rotationDegrees(-90f * (facing.get2DDataValue())));
       matrices.translate(-0.5, 0, -0.5);
       return true;
     }
@@ -81,11 +81,11 @@ public class RenderingHelper {
     // rotate X, then Y
     float x = renderItem.getX();
     if (x != 0) {
-      matrices.mulPose(Axis.XP.rotationDegrees(x));
+      matrices.rotate(Axis.XP.rotationDegrees(x));
     }
     float y = renderItem.getY();
     if (y != 0) {
-      matrices.mulPose(Axis.YP.rotationDegrees(y));
+      matrices.rotate(Axis.YP.rotationDegrees(y));
     }
 
     // render the actual item

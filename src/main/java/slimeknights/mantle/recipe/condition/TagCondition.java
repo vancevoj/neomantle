@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.neoforged.neoforge.common.conditions.ICondition;
@@ -30,7 +30,7 @@ public abstract class TagCondition<T> implements ICondition {
   protected Registry<T> registry(LootContext context) {
     // registry is not going to disappear within the lifetime of this object
     if (registry == null) {
-      registry = context.getLevel().registryAccess().registry(tag.registry());
+      registry = context.getLevel().registryAccess().lookup(tag.registry());
       if (registry.isEmpty()) {
         Mantle.logger.error("Failed to find registry for tag " + tag + " in " + getClass().getSimpleName() + ", this indicates a broken resource or datapack.");
       }
@@ -54,8 +54,8 @@ public abstract class TagCondition<T> implements ICondition {
     return RecordCodecBuilder.mapCodec(builder -> builder
       .group(
         // save some space in JSON by not setting registry if item (most common)
-        ResourceLocation.CODEC.optionalFieldOf("registry", Registries.ITEM.location()).forGetter(c -> c.getTag().registry().location()),
-        ResourceLocation.CODEC.fieldOf("tag").forGetter(c -> c.getTag().location()))
+        Identifier.CODEC.optionalFieldOf("registry", Registries.ITEM.identifier()).forGetter(c -> c.getTag().registry().identifier()),
+        Identifier.CODEC.fieldOf("tag").forGetter(c -> c.getTag().location()))
       .apply(builder, (registry, tag) -> constructor.apply(TagKey.create(ResourceKey.createRegistryKey(registry), tag))));
   }
 }

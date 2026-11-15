@@ -47,7 +47,7 @@ public class RetexturedLootFunction extends LootItemConditionalFunction {
 
   @Override
   protected ItemStack run(ItemStack stack, LootContext context) {
-    BlockEntity te = context.getParamOrNull(LootContextParams.BLOCK_ENTITY);
+    BlockEntity te = context.getOptional(LootContextParams.BLOCK_ENTITY);
     if (te instanceof IRetexturedBlockEntity retextured) {
       RetexturedHelper.setTexture(stack, retextured.getTextureName());
     } else {

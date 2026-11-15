@@ -57,7 +57,7 @@ public class TemplateLevel extends Level {
   public TemplateLevel(List<StructureBlockInfo> blocks, Predicate<BlockPos> shouldShow) {
     super(
       new FakeLevelData(), Level.OVERWORLD, Objects.requireNonNull(Minecraft.getInstance().level).registryAccess(),
-      Objects.requireNonNull(Minecraft.getInstance().level).registryAccess().registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(BuiltinDimensionTypes.OVERWORLD),
+      Objects.requireNonNull(Minecraft.getInstance().level).registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE).getOrThrow(BuiltinDimensionTypes.OVERWORLD),
       () -> InactiveProfiler.INSTANCE, true, false, 0, 0
     );
 
@@ -193,6 +193,6 @@ public class TemplateLevel extends Level {
   @Nonnull
   @Override
   public Holder<Biome> getUncachedNoiseBiome(int x, int y, int z) {
-    return registryAccess().registryOrThrow(Registries.BIOME).getHolderOrThrow(Biomes.PLAINS);
+    return registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.PLAINS);
   }
 }

@@ -3,7 +3,7 @@ package slimeknights.mantle.data.loadable.common;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.util.RegistryHelper;
 
@@ -35,7 +35,7 @@ public class LazyRegistryLoadable<T> implements BaseRegistryLoadable<T> {
   }
 
   @Override
-  public ResourceLocation registryId() {
+  public Identifier registryId() {
     return registryKey.location();
   }
 }

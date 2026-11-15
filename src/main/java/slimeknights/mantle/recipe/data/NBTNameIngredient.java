@@ -4,7 +4,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.common.crafting.ICustomIngredient;
@@ -26,15 +26,15 @@ public class NBTNameIngredient implements ICustomIngredient {
   // TODO(neoport): NBTNameIngredient uses legacy NBT; downstream datapacks may need component format
   public static final IngredientType<NBTNameIngredient> TYPE = new IngredientType<>(
     RecordCodecBuilder.mapCodec(inst -> inst.group(
-      ResourceLocation.CODEC.fieldOf("item").forGetter(i -> i.name),
+      Identifier.CODEC.fieldOf("item").forGetter(i -> i.name),
       CompoundTag.CODEC.optionalFieldOf("nbt").forGetter(i -> Optional.ofNullable(i.nbt))
     ).apply(inst, (name, nbt) -> new NBTNameIngredient(name, nbt.orElse(null)))));
 
-  private final ResourceLocation name;
+  private final Identifier name;
   @Nullable
   private final CompoundTag nbt;
 
-  protected NBTNameIngredient(ResourceLocation name, @Nullable CompoundTag nbt) {
+  protected NBTNameIngredient(Identifier name, @Nullable CompoundTag nbt) {
     this.name = name;
     this.nbt = nbt;
   }
@@ -45,7 +45,7 @@ public class NBTNameIngredient implements ICustomIngredient {
    * @param nbt   NBT
    * @return  Ingredient
    */
-  public static NBTNameIngredient from(ResourceLocation name, CompoundTag nbt) {
+  public static NBTNameIngredient from(Identifier name, CompoundTag nbt) {
     return new NBTNameIngredient(name, nbt);
   }
 
@@ -54,7 +54,7 @@ public class NBTNameIngredient implements ICustomIngredient {
    * @param name  Item name
    * @return  Ingredient
    */
-  public static NBTNameIngredient from(ResourceLocation name) {
+  public static NBTNameIngredient from(Identifier name) {
     return new NBTNameIngredient(name, null);
   }
 
@@ -66,7 +66,7 @@ public class NBTNameIngredient implements ICustomIngredient {
   @Override
   public Stream<ItemStack> getItems() {
     // datagen-only; return the item if it happens to resolve so the ingredient is not considered empty
-    return Stream.of(BuiltInRegistries.ITEM.get(name))
+    return Stream.of(BuiltInRegistries.ITEM.getValue(name))
                  .filter(item -> item != Items.AIR)
                  .map(ItemStack::new);
   }

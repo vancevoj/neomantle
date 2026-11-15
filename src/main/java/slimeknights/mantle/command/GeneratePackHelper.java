@@ -12,7 +12,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.world.level.storage.LevelResource;
-import net.neoforged.neoforge.common.conditions.FalseCondition;
+import net.neoforged.neoforge.common.conditions.NeverCondition;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import net.neoforged.fml.ModList;
 import slimeknights.mantle.Mantle;
@@ -80,7 +80,7 @@ public class GeneratePackHelper {
    */
   public static boolean saveConditionRemove(HolderLookup.Provider registries, Path path) {
     JsonObject json = new JsonObject();
-    ICondition.writeConditions(registries, json, FalseCondition.INSTANCE);
+    ICondition.writeConditions(registries, json, NeverCondition.INSTANCE);
     return saveJson(json, path);
   }
 

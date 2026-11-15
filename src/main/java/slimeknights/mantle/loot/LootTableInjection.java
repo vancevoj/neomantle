@@ -1,7 +1,7 @@
 package slimeknights.mantle.loot;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
@@ -19,7 +19,7 @@ import java.util.Map;
 /**
  * Record holding a list of entries to inject into the given loot table
  */
-public record LootTableInjection(ResourceLocation name, List<LootPoolInjection> pools) {
+public record LootTableInjection(Identifier name, List<LootPoolInjection> pools) {
   public static final RecordLoadable<LootTableInjection> LOADABLE = RecordLoadable.create(
     Loadables.RESOURCE_LOCATION.requiredField("name", LootTableInjection::name),
     LootPoolInjection.LOADABLE.list(1).requiredField("pools", LootTableInjection::pools),
@@ -72,7 +72,7 @@ public record LootTableInjection(ResourceLocation name, List<LootPoolInjection> 
     }
 
     /** Builds the list of injections */
-    public LootTableInjection build(ResourceLocation name) {
+    public LootTableInjection build(Identifier name) {
       return new LootTableInjection(name, pools.entrySet().stream().map(entry -> new LootPoolInjection(entry.getKey(), List.copyOf(entry.getValue()))).toList());
     }
   }

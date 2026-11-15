@@ -5,7 +5,7 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.PackOutput.Target;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import slimeknights.mantle.data.GenericDataProvider;
 
@@ -35,12 +35,12 @@ public abstract class AbstractLootTableInjectionProvider extends GenericDataProv
       if (builder.conditions.length > 0) {
         ICondition.writeConditions(JsonOps.INSTANCE, json, List.of(builder.conditions));
       }
-      return saveJson(output, ResourceLocation.fromNamespaceAndPath(domain, builder.path), json);
+      return saveJson(output, Identifier.fromNamespaceAndPath(domain, builder.path), json);
     }));
   }
 
   /** Creates a new injection */
-  protected LootTableInjection.Builder inject(String path, ResourceLocation name, ICondition... conditions) {
+  protected LootTableInjection.Builder inject(String path, Identifier name, ICondition... conditions) {
     LootTableInjection.Builder builder = new LootTableInjection.Builder();
     builders.add(new Builder(path, name, builder, conditions));
     return builder;
@@ -48,21 +48,21 @@ public abstract class AbstractLootTableInjectionProvider extends GenericDataProv
 
   /** Creates a new injection for the Minecraft domain */
   protected LootTableInjection.Builder inject(String path, String name, ICondition... conditions) {
-    return inject(path, ResourceLocation.parse(name), conditions);
+    return inject(path, Identifier.parse(name), conditions);
   }
 
   /** Creates a new injection for the Minecraft domain */
   protected LootTableInjection.Builder injectChest(String name, ICondition... conditions) {
-    return inject(name, ResourceLocation.withDefaultNamespace("chests/" + name), conditions);
+    return inject(name, Identifier.withDefaultNamespace("chests/" + name), conditions);
   }
 
   /** Creates a new injection for the Minecraft domain */
   protected LootTableInjection.Builder injectGameplay(String name, ICondition... conditions) {
-    return inject(name, ResourceLocation.withDefaultNamespace("gameplay/" + name), conditions);
+    return inject(name, Identifier.withDefaultNamespace("gameplay/" + name), conditions);
   }
 
   /** Internal builder tuple */
-  private record Builder(String path, ResourceLocation name, LootTableInjection.Builder builder, ICondition[] conditions) {
+  private record Builder(String path, Identifier name, LootTableInjection.Builder builder, ICondition[] conditions) {
     public LootTableInjection build() {
       return builder.build(name);
     }

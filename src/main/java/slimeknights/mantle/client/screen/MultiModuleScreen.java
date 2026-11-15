@@ -3,11 +3,11 @@ package slimeknights.mantle.client.screen;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
@@ -84,14 +84,14 @@ public class MultiModuleScreen<CONTAINER extends MultiModuleContainerMenu<?>> ex
 //  }
 
   @Override
-  protected void renderBg(GuiGraphics graphics, float partialTicks, int mouseX, int mouseY) {
+  protected void renderBg(GuiGraphicsExtractor graphics, float partialTicks, int mouseX, int mouseY) {
     for (ModuleScreen<?,?> module : this.modules) {
       module.handleDrawGuiContainerBackgroundLayer(graphics, partialTicks, mouseX, mouseY);
     }
   }
 
   @Override
-  protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+  protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
     this.drawContainerName(graphics);
     this.drawPlayerInventoryName(graphics);
 
@@ -106,7 +106,7 @@ public class MultiModuleScreen<CONTAINER extends MultiModuleContainerMenu<?>> ex
   }
 
   @Override
-  protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+  protected void renderTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
     super.renderTooltip(graphics, mouseX, mouseY);
 
     for (ModuleScreen<?,?> module : this.modules) {
@@ -114,19 +114,19 @@ public class MultiModuleScreen<CONTAINER extends MultiModuleContainerMenu<?>> ex
     }
   }
 
-  protected void drawBackground(GuiGraphics graphics, ResourceLocation background) {
+  protected void drawBackground(GuiGraphicsExtractor graphics, Identifier background) {
     graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
     graphics.blit(background, this.cornerX, this.cornerY, 0, 0, this.realWidth, this.realHeight);
   }
 
-  protected void drawContainerName(GuiGraphics graphics) {
-    graphics.drawString(this.font, this.getTitle().getVisualOrderText(), 8, 6, 0x404040, false);
+  protected void drawContainerName(GuiGraphicsExtractor graphics) {
+    graphics.text(this.font, this.getTitle().getVisualOrderText(), 8, 6, 0x404040, false);
   }
 
-  protected void drawPlayerInventoryName(GuiGraphics graphics) {
+  protected void drawPlayerInventoryName(GuiGraphicsExtractor graphics) {
     assert Minecraft.getInstance().player != null;
     Component localizedName = Minecraft.getInstance().player.getInventory().getDisplayName();
-    graphics.drawString(this.font, localizedName.getVisualOrderText(), 8, this.imageHeight - 96 + 2, 0x404040, false);
+    graphics.text(this.font, localizedName.getVisualOrderText(), 8, this.imageHeight - 96 + 2, 0x404040, false);
   }
 
   @Override
@@ -140,7 +140,7 @@ public class MultiModuleScreen<CONTAINER extends MultiModuleContainerMenu<?>> ex
   }
 
   @Override
-  public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+  public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks) {
     // 1.21: do NOT call renderBackground() here. Screen.render() now invokes it itself, and
     // AbstractContainerScreen.renderBackground draws BOTH the dimming overlay AND renderBg (the GUI
     // texture + our fluid tanks). Calling it manually like 1.20.1 did made everything render twice at
@@ -155,7 +155,7 @@ public class MultiModuleScreen<CONTAINER extends MultiModuleContainerMenu<?>> ex
     this.topPos = this.cornerY;
     this.imageWidth = this.realWidth;
     this.imageHeight = this.realHeight;
-    super.render(graphics, mouseX, mouseY, partialTicks);
+    super.extractRenderState(graphics, mouseX, mouseY, partialTicks);
     this.renderTooltip(graphics, mouseX, mouseY);
     this.leftPos = oldX;
     this.topPos = oldY;
@@ -194,7 +194,7 @@ public class MultiModuleScreen<CONTAINER extends MultiModuleContainerMenu<?>> ex
   }
 
   @Override
-  public void renderSlot(GuiGraphics graphics, Slot slotIn) {
+  public void renderSlot(GuiGraphicsExtractor graphics, Slot slotIn) {
     ModuleScreen<?,?> module = this.getModuleForSlot(slotIn.index);
 
     if (module != null) {

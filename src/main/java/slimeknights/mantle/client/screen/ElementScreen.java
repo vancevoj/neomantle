@@ -1,8 +1,8 @@
 package slimeknights.mantle.client.screen;
 
 import lombok.AllArgsConstructor;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
 
 /**
  * Represents a GUI element INSIDE the graphics file.
@@ -11,7 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 @AllArgsConstructor
 public class ElementScreen {
   // TODO: can this be final?
-  public ResourceLocation texture;
+  public Identifier texture;
   public final int x;
   public final int y;
   public final int w;
@@ -36,7 +36,7 @@ public class ElementScreen {
    * @param xPos X-Coordinate on the screen
    * @param yPos Y-Coordinate on the screen
    */
-  public void draw(GuiGraphics graphics, int xPos, int yPos, int blitOffset) {
+  public void draw(GuiGraphicsExtractor graphics, int xPos, int yPos, int blitOffset) {
     graphics.blit(this.texture, xPos, yPos, blitOffset, this.x, this.y, this.w, this.h, this.texW, this.texH);
   }
 
@@ -46,7 +46,7 @@ public class ElementScreen {
    * @param xPos X-Coordinate on the screen
    * @param yPos Y-Coordinate on the screen
    */
-  public void draw(GuiGraphics graphics, int xPos, int yPos) {
+  public void draw(GuiGraphicsExtractor graphics, int xPos, int yPos) {
     this.draw(graphics, xPos, yPos, 0);
   }
 }

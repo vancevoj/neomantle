@@ -5,7 +5,7 @@ import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 
 import javax.annotation.Nullable;
@@ -51,7 +51,7 @@ public record RegistryTagSource<T>(Registry<T> registry) implements TagSource<T>
 
   @Nullable
   @Override
-  public List<ResourceLocation> keysInTag(TagKey<T> tag) {
+  public List<Identifier> keysInTag(TagKey<T> tag) {
     HolderSet.Named<T> holder = registry.getTag(tag).orElse(null);
     if (holder == null) {
       return null;
@@ -65,7 +65,7 @@ public record RegistryTagSource<T>(Registry<T> registry) implements TagSource<T>
 
   @Nullable
   @Override
-  public T getValue(ResourceLocation key) {
+  public T getValue(Identifier key) {
     // prevent defaulting registries from returning their default
     if (registry.containsKey(key)) {
       return registry.get(key);
@@ -75,11 +75,11 @@ public record RegistryTagSource<T>(Registry<T> registry) implements TagSource<T>
 
   @Override
   public Stream<TagKey<T>> tagsFor(T value) {
-    return registry.getHolder(registry.getId(value)).stream().flatMap(Holder::tags);
+    return registry.get(registry.getId(value)).stream().flatMap(Holder::tags);
   }
 
   @Override
-  public Stream<ResourceLocation> valueKeys() {
+  public Stream<Identifier> valueKeys() {
     return registry.keySet().stream();
   }
 }

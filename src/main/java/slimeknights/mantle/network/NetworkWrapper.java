@@ -6,7 +6,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload.Type;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -29,7 +29,7 @@ import java.util.function.Function;
 @SuppressWarnings({"unused", "WeakerAccess"})
 public class NetworkWrapper {
   /** Channel name, also used as the payload registrar namespace */
-  public final ResourceLocation channelName;
+  public final Identifier channelName;
   /** Protocol version, validated by both sides */
   public final String version;
 
@@ -39,11 +39,11 @@ public class NetworkWrapper {
    * @deprecated Give your channel a version number.
    */
   @Deprecated
-  public NetworkWrapper(ResourceLocation channelName) {
+  public NetworkWrapper(Identifier channelName) {
     this(channelName, "1");
   }
 
-  public NetworkWrapper(ResourceLocation channelName, String version) {
+  public NetworkWrapper(Identifier channelName, String version) {
     this.channelName = channelName;
     this.version = version;
   }
@@ -105,7 +105,7 @@ public class NetworkWrapper {
    * @param payload  Packet to send
    */
   public void sendToServer(CustomPacketPayload payload) {
-    PacketDistributor.sendToServer(payload);
+    ClientPacketDistributor.sendToServer(payload);
   }
 
   /**

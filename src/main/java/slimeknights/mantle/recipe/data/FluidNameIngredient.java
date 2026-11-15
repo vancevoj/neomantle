@@ -1,6 +1,6 @@
 package slimeknights.mantle.recipe.data;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 import slimeknights.mantle.data.loadable.Loadable;
@@ -18,16 +18,16 @@ public class FluidNameIngredient extends FluidIngredient {
     IntLoadable.FROM_ONE.requiredField("amount", i -> i.amount),
     FluidNameIngredient::new);
 
-  private final ResourceLocation fluidName;
+  private final Identifier fluidName;
   private final int amount;
 
-  private FluidNameIngredient(ResourceLocation fluidName, int amount) {
+  private FluidNameIngredient(Identifier fluidName, int amount) {
     this.fluidName = fluidName;
     this.amount = amount;
   }
 
   /** Creates a new ingredient matching the given fluid name and amount */
-  public static FluidNameIngredient of(ResourceLocation fluidName, int amount) {
+  public static FluidNameIngredient of(Identifier fluidName, int amount) {
     return new FluidNameIngredient(fluidName, amount);
   }
 

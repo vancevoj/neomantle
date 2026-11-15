@@ -8,7 +8,7 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.GsonHelper;
 
 import java.lang.reflect.Type;
@@ -16,17 +16,17 @@ import java.util.function.Function;
 
 /** Extension to Resource Location serializer to change the default mod ID. */
 @RequiredArgsConstructor
-public class ResourceLocationSerializer<T extends ResourceLocation> implements JsonDeserializer<T>, JsonSerializer<T> {
+public class ResourceLocationSerializer<T extends Identifier> implements JsonDeserializer<T>, JsonSerializer<T> {
   private final Function<String,T> constructor;
   private final String modId;
 
   /** Creates an instance for resource locations */
-  public static ResourceLocationSerializer<ResourceLocation> resourceLocation(String modId) {
-    return new ResourceLocationSerializer<>(ResourceLocation::parse, modId);
+  public static ResourceLocationSerializer<Identifier> resourceLocation(String modId) {
+    return new ResourceLocationSerializer<>(Identifier::parse, modId);
   }
 
   @Override
-  public JsonElement serialize(ResourceLocation loc, Type type, JsonSerializationContext context) {
+  public JsonElement serialize(Identifier loc, Type type, JsonSerializationContext context) {
     return new JsonPrimitive(loc.toString());
   }
 

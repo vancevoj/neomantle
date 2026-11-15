@@ -4,7 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import slimeknights.mantle.data.loadable.common.NBTLoadable;
 import slimeknights.mantle.recipe.helper.ItemOutput;
@@ -15,12 +15,12 @@ import javax.annotation.Nullable;
  * Extension of {@link ItemOutput} for datagen of recipes for compat. Should never be used in an actual recipe
  */
 public class ItemNameOutput extends ItemOutput {
-  private final ResourceLocation name;
+  private final Identifier name;
   private final int count;
   @Nullable
   private final CompoundTag nbt;
 
-  protected ItemNameOutput(ResourceLocation name, int count, @Nullable CompoundTag nbt) {
+  protected ItemNameOutput(Identifier name, int count, @Nullable CompoundTag nbt) {
     this.name = name;
     this.count = count;
     this.nbt = nbt;
@@ -33,7 +33,7 @@ public class ItemNameOutput extends ItemOutput {
    * @param nbt    NBT, may be null
    * @return  Output
    */
-  public static ItemNameOutput fromName(ResourceLocation name, int count, @Nullable CompoundTag nbt) {
+  public static ItemNameOutput fromName(Identifier name, int count, @Nullable CompoundTag nbt) {
     return new ItemNameOutput(name, count, nbt);
   }
 
@@ -43,7 +43,7 @@ public class ItemNameOutput extends ItemOutput {
    * @param count  Count
    * @return  Output
    */
-  public static ItemNameOutput fromName(ResourceLocation name, int count) {
+  public static ItemNameOutput fromName(Identifier name, int count) {
     return fromName(name, count, null);
   }
 
@@ -52,7 +52,7 @@ public class ItemNameOutput extends ItemOutput {
    * @param name  Item name
    * @return  Output
    */
-  public static ItemNameOutput fromName(ResourceLocation name) {
+  public static ItemNameOutput fromName(Identifier name) {
     return fromName(name, 1);
   }
 

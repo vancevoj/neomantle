@@ -12,7 +12,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.neoforged.neoforge.common.NeoForgeMod;
@@ -67,7 +67,7 @@ public class RemoveDataCommand {
     ResourceKey<StructureSet> id = getResourceKey(context, "id", Registries.STRUCTURE_SET);
 
     // start by fetching the existing structure set JSON
-    ResourceLocation setLocation = JsonHelper.wrap(id.location(), Registries.STRUCTURE_SET.location().getPath() + '/' , ".json");
+    Identifier setLocation = JsonHelper.wrap(id.location(), Registries.STRUCTURE_SET.identifier().getPath() + '/' , ".json");
 
     // determine the path for the resulting datapack
     Path pack = GeneratePackHelper.getDatapackPath(context.getSource().getServer());
@@ -91,7 +91,7 @@ public class RemoveDataCommand {
     ResourceKey<BiomeModifier> id = getResourceKey(context, "id", BIOME_MODIFIERS);
 
     // start by fetching the existing structure set JSON
-    ResourceLocation modifierLocation = JsonHelper.wrap(id.location(), BIOME_MODIFIERS.location().getNamespace() + '/' + BIOME_MODIFIERS.location().getPath() + '/', ".json");
+    Identifier modifierLocation = JsonHelper.wrap(id.location(), BIOME_MODIFIERS.location().getNamespace() + '/' + BIOME_MODIFIERS.location().getPath() + '/', ".json");
     JsonObject json = new JsonObject();
     json.addProperty("type", NeoForgeMod.NONE_BIOME_MODIFIER_TYPE.getId().toString());
 

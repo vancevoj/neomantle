@@ -145,18 +145,18 @@ public class BlockRegistryAdapter extends EnumRegistryAdapter<Block> {
     RotatedPillarBlock wood = register(new StrippableLogBlock(getHolder(BuiltInRegistries.BLOCK, strippedWood), behaviorCreator.apply(WoodVariant.WOOD).instrument(NoteBlockInstrument.BASS).strength(2.0f)), name + "_wood");
 
     // doors
-    DoorBlock door = register(new DoorBlock(setType, behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().pushReaction(PushReaction.DESTROY)), name + "_door");
+    DoorBlock door = register(new DoorBlock(setType, behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().pushReaction(PushReaction.POPPED)), name + "_door");
     TrapDoorBlock trapdoor = register(new TrapDoorBlock(setType, behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().isValidSpawn(Blocks::never)), name + "_trapdoor");
     FenceGateBlock fenceGate = register(new FenceGateBlock(woodType, Properties.ofFullCopy(fence)), name + "_fence_gate");
     // redstone
-    BlockBehaviour.Properties redstoneProps = behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollission().pushReaction(PushReaction.DESTROY).strength(0.5F);
+    BlockBehaviour.Properties redstoneProps = behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().pushReaction(PushReaction.POPPED).strength(0.5F);
     PressurePlateBlock pressurePlate = register(new PressurePlateBlock(setType, redstoneProps), name + "_pressure_plate");
     ButtonBlock button = register(new ButtonBlock(setType, 30, redstoneProps), name + "_button");
     // signs
-    StandingSignBlock standingSign = register(new MantleStandingSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollission().strength(1.0F), woodType), name + "_sign");
-    WallSignBlock wallSign = register(new MantleWallSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollission().strength(1.0F).dropsLike(standingSign), woodType), name + "_wall_sign");
-    MantleCeilingHangingSignBlock hangingSign = register(new MantleCeilingHangingSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollission().strength(1.0F), woodType), name + "_hanging_sign");
-    MantleWallHangingSignBlock wallHangingSign = register(new MantleWallHangingSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollission().strength(1.0F).dropsLike(hangingSign), woodType), name + "_wall_hanging_sign");
+    StandingSignBlock standingSign = register(new MantleStandingSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().strength(1.0F), woodType), name + "_sign");
+    WallSignBlock wallSign = register(new MantleWallSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().strength(1.0F).dropsLike(standingSign), woodType), name + "_wall_sign");
+    MantleCeilingHangingSignBlock hangingSign = register(new MantleCeilingHangingSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().strength(1.0F), woodType), name + "_hanging_sign");
+    MantleWallHangingSignBlock wallHangingSign = register(new MantleWallHangingSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().strength(1.0F).dropsLike(hangingSign), woodType), name + "_wall_hanging_sign");
     // tell mantle to inject these into the TE
     MantleSignBlockEntity.registerSignBlock(() -> standingSign);
     MantleSignBlockEntity.registerSignBlock(() -> wallSign);

@@ -6,7 +6,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
@@ -30,7 +30,7 @@ import java.util.List;
 
 public class ContentStructure extends PageContent {
 
-  public static final transient ResourceLocation ID = Mantle.getResource("structure");
+  public static final transient Identifier ID = Mantle.getResource("structure");
 
   @Getter
   public String title;
@@ -49,7 +49,7 @@ public class ContentStructure extends PageContent {
       return;
     }
 
-    ResourceLocation location = repo.getResourceLocation(this.data);
+    Identifier location = repo.getResourceLocation(this.data);
     Resource resource = repo.getResource(location);
 
     if (resource == null) {

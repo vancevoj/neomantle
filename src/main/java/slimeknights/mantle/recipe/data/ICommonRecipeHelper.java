@@ -1,15 +1,15 @@
 package slimeknights.mantle.recipe.data;
 
-import net.minecraft.advancements.CriteriaTriggers;
-import net.minecraft.advancements.Criterion;
-import net.minecraft.advancements.critereon.InventoryChangeTrigger;
-import net.minecraft.advancements.critereon.ItemPredicate;
+import net.minecraft.advancements.triggers.CriteriaTriggers;
+import net.minecraft.advancements.triggers.Criterion;
+import net.minecraft.advancements.triggers.InventoryChangeTrigger;
+import net.minecraft.advancements.predicates.ItemPredicate;
 import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.data.recipes.ShapelessRecipeBuilder;
 import net.minecraft.data.recipes.SingleItemRecipeBuilder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -65,7 +65,7 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
    */
   default void packingRecipe(RecipeOutput consumer, RecipeCategory category, String largeName, ItemLike large, String smallName, ItemLike small, String folder) {
     // ingot to block
-    ResourceLocation largeId = id(large);
+    Identifier largeId = id(large);
     ShapedRecipeBuilder.shaped(category, large)
                        .define('#', small)
                        .pattern("###")
@@ -75,7 +75,7 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
                        .group(largeId.toString())
                        .save(consumer, wrap(largeId, folder, String.format("_from_%ss", smallName)));
     // block to ingot
-    ResourceLocation smallId = id(small);
+    Identifier smallId = id(small);
     ShapelessRecipeBuilder.shapeless(category, small, 9)
                           .requires(large)
                           .unlockedBy("has_item", hasItem(large))
@@ -96,7 +96,7 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
   default void packingRecipe(RecipeOutput consumer, RecipeCategory category, String largeName, ItemLike largeItem, String smallName, ItemLike smallItem, TagKey<Item> smallTag, String folder) {
     // ingot to block
     // note our item is in the center, any mod allowed around the edges
-    ResourceLocation largeId = id(largeItem);
+    Identifier largeId = id(largeItem);
     ShapedRecipeBuilder.shaped(category, largeItem)
                        .define('#', smallTag)
                        .define('*', smallItem)
@@ -107,7 +107,7 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
                        .group(largeId.toString())
                        .save(consumer, wrap(largeId, folder, String.format("_from_%ss", smallName)));
     // block to ingot
-    ResourceLocation smallId = id(smallItem);
+    Identifier smallId = id(smallItem);
     ShapelessRecipeBuilder.shapeless(category, smallItem, 9)
                           .requires(largeItem)
                           .unlockedBy("has_item", hasItem(largeItem))
@@ -137,7 +137,7 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
    */
   default void slabStairsCrafting(RecipeOutput consumer, BuildingBlockObject building, String folder, boolean addStonecutter) {
     Item item = building.asItem();
-    ResourceLocation itemId = id(item);
+    Identifier itemId = id(item);
     Criterion<InventoryChangeTrigger.TriggerInstance> hasBlock = hasItem(item);
     // slab
     ItemLike slab = building.getSlab();
@@ -179,7 +179,7 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
     slabStairsCrafting(consumer, building, folder, addStonecutter);
     // wall
     Item item = building.asItem();
-    ResourceLocation itemId = id(item);
+    Identifier itemId = id(item);
     Criterion<InventoryChangeTrigger.TriggerInstance> hasBlock = hasItem(item);
     ItemLike wall = building.getWall();
     ShapedRecipeBuilder.shaped(RecipeCategory.BUILDING_BLOCKS, wall, 6)

@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.GsonHelper;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
@@ -27,12 +27,12 @@ import java.util.Objects;
 public final class FluidTexture {
   private static final EnumLoadable<FogShape> FOG_SHAPE_LOADABLE = new EnumLoadable<>(FogShape.class);
 
-  private final ResourceLocation still;
-  private final ResourceLocation flowing;
+  private final Identifier still;
+  private final Identifier flowing;
   @Nullable
-  private final ResourceLocation overlay;
+  private final Identifier overlay;
   @Nullable
-  private final ResourceLocation camera;
+  private final Identifier camera;
   private final float cameraOpacity;
   private final int color;
   // fog
@@ -43,9 +43,9 @@ public final class FluidTexture {
   private final float fogStart;
   private final float fogEnd;
 
-  /** @deprecated use {@link #FluidTexture(ResourceLocation, ResourceLocation, ResourceLocation, ResourceLocation, float, int, int, boolean, FogShape, float, float)} */
+  /** @deprecated use {@link #FluidTexture(Identifier, Identifier, Identifier, Identifier, float, int, int, boolean, FogShape, float, float)} */
   @Deprecated(forRemoval = true)
-  public FluidTexture(ResourceLocation still, ResourceLocation flowing, @Nullable ResourceLocation overlay, @Nullable ResourceLocation camera, int color) {
+  public FluidTexture(Identifier still, Identifier flowing, @Nullable Identifier overlay, @Nullable Identifier camera, int color) {
     this(still, flowing, overlay, camera, 0.1f, color, -1, false, null, 0.25f, 1);
   }
 
@@ -94,10 +94,10 @@ public final class FluidTexture {
 
   /** Deserializes this from JSON */
   public static FluidTexture deserialize(JsonObject json) {
-    ResourceLocation still = JsonHelper.getResourceLocation(json, "still");
-    ResourceLocation flowing = JsonHelper.getResourceLocation(json, "flowing");
-    ResourceLocation overlay = JsonHelper.getResourceLocation(json, "overlay", null);
-    ResourceLocation camera = null;
+    Identifier still = JsonHelper.getResourceLocation(json, "still");
+    Identifier flowing = JsonHelper.getResourceLocation(json, "flowing");
+    Identifier overlay = JsonHelper.getResourceLocation(json, "overlay", null);
+    Identifier camera = null;
     float cameraOpacity = 0;
     if (json.has("camera")) {
       camera = JsonHelper.wrap(JsonHelper.getResourceLocation(json, "camera"), "textures/", ".png");
@@ -142,13 +142,13 @@ public final class FluidTexture {
     /**
      * Base path, make sure to include the trailing "_" or "/"
      */
-    private ResourceLocation root;
-    private ResourceLocation still;
-    private ResourceLocation flowing;
+    private Identifier root;
+    private Identifier still;
+    private Identifier flowing;
     @Nullable
-    private ResourceLocation overlay = null;
+    private Identifier overlay = null;
     @Nullable
-    private ResourceLocation camera = null;
+    private Identifier camera = null;
     private float cameraOpacity = 0.1f;
     private int color = -1;
     private int fogColor = -1;
@@ -218,10 +218,10 @@ public final class FluidTexture {
      * @param overlay If true, include an overlay texture
      * @param camera  If true, include a camera texture
      * @return Builder instance
-     * @deprecated use {@link #root(ResourceLocation)}, {@link #still()}, {@link #flowing()}, {@link #camera()}, and {@link #overlay()}
+     * @deprecated use {@link #root(Identifier)}, {@link #still()}, {@link #flowing()}, {@link #camera()}, and {@link #overlay()}
      */
     @Deprecated
-    public Builder textures(ResourceLocation path, boolean overlay, boolean camera) {
+    public Builder textures(Identifier path, boolean overlay, boolean camera) {
       root(path).still().flowing();
       if (overlay) {
         overlay();
@@ -252,14 +252,14 @@ public final class FluidTexture {
     /**
      * Gets the still texture for the builder
      */
-    public ResourceLocation getStill() {
+    public Identifier getStill() {
       return Objects.requireNonNull(still, "Still must be set");
     }
 
     /**
      * Gets the flowing texture for the builder
      */
-    public ResourceLocation getFlowing() {
+    public Identifier getFlowing() {
       return Objects.requireNonNull(flowing, "Flowing must be set");
     }
 
@@ -267,7 +267,7 @@ public final class FluidTexture {
      * Gets the camera texture for the builder
      */
     @Nullable
-    public ResourceLocation getCamera() {
+    public Identifier getCamera() {
       return camera;
     }
 
@@ -275,7 +275,7 @@ public final class FluidTexture {
      * Gets the overlay texture for the builder
      */
     @Nullable
-    public ResourceLocation getOverlay() {
+    public Identifier getOverlay() {
       return overlay;
     }
   }

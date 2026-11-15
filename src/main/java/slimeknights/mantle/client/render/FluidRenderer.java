@@ -16,7 +16,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
@@ -35,7 +35,7 @@ public class FluidRenderer {
    * @param sprite  Sprite name
    * @return  Sprite location
    */
-  public static TextureAtlasSprite getBlockSprite(ResourceLocation sprite) {
+  public static TextureAtlasSprite getBlockSprite(Identifier sprite) {
     return Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS).getSprite(sprite);
   }
 
@@ -434,8 +434,8 @@ public class FluidRenderer {
     }
   }
 
-  /** Same as {@link net.minecraft.client.renderer.ScreenEffectRenderer#renderFluid(Minecraft, PoseStack, ResourceLocation)} but with opacity and color control */
-  public static void renderCamera(Minecraft minecraft, PoseStack poseStack, ResourceLocation texture, float opacity, int color) {
+  /** Same as {@link net.minecraft.client.renderer.ScreenEffectRenderer#renderFluid(Minecraft, PoseStack, Identifier)} but with opacity and color control */
+  public static void renderCamera(Minecraft minecraft, PoseStack poseStack, Identifier texture, float opacity, int color) {
     assert minecraft.player != null;
     RenderSystem.setShader(GameRenderer::getPositionTexShader);
     RenderSystem.setShaderTexture(0, texture);

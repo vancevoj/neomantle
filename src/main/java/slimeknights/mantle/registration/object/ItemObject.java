@@ -3,7 +3,7 @@ package slimeknights.mantle.registration.object;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.minecraft.core.DefaultedRegistry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.ItemLike;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -24,7 +24,7 @@ public class ItemObject<I extends ItemLike> implements Supplier<I>, ItemLike, Id
   private final Supplier<? extends I> entry;
   /** Registry name for this entry, allows fetching the name before the entry resolves if registry object is used */
   @Getter
-  private final ResourceLocation id;
+  private final Identifier id;
 
   /**
    * Creates a new item object from a supplier instance. Registry name will be fetched from the supplier entry, so the entry must be present during construction

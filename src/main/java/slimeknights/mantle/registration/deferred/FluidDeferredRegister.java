@@ -244,6 +244,6 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
 
   /** Creates properties for a fluid */
   public static BlockBehaviour.Properties createProperties(MapColor color, int lightLevel) {
-    return BlockBehaviour.Properties.of().mapColor(color).replaceable().noCollission().randomTicks().strength(100.0F).lightLevel(state -> lightLevel).pushReaction(PushReaction.DESTROY).noLootTable().liquid().sound(SoundType.EMPTY);
+    return BlockBehaviour.Properties.of().mapColor(color).replaceable().noCollision().randomTicks().strength(100.0F).lightLevel(state -> lightLevel).pushReaction(PushReaction.POPPED).noLootTable().liquid().sound(SoundType.EMPTY);
   }
 }

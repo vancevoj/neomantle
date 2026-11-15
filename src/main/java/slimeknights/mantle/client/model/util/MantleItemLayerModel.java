@@ -5,19 +5,19 @@ import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Transformation;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.texture.SpriteContents;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBaker;
-import net.minecraft.client.resources.model.ModelState;
+import net.minecraft.client.renderer.block.dispatch.ModelState;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.NeoForgeRenderTypes;
 import net.neoforged.neoforge.client.RenderTypeGroup;
 import net.neoforged.neoforge.client.model.CompositeModel;
@@ -72,7 +72,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
   }
 
   @Override
-  public void resolveParents(Function<ResourceLocation,UnbakedModel> modelGetter, IGeometryBakingContext owner) {
+  public void resolveParents(Function<Identifier,UnbakedModel> modelGetter, IGeometryBakingContext owner) {
     List<Material> builder = new ArrayList<>();
     for (int i = 0; owner.hasMaterial("layer" + i); i++) {
       builder.add(owner.getMaterial("layer" + i));
@@ -82,7 +82,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
 
   /** Gets the default render type for an item layer */
   public static RenderTypeGroup getDefaultRenderType(IGeometryBakingContext context) {
-    ResourceLocation renderTypeHint = context.getRenderTypeHint();
+    Identifier renderTypeHint = context.getRenderTypeHint();
     if (renderTypeHint != null) {
       return context.getRenderType(renderTypeHint);
     } else {
@@ -407,8 +407,8 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
     }
 
     // for the side, Y axis's use of getOpposite is related to the swapping of V direction
-    float dx = side.getNormal().getX() * eps / width;
-    float dy = side.getNormal().getY() * eps / height;
+    float dx = side.getUnitVec3i().getX() * eps / width;
+    float dy = side.getUnitVec3i().getY() * eps / height;
     // 1.21: TextureAtlasSprite#getU/#getV now take a normalized 0..1 interpolant rather than 0..16 pixels, so drop the 16x scale
     float u0 = (x0 - dx);
     float u1 = (x1 - dx);
@@ -496,7 +496,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
   /**
    * Class holding details about a single layer in the model
    */
-  public record LayerData(int color, int luminosity, boolean noTint, @Nullable ResourceLocation renderType) {
+  public record LayerData(int color, int luminosity, boolean noTint, @Nullable Identifier renderType) {
     public static final LayerData DEFAULT = new LayerData(-1, 0, false, null);
     public static final RecordLoadable<LayerData> LOADABLE = RecordLoadable.create(
       ColorLoadable.ALPHA.defaultField("color", false, LayerData::color),
