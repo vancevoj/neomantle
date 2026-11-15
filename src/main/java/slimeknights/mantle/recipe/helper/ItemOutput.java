@@ -2,9 +2,14 @@ package slimeknights.mantle.recipe.helper;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.Codec;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -13,6 +18,8 @@ import net.minecraft.util.GsonHelper;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.ItemLike;
 import slimeknights.mantle.data.loadable.LoadableCodec;
 import slimeknights.mantle.data.loadable.Loadables;
@@ -249,7 +256,15 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
       if (writeCount && template.count() != 1) {
         json.addProperty("count", template.count());
       }
-      json.add("components", ItemStackLoadable.serializeComponents(template.components()));
+      DataComponentPatch patch = template.components();
+      CustomData nbt = patch.keySet().contains(DataComponents.CUSTOM_DATA) ? patch.getPatch(DataComponents.CUSTOM_DATA) : null;
+      if (nbt != null && !nbt.isEmpty()) {
+        json.add("nbt", NBTLoadable.ALLOW_STRING.serialize(nbt.copyTag()));
+      }
+      DataComponentPatch components = patch.forget(type -> type == DataComponents.CUSTOM_DATA);
+      if (!components.isEmpty()) {
+        json.add("components", ItemStackLoadable.serializeComponents(components));
+      }
       return json;
     }
   }
@@ -337,17 +352,39 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
         }
         return fromTag(tag, count, NBTLoadable.ALLOW_STRING.getOrDefault(json, "nbt", null));
       }
-      return fromStack(stack.deserialize(json, context));
+      // since 26.1 item components are only bound after data pack loading finishes, so stacks cannot be created while
+      // parsing recipes or other data; read the stack as a template and create it on first use instead
+      Item item = Loadables.ITEM.getOrDefault(json, "item", Items.AIR, context);
+      int count = readCount ? IntLoadable.FROM_ZERO.getOrDefault(json, "count", 1, context) : 1;
+      PatchedDataComponentMap components = new PatchedDataComponentMap(DataComponentMap.EMPTY);
+      if (json.has("components")) {
+        components.applyPatch(ItemStackLoadable.parseComponents(json.get("components"), context));
+      }
+      CompoundTag nbt = NBTLoadable.ALLOW_STRING.getOrDefault(json, "nbt", null);
+      if (nbt != null && !nbt.isEmpty()) {
+        components.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+      }
+      return fromParsed(item, count, components.asPatch());
     }
 
     @Override
     public ItemOutput convert(JsonElement element, String key, TypedMap context) {
-      // if it's a primitive, parse it directly with the stack logic
-      // that handles single items and ensures both count and non-empty
+      // if it's a primitive, its just an item
       if (element.isJsonPrimitive()) {
-        return fromStack(stack.convert(element, key, context));
+        return fromParsed(Loadables.ITEM.convert(element, key, context), 1, DataComponentPatch.EMPTY);
       }
       return deserialize(GsonHelper.convertToJsonObject(element, key), context);
+    }
+
+    /** Creates an output from parsed stack data, validating emptiness */
+    private ItemOutput fromParsed(Item item, int count, DataComponentPatch components) {
+      if (item == Items.AIR || count <= 0) {
+        if (nonEmpty) {
+          throw new JsonSyntaxException("ItemStack cannot be empty");
+        }
+        return EMPTY;
+      }
+      return fromTemplate(new ItemStackTemplate(item, count, components));
     }
 
     @Override
@@ -379,6 +416,10 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
       if (!buffer.readBoolean()) {
         return ItemOutput.EMPTY;
       }
+      // recipes sync with registry access, which lets us send all components instead of just the custom data
+      if (buffer instanceof RegistryFriendlyByteBuf registryBuffer) {
+        return fromStack(ItemStack.STREAM_CODEC.decode(registryBuffer));
+      }
       return fromStack(stack.decode(buffer, context));
     }
 
@@ -388,7 +429,11 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
       boolean present = !out.isEmpty();
       buffer.writeBoolean(present);
       if (present) {
-        stack.encode(buffer, out);
+        if (buffer instanceof RegistryFriendlyByteBuf registryBuffer) {
+          ItemStack.STREAM_CODEC.encode(registryBuffer, out);
+        } else {
+          stack.encode(buffer, out);
+        }
       }
     }
 
