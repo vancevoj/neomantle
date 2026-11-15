@@ -12,6 +12,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.level.ItemLike;
 import slimeknights.mantle.data.loadable.LoadableCodec;
 import slimeknights.mantle.data.loadable.Loadables;
@@ -86,6 +87,19 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
       return EMPTY;
     }
     return new OfStack(stack);
+  }
+
+  /**
+   * Creates a new output for the given stack template. Unlike {@link #fromStack(ItemStack)} this is safe to call before
+   * item components are bound, such as during datagen, as the stack is only created on first use.
+   * @param template  Stack template
+   * @return  Output
+   */
+  public static ItemOutput fromTemplate(ItemStackTemplate template) {
+    if (template.components().isEmpty()) {
+      return fromItem(template.item().value(), template.count());
+    }
+    return new OfTemplate(template);
   }
 
   /**
@@ -205,6 +219,38 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
         return ItemStackLoadable.OPTIONAL_STACK_NBT.serialize(stack);
       }
       return ItemStackLoadable.OPTIONAL_ITEM_NBT.serialize(stack);
+    }
+  }
+
+  /** Class for an output from a stack template, the stack is created lazily as components cannot be used during datagen */
+  @RequiredArgsConstructor
+  private static class OfTemplate extends ItemOutput {
+    private final ItemStackTemplate template;
+    private ItemStack cachedStack;
+
+    @Override
+    public ItemStack get() {
+      if (cachedStack == null) {
+        cachedStack = template.create();
+      }
+      return cachedStack;
+    }
+
+    @Override
+    public int getCount() {
+      return template.count();
+    }
+
+    @Override
+    public JsonElement serialize(boolean writeCount) {
+      // same format as the NBT stack loadables
+      JsonObject json = new JsonObject();
+      json.add("item", Loadables.ITEM.serialize(template.item().value()));
+      if (writeCount && template.count() != 1) {
+        json.addProperty("count", template.count());
+      }
+      json.add("components", ItemStackLoadable.serializeComponents(template.components()));
+      return json;
     }
   }
 

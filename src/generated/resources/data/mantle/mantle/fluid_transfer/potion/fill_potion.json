@@ -11,8 +11,6 @@
     "amount": 250,
     "tag": "c:potion"
   },
-  "input": {
-    "item": "minecraft:glass_bottle"
-  },
+  "input": "minecraft:glass_bottle",
   "result": "minecraft:potion"
 }

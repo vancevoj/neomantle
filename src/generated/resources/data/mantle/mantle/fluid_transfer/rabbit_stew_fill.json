@@ -11,8 +11,6 @@
     "amount": 250,
     "tag": "c:rabbit_stew"
   },
-  "input": {
-    "item": "minecraft:bowl"
-  },
+  "input": "minecraft:bowl",
   "result": "minecraft:rabbit_stew"
 }

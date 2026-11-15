@@ -7,9 +7,7 @@
   ],
   "type": "mantle:empty_potion",
   "amount": 250,
-  "input": {
-    "item": "minecraft:splash_potion"
-  },
+  "input": "minecraft:splash_potion",
   "result": {
     "tag": "c:bottles/splash"
   }

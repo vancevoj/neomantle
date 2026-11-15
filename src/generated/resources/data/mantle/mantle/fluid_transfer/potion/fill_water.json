@@ -4,8 +4,13 @@
     "amount": 500,
     "tag": "mantle:water"
   },
-  "input": {
-    "item": "minecraft:glass_bottle"
-  },
-  "result": "minecraft:potion"
+  "input": "minecraft:glass_bottle",
+  "result": {
+    "components": {
+      "minecraft:potion_contents": {
+        "potion": "minecraft:water"
+      }
+    },
+    "item": "minecraft:potion"
+  }
 }

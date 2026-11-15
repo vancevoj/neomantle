@@ -11,8 +11,6 @@
     "amount": 250,
     "tag": "c:mushroom_stew"
   },
-  "input": {
-    "item": "minecraft:mushroom_stew"
-  },
+  "input": "minecraft:mushroom_stew",
   "result": "minecraft:bowl"
 }

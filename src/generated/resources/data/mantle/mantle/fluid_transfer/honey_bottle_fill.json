@@ -11,8 +11,6 @@
     "amount": 250,
     "tag": "c:honey"
   },
-  "input": {
-    "item": "minecraft:glass_bottle"
-  },
+  "input": "minecraft:glass_bottle",
   "result": "minecraft:honey_bottle"
 }

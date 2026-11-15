@@ -10,8 +10,13 @@
     "amount": 500,
     "tag": "mantle:water"
   },
-  "input": {
-    "tag": "c:bottles/splash"
-  },
-  "result": "minecraft:splash_potion"
+  "input": "#c:bottles/splash",
+  "result": {
+    "components": {
+      "minecraft:potion_contents": {
+        "potion": "minecraft:water"
+      }
+    },
+    "item": "minecraft:splash_potion"
+  }
 }

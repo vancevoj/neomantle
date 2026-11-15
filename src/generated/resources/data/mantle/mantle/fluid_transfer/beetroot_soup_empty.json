@@ -11,8 +11,6 @@
     "amount": 250,
     "tag": "c:beetroot_soup"
   },
-  "input": {
-    "item": "minecraft:beetroot_soup"
-  },
+  "input": "minecraft:beetroot_soup",
   "result": "minecraft:bowl"
 }

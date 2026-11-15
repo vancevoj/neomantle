@@ -2,7 +2,9 @@ package slimeknights.mantle.data.loadable.common;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import io.netty.handler.codec.EncoderException;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -13,9 +15,11 @@ import net.minecraft.world.item.component.CustomData;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.data.loadable.field.ContextKey;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.IntLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
+import slimeknights.mantle.util.JsonHelper;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
@@ -45,6 +49,8 @@ public class ItemStackLoadable {
   private static final LoadableField<Integer,ItemStack> COUNT = IntLoadable.FROM_ZERO.defaultField("count", 1, true, ItemStack::getCount);
   /** Field for item stack count that allows empty */
   private static final LoadableField<CompoundTag,ItemStack> NBT = NBTLoadable.ALLOW_STRING.nullableField("nbt", ItemStackLoadable::getTag);
+  /** Key for data components other than custom data, which since 1.20.5 hold most of what used to be stack NBT */
+  private static final String COMPONENTS = "components";
 
 
   /* Optional */
@@ -91,10 +97,25 @@ public class ItemStackLoadable {
     return data == null ? null : data.copyTag();
   }
 
-  /** Checks if a stack has custom data NBT */
+  /** Checks if a stack has custom data NBT or other changed components */
   private static boolean hasTag(ItemStack stack) {
     CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-    return data != null && !data.isEmpty();
+    return data != null && !data.isEmpty() || !getComponents(stack).isEmpty();
+  }
+
+  /** Gets the component changes on the stack besides custom data, which is serialized as NBT */
+  private static DataComponentPatch getComponents(ItemStack stack) {
+    return stack.getComponentsPatch().forget(type -> type == DataComponents.CUSTOM_DATA);
+  }
+
+  /** Parses a component patch from JSON */
+  public static DataComponentPatch parseComponents(JsonElement element, TypedMap context) {
+    return DataComponentPatch.CODEC.parse(ContextKey.jsonOps(context), element).getOrThrow(error -> new JsonSyntaxException("Failed to parse " + COMPONENTS + ": " + error));
+  }
+
+  /** Serializes a component patch to JSON */
+  public static JsonElement serializeComponents(DataComponentPatch components) {
+    return DataComponentPatch.CODEC.encodeStart(JsonHelper.registryOps(), components).getOrThrow(error -> new JsonSyntaxException("Failed to serialize " + COMPONENTS + ": " + error));
   }
 
   /** Creates a non-empty variant of the loadable */
@@ -123,7 +144,11 @@ public class ItemStackLoadable {
       if (this == READ_COUNT) {
         count = COUNT.get(json, context);
       }
-      return makeStack(ITEM.get(json, context), count, NBT.get(json, context));
+      ItemStack stack = makeStack(ITEM.get(json, context), count, NBT.get(json, context));
+      if (!stack.isEmpty() && json.has(COMPONENTS)) {
+        stack.applyComponents(parseComponents(json.get(COMPONENTS), context));
+      }
+      return stack;
     }
 
     @Override
@@ -133,6 +158,10 @@ public class ItemStackLoadable {
         COUNT.serialize(stack, json);
       }
       NBT.serialize(stack, json);
+      DataComponentPatch components = getComponents(stack);
+      if (!components.isEmpty()) {
+        json.add(COMPONENTS, serializeComponents(components));
+      }
     }
 
 

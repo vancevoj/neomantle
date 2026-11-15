@@ -10,8 +10,13 @@
     "amount": 500,
     "tag": "mantle:water"
   },
-  "input": {
-    "tag": "c:bottles/lingering"
-  },
-  "result": "minecraft:lingering_potion"
+  "input": "#c:bottles/lingering",
+  "result": {
+    "components": {
+      "minecraft:potion_contents": {
+        "potion": "minecraft:water"
+      }
+    },
+    "item": "minecraft:lingering_potion"
+  }
 }

@@ -10,8 +10,6 @@
   ],
   "type": "mantle:empty_potion",
   "amount": 250,
-  "input": {
-    "item": "minecraft:lingering_potion"
-  },
+  "input": "minecraft:lingering_potion",
   "result": "minecraft:glass_bottle"
 }
