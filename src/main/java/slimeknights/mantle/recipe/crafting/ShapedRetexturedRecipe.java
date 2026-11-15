@@ -19,8 +19,6 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.item.crafting.ShapedRecipePattern;
-import net.minecraft.world.item.crafting.display.RecipeDisplay;
-import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import slimeknights.mantle.recipe.MantleRecipes;
@@ -81,25 +79,13 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
   }
 
   /**
-   * Gets the result template of a shaped recipe, as the vanilla field is private.
+   * Gets the result template of a shaped recipe. The vanilla field is widened by the access transformer, which avoids building
+   * displays (they dereference tags) or stacks (they need bound components), as neither is safe during datagen.
    * @param recipe  Shaped recipe
    * @return  Result template
    */
   static ItemStackTemplate resultTemplate(ShapedRecipe recipe) {
-    if (recipe instanceof ShapedRetexturedRecipe retextured) {
-      return retextured.result;
-    }
-    if (recipe instanceof ShapedFallbackRecipe fallback) {
-      return fallback.getResult();
-    }
-    // vanilla shaped recipes display their exact result template
-    for (RecipeDisplay display : recipe.display()) {
-      if (display.result() instanceof SlotDisplay.ItemStackSlotDisplay(ItemStackTemplate stack)) {
-        return stack;
-      }
-    }
-    // shaped recipes ignore the input to assemble
-    return ItemStackTemplate.fromNonEmptyStack(recipe.assemble(CraftingInput.EMPTY));
+    return recipe.result;
   }
 
   /** Gets the untextured result of this recipe */
