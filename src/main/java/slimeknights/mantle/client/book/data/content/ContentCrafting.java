@@ -3,13 +3,19 @@ package slimeknights.mantle.client.book.data.content;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.context.ContextMap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingRecipe;
-import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.ShapedRecipe;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
+import net.minecraft.world.item.crafting.display.ShapedCraftingRecipeDisplay;
+import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplayContext;
 import net.minecraft.world.level.Level;
 import org.apache.commons.lang3.StringUtils;
 import slimeknights.mantle.Mantle;
@@ -23,12 +29,14 @@ import slimeknights.mantle.client.screen.book.element.BookElement;
 import slimeknights.mantle.client.screen.book.element.ImageElement;
 import slimeknights.mantle.client.screen.book.element.ItemElement;
 import slimeknights.mantle.client.screen.book.element.TextElement;
+import slimeknights.mantle.recipe.helper.RecipeHelper;
 import slimeknights.mantle.util.html.HtmlElement;
 import slimeknights.mantle.util.html.HtmlGroup;
 import slimeknights.mantle.util.html.HtmlSerializable;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.List;
 
 import static slimeknights.mantle.client.screen.book.Textures.TEX_CRAFTING;
 
@@ -118,10 +126,21 @@ public class ContentCrafting extends PageContent {
 
       Level level = Minecraft.getInstance().level;
       assert level != null;
-      Recipe<?> recipe = level.getRecipeManager().byKey(Identifier.parse(this.recipe)).map(RecipeHolder::value).orElse(null);
+      RecipeHolder<?> holder = RecipeHelper.recipes(level).byKey(ResourceKey.create(Registries.RECIPE, Identifier.parse(this.recipe)));
+      Recipe<?> recipe = holder != null ? holder.value() : null;
       if (recipe instanceof CraftingRecipe) {
+        // recipes no longer expose ingredients or results, so read them from the recipe display
+        RecipeDisplay display = recipe.display().stream()
+          .filter(d -> d instanceof ShapedCraftingRecipeDisplay || d instanceof ShapelessCraftingRecipeDisplay)
+          .findFirst().orElse(null);
+        if (display == null) {
+          // special recipes may not display a grid, keep any grid set in the page JSON
+          Mantle.logger.warn("Recipe {} has no crafting grid display, cannot show it in a book", this.recipe);
+          return;
+        }
+
         if(grid_size.equalsIgnoreCase("auto")) {
-          if(recipe.canCraftInDimensions(2, 2)) {
+          if(fitsGrid(display, 2, 2)) {
             grid_size = "small";
           } else {
             grid_size = "large";
@@ -133,32 +152,49 @@ public class ContentCrafting extends PageContent {
           case "small" -> w = h = 2;
         }
 
-        if (!recipe.canCraftInDimensions(w, h)) {
+        if (!fitsGrid(display, w, h)) {
           throw new BookLoadException("Recipe " + this.recipe + " cannot fit in a " + w + "x" + h + " crafting grid");
         }
 
-        result = IngredientData.getItemStackData(recipe.getResultItem(level.registryAccess()));
+        ContextMap context = SlotDisplayContext.fromLevel(level);
+        result = IngredientData.getItemStackData(display.result().resolveForFirstStack(context));
 
-        NonNullList<Ingredient> ingredients = recipe.getIngredients();
-
-        if (recipe instanceof ShapedRecipe shaped) {
-          grid = new IngredientData[shaped.getHeight()][shaped.getWidth()];
+        if (display instanceof ShapedCraftingRecipeDisplay shaped) {
+          List<SlotDisplay> ingredients = shaped.ingredients();
+          grid = new IngredientData[shaped.height()][shaped.width()];
 
           for (int y = 0; y < grid.length; y++) {
             for (int x = 0; x < grid[y].length; x++) {
-              grid[y][x] = IngredientData.getItemStackData(NonNullList.of(ItemStack.EMPTY, ingredients.get(x + y * grid[y].length).getItems()));
+              grid[y][x] = getSlotData(ingredients.get(x + y * grid[y].length), context);
             }
           }
 
           return;
         }
 
+        List<SlotDisplay> ingredients = ((ShapelessCraftingRecipeDisplay) display).ingredients();
         grid = new IngredientData[h][w];
         for (int i = 0; i < ingredients.size(); i++) {
-          grid[i / h][i % w] = IngredientData.getItemStackData(NonNullList.of(ItemStack.EMPTY, ingredients.get(i).getItems()));
+          grid[i / h][i % w] = getSlotData(ingredients.get(i), context);
         }
       }
     }
+  }
+
+  /** Checks if the given crafting display fits in a grid of the given size, replaces the removed {@code Recipe#canCraftInDimensions} */
+  private static boolean fitsGrid(RecipeDisplay display, int width, int height) {
+    if (display instanceof ShapedCraftingRecipeDisplay shaped) {
+      return shaped.width() <= width && shaped.height() <= height;
+    }
+    if (display instanceof ShapelessCraftingRecipeDisplay shapeless) {
+      return shapeless.ingredients().size() <= width * height;
+    }
+    return false;
+  }
+
+  /** Gets ingredient data for all stacks in the given slot */
+  private static IngredientData getSlotData(SlotDisplay slot, ContextMap context) {
+    return IngredientData.getItemStackData(NonNullList.of(ItemStack.EMPTY, slot.resolveForStacks(context).toArray(new ItemStack[0])));
   }
 
   @Override

@@ -13,11 +13,11 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
-import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringUtil;
+import net.neoforged.neoforge.common.crafting.DataComponentIngredient;
 import slimeknights.mantle.client.book.repository.BookRepository;
 import slimeknights.mantle.recipe.ingredient.SizedIngredient;
 
@@ -106,7 +106,8 @@ public class IngredientData implements IDataElement {
           try {
             data.ingredients[i] = readIngredient(array.get(i));
           } catch (Exception e) {
-            data.ingredients[i] = SizedIngredient.of(Ingredient.of(data.getMissingItem(e.getMessage())));
+            // keep the error message on the displayed item through a component ingredient
+            data.ingredients[i] = SizedIngredient.of(DataComponentIngredient.of(false, data.getMissingItem(e.getMessage())));
           }
         }
 

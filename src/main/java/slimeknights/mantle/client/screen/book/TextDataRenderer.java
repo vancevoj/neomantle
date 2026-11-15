@@ -1,19 +1,19 @@
 package slimeknights.mantle.client.screen.book;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.StringUtils;
+import org.joml.Matrix3x2fStack;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.book.data.element.TextData;
+import slimeknights.mantle.client.screen.book.element.BookElement;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 public class TextDataRenderer {
 
@@ -26,7 +26,7 @@ public class TextDataRenderer {
     String action = drawText(graphics, x, y, boxWidth, boxHeight, data, mouseX, mouseY, fr, tooltip);
 
     if (!tooltip.isEmpty()) {
-      graphics.setTooltipForNextFrame(fr, tooltip, Optional.empty(), mouseX, mouseY);
+      BookElement.drawPageTooltip(graphics, tooltip, mouseX, mouseY, fr);
     }
 
     return action;
@@ -75,7 +75,7 @@ public class TextDataRenderer {
       String modifiers = "";
 
       if (item.useOldColor) {
-        ChatFormatting colFormat = ChatFormatting.getByName(item.color);
+        ChatFormatting colFormat = TextData.getFormattingByName(item.color);
         if(colFormat != null) {
           modifiers += colFormat;
         } else {
@@ -118,7 +118,7 @@ public class TextDataRenderer {
         }
 
         String s = split[i];
-        drawScaledString(graphics, fr, modifiers + s, atX, atY, item.rgbColor, item.dropshadow, item.scale);
+        drawScaledString(graphics, fr, modifiers + s, atX, atY, adjustColor(item.rgbColor), item.dropshadow, item.scale);
 
         if (i < split.length - 1) {
           atY += fr.lineHeight;
@@ -172,7 +172,7 @@ public class TextDataRenderer {
       }
 
       if (atY >= y + boxHeight) {
-        graphics.text(fr, "...", atX, atY, 0, item.dropshadow);
+        graphics.text(fr, "...", atX, atY, 0xFF000000, item.dropshadow);
         break;
       }
       y = atY;
@@ -245,17 +245,25 @@ public class TextDataRenderer {
     return cropStringBySize(s, modifiers, width, Short.MAX_VALUE, width - fr.width(prefix), fr, 1.0f).length;
   }
 
+  /**
+   * Text is no longer drawn if the color has no alpha, so make colors without alpha opaque.
+   * Matches how fonts used to treat colors, so RGB colors from book JSON keep working.
+   */
+  public static int adjustColor(int color) {
+    return (color & 0xFC000000) == 0 ? color | 0xFF000000 : color;
+  }
+
   //BEGIN METHODS FROM GUI
   //TODO: does this exist elsewhere now?
   public static void drawScaledString(GuiGraphicsExtractor graphics, Font font, String text, float x, float y, int color, boolean dropShadow, float scale) {
-    PoseStack poseStack = graphics.pose();
-    poseStack.pushPose();
-    poseStack.translate(x, y, 0);
-    poseStack.scale(scale, scale, 1F);
+    Matrix3x2fStack poseStack = graphics.pose();
+    poseStack.pushMatrix();
+    poseStack.translate(x, y);
+    poseStack.scale(scale, scale);
 
     graphics.text(font, text, 0, 0, color, dropShadow);
 
-    poseStack.popPose();
+    poseStack.popMatrix();
   }
   //END METHODS FROM GUI
 }

@@ -2,8 +2,10 @@ package slimeknights.mantle.client.screen.book;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import slimeknights.mantle.client.book.data.BookData;
 
 import javax.annotation.Nullable;
@@ -46,14 +48,8 @@ public class ArrowButton extends Button {
 
     int color = this.isHovered ? this.hoverColor : this.color;
 
-    float r = ((color >> 16) & 0xff) / 255.F;
-    float g = ((color >> 8) & 0xff) / 255.F;
-    float b = (color & 0xff) / 255.F;
-
-    graphics.setColor(r, g, b, 1f);
-    graphics.blit(texture, this.getX(), this.getY(), this.width, this.height, this.arrowType.x, this.arrowType.y, this.width, this.height, 512, 512);
-    graphics.setColor(1, 1, 1, 1);
-//    this.renderBg(graphics, mouseX, mouseY, partialTicks);
+    // colors in book JSON are RGB, draw the arrow fully opaque
+    graphics.blit(RenderPipelines.GUI_TEXTURED, texture, this.getX(), this.getY(), this.arrowType.x, this.arrowType.y, this.width, this.height, this.width, this.height, 512, 512, ARGB.opaque(color));
   }
 
   /** Public method to swap out book data on rendering */
@@ -63,7 +59,7 @@ public class ArrowButton extends Button {
   }
 
   @Override
-  protected void renderWidget(GuiGraphicsExtractor graphics, int pMouseX, int pMouseY, float pPartialTick) {
+  protected void extractContents(GuiGraphicsExtractor graphics, int pMouseX, int pMouseY, float pPartialTick) {
     renderButton(graphics, bookData);
   }
 

@@ -4,30 +4,36 @@ package slimeknights.mantle.client.book.structure.level;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.WritableLevelData;
 
 public class FakeLevelData implements WritableLevelData {
 
-  private static final GameRules RULES = new GameRules();
-
-  private BlockPos spawnPos = BlockPos.ZERO;
-  private float spawnAngle;
+  private RespawnData respawnData = RespawnData.DEFAULT;
 
   @Override
+  public void setSpawn(RespawnData respawnData) {
+    this.respawnData = respawnData;
+  }
+
+  @Override
+  public RespawnData getRespawnData() {
+    return this.respawnData;
+  }
+
+  /** Sets the spawn position and angle, adapter for the former vanilla method */
   public void setSpawn(BlockPos spawn, float angle) {
-    this.spawnPos = spawn;
-    this.spawnAngle = angle;
+    this.setSpawn(RespawnData.of(Level.OVERWORLD, spawn, angle, 0));
   }
 
-  @Override
+  /** Gets the spawn position, adapter for the former vanilla method */
   public BlockPos getSpawnPos() {
-    return this.spawnPos;
+    return this.respawnData.pos();
   }
 
-  @Override
+  /** Gets the spawn angle, adapter for the former vanilla method */
   public float getSpawnAngle() {
-    return this.spawnAngle;
+    return this.respawnData.yaw();
   }
 
   @Override
@@ -36,33 +42,8 @@ public class FakeLevelData implements WritableLevelData {
   }
 
   @Override
-  public long getDayTime() {
-    return 0;
-  }
-
-  @Override
-  public boolean isThundering() {
-    return false;
-  }
-
-  @Override
-  public boolean isRaining() {
-    return false;
-  }
-
-  @Override
-  public void setRaining(boolean isRaining) {
-
-  }
-
-  @Override
   public boolean isHardcore() {
     return false;
-  }
-
-  @Override
-  public GameRules getGameRules() {
-    return RULES;
   }
 
   @Override

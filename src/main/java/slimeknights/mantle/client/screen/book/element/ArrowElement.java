@@ -1,11 +1,17 @@
 package slimeknights.mantle.client.screen.book.element;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button.OnPress;
+import net.minecraft.client.input.InputWithModifiers;
+import net.minecraft.client.input.MouseButtonInfo;
 import slimeknights.mantle.client.screen.book.ArrowButton;
 
 public class ArrowElement extends ButtonElement {
+
+  /** Input passed to the button when the element is clicked */
+  protected static final InputWithModifiers LEFT_CLICK = new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0);
 
   protected final ArrowButton button;
 
@@ -23,7 +29,7 @@ public class ArrowElement extends ButtonElement {
   @Override
   public void mouseClicked(double mouseX, double mouseY, int mouseButton) {
     if (this.button != null && this.isHovered(mouseX, mouseY)) {
-      this.button.onPress();
+      this.button.onPress(LEFT_CLICK);
     }
   }
 

@@ -1,13 +1,15 @@
 package slimeknights.mantle.client.screen.book.element;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.sprite.SpriteId;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
-import net.minecraft.world.inventory.InventoryMenu;
+import org.joml.Matrix3x2fStack;
 
 import static slimeknights.mantle.client.screen.book.element.ItemElement.ITEM_SIZE_HARDCODED;
 
@@ -23,7 +25,7 @@ public class SpriteElement extends SizedBookElement {
   }
 
   public SpriteElement(int x, int y, float scale, Identifier location) {
-    this(x, y, scale, Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS).getSprite(location));
+    this(x, y, scale, Minecraft.getInstance().getAtlasManager().get(new SpriteId(TextureAtlas.LOCATION_BLOCKS, location)));
   }
 
   @Override
@@ -37,17 +39,17 @@ public class SpriteElement extends SizedBookElement {
     int y = this.y;
     // if scaling, need to adjust pose stack
     if (scale != 1) {
-      PoseStack matrices = graphics.pose();
-      matrices.pushPose();
+      Matrix3x2fStack matrices = graphics.pose();
+      matrices.pushMatrix();
       // want to translate before scaling, so clear local variables
-      matrices.translate(x, y, 0);
+      matrices.translate(x, y);
       x = 0;
       y = 0;
-      matrices.scale(scale, scale, 1);
+      matrices.scale(scale, scale);
     }
-    graphics.blit(x, y, 0, 16, 16, sprite);
+    graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, 16, 16);
     if (scale != 1) {
-      graphics.pose().popPose();
+      graphics.pose().popMatrix();
     }
   }
 }

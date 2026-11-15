@@ -1,10 +1,12 @@
 package slimeknights.mantle.client.screen.book.element;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
+import org.joml.Matrix3x2fStack;
 import slimeknights.mantle.client.book.data.element.ImageData;
 import slimeknights.mantle.client.screen.book.BookScreen;
 
@@ -71,25 +73,30 @@ public class ImageElement extends SizedBookElement {
 
   @Override
   public void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
-    float r = ((this.colorMultiplier >> 16) & 0xff) / 255.F;
-    float g = ((this.colorMultiplier >> 8) & 0xff) / 255.F;
-    float b = (this.colorMultiplier & 0xff) / 255.F;
-    graphics.setColor(r, g, b, 1f);
+    drawTinted(graphics, mouseX, mouseY, partialTicks, fontRenderer, 0xFFFFFFFF);
+  }
 
+  /**
+   * Draws this element with an additional tint on top of {@link #colorMultiplier}.
+   * Replaces setting the shader color before drawing, which is no longer possible.
+   * @param tint  ARGB tint, only applies to textures as item icons cannot be tinted
+   */
+  public void drawTinted(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer, int tint) {
     if (this.image.item == null) {
-      Identifier texture = requireNonNullElse(this.image.location, TextureManager.INTENTIONAL_MISSING_TEXTURE);
-      graphics.blit(texture, this.x, this.y, this.width, this.height, this.image.u, this.image.v, this.image.uw, this.image.vh, this.image.texWidth, this.image.texHeight);
+      // color multiplier is RGB, tint carries the alpha
+      int color = ARGB.multiply(ARGB.opaque(this.colorMultiplier), tint);
+      Identifier texture = requireNonNullElse(this.image.location, MissingTextureAtlasSprite.getLocation());
+      graphics.blit(RenderPipelines.GUI_TEXTURED, texture, this.x, this.y, this.image.u, this.image.v, this.width, this.height, this.image.uw, this.image.vh, this.image.texWidth, this.image.texHeight, color);
     }
     else {
-      PoseStack matrices = graphics.pose();
-      matrices.pushPose();
-      matrices.translate(this.x, this.y, 0F);
-      matrices.scale(this.width / 16F, this.height / 16F, 1F);
+      Matrix3x2fStack matrices = graphics.pose();
+      matrices.pushMatrix();
+      matrices.translate(this.x, this.y);
+      matrices.scale(this.width / 16F, this.height / 16F);
 
       this.itemElement.draw(graphics, mouseX, mouseY, partialTicks, fontRenderer);
 
-      matrices.popPose();
+      matrices.popMatrix();
     }
-    graphics.setColor(1, 1, 1, 1);
   }
 }

@@ -1,13 +1,16 @@
 package slimeknights.mantle.client.book.data.content;
 
 import lombok.Getter;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import slimeknights.mantle.Mantle;
@@ -58,13 +61,18 @@ public class ContentStructure extends PageContent {
 
     try {
       CompoundTag compoundnbt = NbtIo.readCompressed(resource.open(), NbtAccounter.unlimitedHeap());
-      this.template.load(BuiltInRegistries.BLOCK.asLookup(), compoundnbt);
-    } catch (IOException e) {
-      e.printStackTrace();
+      // book structures do not load through the structure manager, so update older structure files ourselves
+      // notably, block states were saved with Name/Properties keys before 26.3
+      int dataVersion = NbtUtils.getDataVersion(compoundnbt, 500);
+      compoundnbt = DataFixTypes.STRUCTURE.updateToCurrentVersion(Minecraft.getInstance().getFixerUpper(), compoundnbt, dataVersion);
+      this.template.load(BuiltInRegistries.BLOCK, compoundnbt);
+    } catch (IOException | RuntimeException e) {
+      Mantle.logger.error("Failed to load book structure {}", location, e);
       return;
     }
 
-    this.templateBlocks = this.template.palettes.get(0).blocks();
+    // copy so removing air below does not modify the template
+    this.templateBlocks = new ArrayList<>(this.template.palettes.getFirst().blocks());
 
     for (int i = 0; i < this.templateBlocks.size(); i++) {
       StructureTemplate.StructureBlockInfo info = this.templateBlocks.get(i);
@@ -99,7 +107,7 @@ public class ContentStructure extends PageContent {
       list.add(new TextElement(0, BookScreen.PAGE_HEIGHT - 10 - 2 * offset, BookScreen.PAGE_WIDTH, 2 * offset, this.description));
     }
 
-    if (this.template != null && this.template.getSize() != BlockPos.ZERO) {
+    if (this.template != null && !BlockPos.ZERO.equals(this.template.getSize())) {
       boolean showButtons = this.template.getSize().getY() > 1;
 
       StructureElement structureElement = new StructureElement(offset, y, structureSizeX, structureSizeY, this.template, this.templateBlocks);

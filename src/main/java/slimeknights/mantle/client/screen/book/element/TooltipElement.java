@@ -5,7 +5,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
-import java.util.Optional;
 
 public class TooltipElement extends SizedBookElement {
 
@@ -24,7 +23,7 @@ public class TooltipElement extends SizedBookElement {
   @Override
   public void drawOverlay(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
     if (this.isHovered(mouseX, mouseY)) {
-      graphics.setTooltipForNextFrame(fontRenderer, this.tooltips, Optional.empty(), mouseX, mouseY);
+      this.drawTooltip(graphics, this.tooltips, mouseX, mouseY, fontRenderer);
     }
   }
 }

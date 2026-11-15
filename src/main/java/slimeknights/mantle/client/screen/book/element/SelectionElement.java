@@ -1,6 +1,5 @@
 package slimeknights.mantle.client.screen.book.element;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -49,16 +48,15 @@ public class SelectionElement extends SizedBookElement {
     if (hover) {
       graphics.fill(this.iconX, this.iconY, this.iconX + IMG_SIZE, this.iconY + IMG_SIZE, this.parent.book.appearance.hoverColor);
     }
+    // tint the icon to show its status
+    int tint;
     if (unlocked) {
-      RenderSystem.setShaderColor(1F, 1F, 1F, hover ? 1F : 0.5F);
+      tint = hover ? 0xFFFFFFFF : 0x80FFFFFF;
     } else {
-      float r = ((this.parent.book.appearance.lockedSectionColor >> 16) & 0xff) / 255.F;
-      float g = ((this.parent.book.appearance.lockedSectionColor >> 8) & 0xff) / 255.F;
-      float b = (this.parent.book.appearance.lockedSectionColor & 0xff) / 255.F;
-      RenderSystem.setShaderColor(r, g, b, 0.75F);
+      tint = (this.parent.book.appearance.lockedSectionColor & 0xFFFFFF) | 0xBF000000;
     }
 
-    this.iconRenderer.draw(graphics, mouseX, mouseY, partialTicks, fontRenderer);
+    this.iconRenderer.drawTinted(graphics, mouseX, mouseY, partialTicks, fontRenderer, tint);
 
     if (this.parent.drawText && this.section.parent.appearance.drawSectionListText) {
       String title = this.section.getTitle().replace("\\n", "\n");

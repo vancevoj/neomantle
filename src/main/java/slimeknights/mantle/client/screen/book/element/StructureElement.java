@@ -1,32 +1,25 @@
 package slimeknights.mantle.client.screen.book.element;
 
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Transformation;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.neoforged.neoforge.model.data.ModelData;
 import org.joml.AxisAngle4f;
+import org.joml.Matrix3x2f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import slimeknights.mantle.client.book.structure.StructureInfo;
+import slimeknights.mantle.client.book.structure.StructurePreviewRenderState;
 import slimeknights.mantle.client.book.structure.level.TemplateLevel;
-import slimeknights.mantle.client.render.MantleRenderTypes;
 import slimeknights.mantle.client.screen.book.BookScreen;
 
 import java.util.List;
 import java.util.stream.IntStream;
 
+/**
+ * Element drawing a rotatable 3D preview of a structure, optionally animating it block by block.
+ * Rendering happens in {@link slimeknights.mantle.client.book.structure.StructurePreviewRenderer}.
+ */
 public class StructureElement extends SizedBookElement {
 
   public boolean canTick = false;
@@ -39,6 +32,8 @@ public class StructureElement extends SizedBookElement {
   public final TemplateLevel structureWorld;
 
   public long lastStep = -1;
+  /** @deprecated errors are now logged by {@link slimeknights.mantle.client.book.structure.StructurePreviewRenderer} */
+  @Deprecated
   public long lastPrintedErrorTimeMs = -1;
 
   public StructureElement(int x, int y, int width, int height, StructureTemplate template, List<StructureTemplate.StructureBlockInfo> structure) {
@@ -65,97 +60,29 @@ public class StructureElement extends SizedBookElement {
 
   @Override
   public void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks, Font fontRenderer) {
-    // 1.21: ByteBufferBuilder owns native memory and must be closed, else it leaks every frame this page renders
-    ByteBufferBuilder byteBuffer = new ByteBufferBuilder(256);
-    MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(byteBuffer);
-    PoseStack transform = graphics.pose();
-    PoseStack.Pose lastEntryBeforeTry = transform.last();
+    long currentTime = System.currentTimeMillis();
 
-    try {
-      long currentTime = System.currentTimeMillis();
-
-      if (this.lastStep < 0)
-        this.lastStep = currentTime;
-      else if (this.canTick && currentTime - this.lastStep > 200) {
-        this.renderInfo.step();
-        this.lastStep = currentTime;
-      }
-
-      if (!this.canTick) {
-        this.renderInfo.reset();
-      }
-
-      int structureLength = this.renderInfo.structureLength;
-      int structureWidth = this.renderInfo.structureWidth;
-      int structureHeight = this.renderInfo.structureHeight;
-
-      transform.pushPose();
-
-      final BlockRenderDispatcher blockRender = Minecraft.getInstance().getBlockRenderer();
-
-      transform.translate(this.transX, this.transY, Math.max(structureHeight, Math.max(structureWidth, structureLength)));
-      transform.scale(this.scale, -this.scale, 1);
-      transform.pushTransformation(this.additionalTransform);
-      transform.rotate(new Quaternionf().rotateYXZ(0, 0, 0));
-
-      transform.translate(structureLength / -2f, structureHeight / -2f, structureWidth / -2f);
-
-      for (int h = 0; h < structureHeight; h++) {
-        for (int l = 0; l < structureLength; l++) {
-          for (int w = 0; w < structureWidth; w++) {
-            BlockPos pos = new BlockPos(l, h, w);
-            BlockState state = this.structureWorld.getBlockState(pos);
-
-            if (!state.isAir()) {
-              transform.pushPose();
-              transform.translate(l, h, w);
-
-              int overlay;
-
-              if (pos.equals(new BlockPos(1, 1, 1)))
-                overlay = OverlayTexture.pack(0, true);
-              else
-                overlay = OverlayTexture.NO_OVERLAY;
-
-              ModelData modelData = ModelData.EMPTY;
-              BlockEntity te = structureWorld.getBlockEntity(pos);
-
-              if (te != null) {
-                modelData = te.getModelData();
-              }
-
-              // TODO: verify that we should be using all types here
-              BakedModel model = blockRender.getBlockModel(state);
-              for (RenderType renderType : model.getRenderTypes(state, structureWorld.random, modelData)) {
-                blockRender.getModelRenderer().tesselateBlock(
-                  structureWorld, blockRender.getBlockModel(state), state, pos, transform,
-                  buffer.getBuffer(MantleRenderTypes.TRANSLUCENT_FULLBRIGHT), false, structureWorld.random, state.getSeed(pos),
-                  overlay, modelData, renderType);
-              }
-
-              transform.popPose();
-            }
-          }
-        }
-      }
-
-      transform.popPose();
-      transform.popPose();
-
-    } catch (Exception e) {
-      final long now = System.currentTimeMillis();
-
-      if (now > this.lastPrintedErrorTimeMs + 1000) {
-        e.printStackTrace();
-        this.lastPrintedErrorTimeMs = now;
-      }
-
-      while (lastEntryBeforeTry != transform.last())
-        transform.popPose();
+    if (this.lastStep < 0)
+      this.lastStep = currentTime;
+    else if (this.canTick && currentTime - this.lastStep > 200) {
+      this.renderInfo.step();
+      this.lastStep = currentTime;
     }
 
-    buffer.endBatch();
-    byteBuffer.close();
+    if (!this.canTick) {
+      this.renderInfo.reset();
+    }
+
+    // 3D content in the GUI renders into a texture, which is then drawn on the page
+    // the texture covers the whole page so the structure can still extend past the element when rotated
+    int x0 = Math.min(0, this.x);
+    int y0 = Math.min(0, this.y);
+    int x1 = Math.max(BookScreen.PAGE_WIDTH, this.x + this.width);
+    int y1 = Math.max(BookScreen.PAGE_HEIGHT, this.y + this.height);
+    graphics.submitPictureInPictureRenderState(new StructurePreviewRenderState(
+      this.structureWorld, this.renderInfo.structureLength, this.renderInfo.structureHeight, this.renderInfo.structureWidth, this.renderInfo.getLimiter(),
+      this.additionalTransform, this.transX - (x0 + x1) / 2f, this.transY - (y0 + y1) / 2f,
+      x0, y0, x1, y1, this.scale, new Matrix3x2f(graphics.pose()), graphics.peekScissorStack()));
   }
 
   @Override

@@ -4,6 +4,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
 import slimeknights.mantle.client.book.HTMLUtils;
 import slimeknights.mantle.client.book.IHTML;
 import slimeknights.mantle.client.book.action.StringActionProcessor;
@@ -13,6 +14,7 @@ import slimeknights.mantle.util.html.HtmlGroup;
 import slimeknights.mantle.util.html.HtmlSerializable;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -89,8 +91,9 @@ public class TextData implements IHTML {
       if (underlined) element.classes("underline");
       if (dropshadow) element.classes("shadow");
       if (hasColor) {
-        ChatFormatting formatting = ChatFormatting.getByName(color);
-        element.color(formatting != null ? formatting.getColor() : rgbColor);
+        ChatFormatting formatting = getFormattingByName(color);
+        TextColor formattingColor = formatting != null ? TextColor.fromLegacyFormat(formatting) : null;
+        element.color(formattingColor != null ? formattingColor.getValue() : rgbColor);
       }
       if (bold) element.style("font-weight", "bold");
       if (italic) element.style("font-style", "italic");
@@ -98,6 +101,31 @@ public class TextData implements IHTML {
     }
 
     return text;
+  }
+
+  /** Simplifies a formatting name for comparison, matching the removed {@code ChatFormatting.getByName} */
+  private static String cleanName(String name) {
+    return name.toLowerCase(Locale.ROOT).replaceAll("[^a-z]", "");
+  }
+
+  /**
+   * Gets a formatting code by name, ignoring case, spaces and underscores, so both {@code "dark red"} and {@code "DARK_RED"} work.
+   * Replacement for the removed {@code ChatFormatting.getByName}.
+   * @param name  Name of the formatting
+   * @return  Formatting, or null if no formatting matches
+   */
+  @Nullable
+  public static ChatFormatting getFormattingByName(@Nullable String name) {
+    if (name == null) {
+      return null;
+    }
+    String cleaned = cleanName(name);
+    for (ChatFormatting formatting : ChatFormatting.values()) {
+      if (cleanName(formatting.name()).equals(cleaned)) {
+        return formatting;
+      }
+    }
+    return null;
   }
 
   /**

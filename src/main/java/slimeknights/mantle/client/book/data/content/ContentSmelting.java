@@ -3,13 +3,18 @@ package slimeknights.mantle.client.book.data.content;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.context.ContextMap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
-import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.display.FurnaceRecipeDisplay;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplayContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import org.apache.commons.lang3.StringUtils;
@@ -24,6 +29,7 @@ import slimeknights.mantle.client.screen.book.element.ImageElement;
 import slimeknights.mantle.client.screen.book.element.ItemElement;
 import slimeknights.mantle.client.screen.book.element.TextElement;
 import slimeknights.mantle.client.screen.book.element.TooltipElement;
+import slimeknights.mantle.recipe.helper.RecipeHelper;
 import slimeknights.mantle.util.html.HtmlElement;
 import slimeknights.mantle.util.html.HtmlGroup;
 import slimeknights.mantle.util.html.HtmlSerializable;
@@ -36,7 +42,8 @@ import static slimeknights.mantle.client.screen.book.Textures.TEX_SMELTING;
 public class ContentSmelting extends PageContent {
   public static final Identifier ID = Mantle.getResource("smelting");
 
-  private static final NonNullList<ItemStack> FUELS;
+  /** Default fuels to display, created on first use as item stacks cannot be created before registries load */
+  private static NonNullList<ItemStack> FUELS;
 
   public static final transient int TEX_SIZE = 128;
   public static final transient ImageData IMG_SMELTING = new ImageData(TEX_SMELTING, 0, 0, 110, 114, TEX_SIZE, TEX_SIZE);
@@ -95,6 +102,9 @@ public class ContentSmelting extends PageContent {
       return this.fuel.getItems();
     }
 
+    if (FUELS == null) {
+      FUELS = createDefaultFuels();
+    }
     return FUELS;
   }
 
@@ -105,12 +115,19 @@ public class ContentSmelting extends PageContent {
     if (!StringUtils.isEmpty(this.recipe) && Identifier.tryParse(this.recipe) != null) {
       Level level = Minecraft.getInstance().level;
       assert level != null;
-      Recipe<?> recipe = level.getRecipeManager().byKey(Identifier.parse(this.recipe)).map(RecipeHolder::value).orElse(null);
+      RecipeHolder<?> holder = RecipeHelper.recipes(level).byKey(ResourceKey.create(Registries.RECIPE, Identifier.parse(this.recipe)));
 
-      if (recipe instanceof AbstractCookingRecipe) {
-        this.input = IngredientData.getItemStackData(NonNullList.of(ItemStack.EMPTY, recipe.getIngredients().get(0).getItems()));
-        this.cookTime = ((AbstractCookingRecipe) recipe).cookingTime();
-        this.result = IngredientData.getItemStackData(recipe.getResultItem(level.registryAccess()));
+      if (holder != null && holder.value() instanceof AbstractCookingRecipe cooking) {
+        // recipes no longer expose results, so read input and result from the recipe display
+        ContextMap context = SlotDisplayContext.fromLevel(level);
+        this.input = IngredientData.getItemStackData(NonNullList.of(ItemStack.EMPTY, cooking.input().display().resolveForStacks(context).toArray(new ItemStack[0])));
+        this.cookTime = cooking.cookingTime();
+        for (RecipeDisplay display : cooking.display()) {
+          if (display instanceof FurnaceRecipeDisplay furnace) {
+            this.result = IngredientData.getItemStackData(furnace.result().resolveForFirstStack(context));
+            break;
+          }
+        }
       }
     }
   }
@@ -123,8 +140,9 @@ public class ContentSmelting extends PageContent {
     );
   }
 
-  static {
-    FUELS = NonNullList.of(ItemStack.EMPTY,
+  /** Creates the list of default fuels */
+  private static NonNullList<ItemStack> createDefaultFuels() {
+    return NonNullList.of(ItemStack.EMPTY,
       new ItemStack(Blocks.OAK_SLAB),
       new ItemStack(Blocks.SPRUCE_SLAB),
       new ItemStack(Blocks.BIRCH_SLAB),
