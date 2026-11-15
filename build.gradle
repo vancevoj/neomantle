@@ -1,15 +1,20 @@
 /*
- * Mantle - NeoForge 1.21.1 port build file
+ * Mantle - NeoForge 26.3 port build file
  * Original ForgeGradle build by Sunstrike, ProgWML6 (Slime Knights).
- * Converted to ModDevGradle for NeoForge 1.21.1.
+ * Converted to ModDevGradle for NeoForge 1.21.1, updated for Minecraft 26.3.
  */
 
 plugins {
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.141'
-    id 'io.freefair.lombok' version '8.10'
+    id 'net.neoforged.moddev' version '2.0.148'
+    id 'io.freefair.lombok' version '8.11'
+}
+
+// The freefair default lombok is too old for Java 25
+lombok {
+    version = '1.18.46'
 }
 
 group = 'slimeknights.mantle'
@@ -20,7 +25,7 @@ base {
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
     withSourcesJar()
 }
 
@@ -36,11 +41,6 @@ repositories {
 
 neoForge {
     version = neoforge_version
-
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
-    }
 
     // Mantle widens access to a few vanilla members.
     accessTransformers.from('src/main/resources/META-INF/accesstransformer.cfg')
@@ -58,7 +58,7 @@ neoForge {
             programArgument '--nogui'
         }
         data {
-            data()
+            clientData()
             programArguments.addAll(
                 '--mod', 'mantle',
                 '--all',
@@ -81,10 +81,18 @@ sourceSets.main.resources {
     exclude '.cache'
 }
 
+// Runtime only mods that should not be published as dependencies
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
 dependencies {
-    // JEI integration lives in slimeknights.mantle.plugin (ported to the 1.21.1 JEI 19.x API).
+    // javax.annotation no longer comes in transitively with Guava
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    // JEI integration lives in slimeknights.mantle.plugin
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
-    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -92,7 +100,6 @@ tasks.named('processResources', ProcessResources).configure {
         version        : version,
         mod_version    : mod_version,
         fork_version   : fork_version,
-        loader_range   : loader_range,
         minecraft_range: minecraft_range,
         neoforge_range : neoforge_range,
         jei_range      : jei_range
