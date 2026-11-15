@@ -2,7 +2,10 @@ package slimeknights.mantle.client.book;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -41,6 +44,7 @@ import slimeknights.mantle.network.MantleNetwork;
 import slimeknights.mantle.network.packet.UpdateHeldPagePacket;
 import slimeknights.mantle.network.packet.UpdateInventoryPagePacket;
 import slimeknights.mantle.network.packet.UpdateLecternPagePacket;
+import slimeknights.mantle.util.JsonHelper;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Type;
@@ -94,6 +98,8 @@ public class BookLoader implements ResourceManagerReloadListener {
     registerGsonTypeAdapter(int.class, new HexStringDeserializer());
     registerGsonTypeAdapter(ICondition.class, new ConditionDeserializer());
     registerGsonTypeAdapter(IngredientData.class, new IngredientData.Deserializer());
+    // 1.21: Component.Serializer is no longer a GSON adapter, so parse through the component codec
+    registerGsonTypeAdapter(Component.class, (JsonDeserializer<Component>) (json, type, context) -> JsonHelper.parse(ComponentSerialization.CODEC, json));
 
     // Register page types that are implicitly hidden from indexes
     IndexTransformer.addHiddenPageType(ContentBlank.ID);

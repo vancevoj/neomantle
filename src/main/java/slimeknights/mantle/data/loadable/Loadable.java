@@ -208,32 +208,64 @@ public interface Loadable<T> extends JsonDeserializer<T>, JsonSerializer<T>, Str
 
   /* Mapping */
 
-  /** Maps this loader to another type, with error factory on both from and to */
-  default <M> Loadable<M> xmap(BiFunction<T,ErrorFactory,M> from, BiFunction<M,ErrorFactory,T> to) {
-    return MappedLoadable.of(this, from, to);
+  /**
+   * Maps this loader to another type.
+   * The {@link ErrorFactory} argument can be used to throw a parsing or serialization exception if mapping fails.
+   * @param <M>  New type.
+   * @param constructor  Function mapping this type to the new type, typically a constructor call.
+   * @param getter       Function mapping the new type to this type, typically a getter function.
+   */
+  default <M> Loadable<M> mapChecked(BiFunction<T,ErrorFactory,M> constructor, BiFunction<M,ErrorFactory,T> getter) {
+    return MappedLoadable.of(this, constructor, getter);
   }
 
-  /** Maps this loader to another type, with error factory on from */
-  default <M> Loadable<M> comapFlatMap(BiFunction<T,ErrorFactory,M> from, Function<M,T> to) {
-    return xmap(from, MappedLoadable.flatten(to));
-  }
-
-  /** Maps this loader to another type */
-  default <M> Loadable<M> flatComap(Function<T,M> from, BiFunction<M,ErrorFactory,T> to) {
-    return xmap(MappedLoadable.flatten(from), to);
-  }
-
-  /** Maps this loader to another type */
-  default <M> Loadable<M> flatXmap(Function<T,M> from, Function<M,T> to) {
-    return xmap(MappedLoadable.flatten(from), MappedLoadable.flatten(to));
+  /** Flattens the given mapping function */
+  static <T,R> BiFunction<T,ErrorFactory,R> noErrors(Function<T, R> function) {
+    return (value, error) -> function.apply(value);
   }
 
   /**
-   * Validates the result of this map using the given function. This is equivelent to {@link #xmap(BiFunction, BiFunction)} with the same argument twice.
+   * Maps this loader to another type. Assumes the mapping always succeeds.
+   * Use {@link #mapChecked(BiFunction, BiFunction)} if the mapping may fail to ensure the proper exception type.
+   * @param <M>  New type.
+   * @param constructor  Function mapping this type to the new type, typically a constructor call.
+   * @param getter       Function mapping the new type to this type, typically a getter function.
+   */
+  default <M> Loadable<M> map(Function<T,M> constructor, Function<M,T> getter) {
+    return mapChecked(noErrors(constructor), noErrors(getter));
+  }
+
+  /**
+   * Validates the result of this map using the given function. This is equivalent to {@link #mapChecked(BiFunction, BiFunction)} with the same argument twice.
    * @param validator  Validator function, returns instance if valid.
    * @return Validated loadable
    */
   default Loadable<T> validate(BiFunction<T,ErrorFactory,T> validator) {
-    return xmap(validator, validator);
+    return mapChecked(validator, validator);
+  }
+
+
+  /** @deprecated use {@link #mapChecked(BiFunction, BiFunction)} */
+  @Deprecated(forRemoval = true)
+  default <M> Loadable<M> xmap(BiFunction<T,ErrorFactory,M> constructor, BiFunction<M,ErrorFactory,T> getter) {
+    return MappedLoadable.of(this, constructor, getter);
+  }
+
+  /** @deprecated use {@link #mapChecked(BiFunction, BiFunction)} */
+  @Deprecated(forRemoval = true)
+  default <M> Loadable<M> comapFlatMap(BiFunction<T,ErrorFactory,M> constructor, Function<M,T> getter) {
+    return mapChecked(constructor, noErrors(getter));
+  }
+
+  /** @deprecated use {@link #mapChecked(BiFunction, BiFunction)} */
+  @Deprecated(forRemoval = true)
+  default <M> Loadable<M> flatComap(Function<T,M> constructor, BiFunction<M,ErrorFactory,T> getter) {
+    return mapChecked(noErrors(constructor), getter);
+  }
+
+  /** @deprecated use {@link #map(Function, Function)} */
+  @Deprecated(forRemoval = true)
+  default <M> Loadable<M> flatXmap(Function<T,M> constructor, Function<M,T> getter) {
+    return mapChecked(noErrors(constructor), noErrors(getter));
   }
 }

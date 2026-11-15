@@ -1,22 +1,17 @@
 {
-  "type": "mantle:fill_item",
-  "conditions": [
+  "neoforge:conditions": [
     {
       "type": "mantle:tag_filled",
-      "tag": "forge:bottles/splash"
+      "tag": "c:bottles/splash"
     }
   ],
+  "type": "mantle:fill_item",
   "fluid": {
     "amount": 500,
     "tag": "mantle:water"
   },
   "input": {
-    "tag": "forge:bottles/splash"
+    "tag": "c:bottles/splash"
   },
-  "result": {
-    "item": "minecraft:splash_potion",
-    "nbt": {
-      "Potion": "minecraft:water"
-    }
-  }
+  "result": "minecraft:splash_potion"
 }

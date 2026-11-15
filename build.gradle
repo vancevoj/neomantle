@@ -94,7 +94,8 @@ tasks.named('processResources', ProcessResources).configure {
         fork_version   : fork_version,
         loader_range   : loader_range,
         minecraft_range: minecraft_range,
-        neoforge_range : neoforge_range
+        neoforge_range : neoforge_range,
+        jei_range      : jei_range
     ]
     inputs.properties replaceProperties
 
