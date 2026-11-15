@@ -24,6 +24,10 @@ public abstract class Widget {
     this.height = height;
   }
 
+  /**
+   * Called when the mouse is clicked
+   * @param mouseButton  Mouse button using the 26.3 numbering ({@link com.mojang.blaze3d.platform.InputConstants#MOUSE_BUTTON_LEFT} is 1, right is 3)
+   */
   public void handleMouseClicked(int mouseX, int mouseY, int mouseButton) {
 
   }

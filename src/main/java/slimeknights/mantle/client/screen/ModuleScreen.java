@@ -82,6 +82,13 @@ public abstract class ModuleScreen<P extends MultiModuleScreen<?>, C extends Abs
   }
 
   /**
+   * Draws the background of this module. Called by the parent screen through {@link #handleDrawGuiContainerBackgroundLayer(GuiGraphicsExtractor, float, int, int)}.
+   * 26.3: vanilla removed {@code AbstractContainerScreen#renderBg}, so this is now declared by Mantle with the same signature.
+   * Modules are never the active screen, so vanilla's {@code extractBackground} is not called for them.
+   */
+  protected abstract void renderBg(GuiGraphicsExtractor graphics, float partialTicks, int mouseX, int mouseY);
+
+  /**
    * Callback to draw background elements
    */
   public void handleDrawGuiContainerBackgroundLayer(GuiGraphicsExtractor graphics, float partialTicks, int mouseX, int mouseY) {
@@ -99,12 +106,13 @@ public abstract class ModuleScreen<P extends MultiModuleScreen<?>, C extends Abs
    * Callback to draw hovering tooltips
    */
   public void handleRenderHoveredTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-    this.renderTooltip(graphics, mouseX, mouseY);
+    this.extractTooltip(graphics, mouseX, mouseY);
   }
 
   /**
    * Custom mouse click handling.
    *
+   * @param mouseButton  Mouse button using the 26.3 numbering ({@link com.mojang.blaze3d.platform.InputConstants#MOUSE_BUTTON_LEFT} is 1, right is 3)
    * @return True to prevent the main container handling the mouseclick
    */
   public boolean handleMouseClicked(double mouseX, double mouseY, int mouseButton) {
@@ -114,6 +122,8 @@ public abstract class ModuleScreen<P extends MultiModuleScreen<?>, C extends Abs
   /**
    * Custom mouse click handling.
    *
+   * @param clickedMouseButton  Mouse button using the 26.3 numbering ({@link com.mojang.blaze3d.platform.InputConstants#MOUSE_BUTTON_LEFT} is 1, right is 3)
+   * @param timeSinceLastClick  Horizontal drag distance (the name is historic)
    * @return True to prevent the main container handling the mouseclick
    */
   public boolean handleMouseClickMove(double mouseX, double mouseY, int clickedMouseButton, double timeSinceLastClick) {
@@ -124,6 +134,7 @@ public abstract class ModuleScreen<P extends MultiModuleScreen<?>, C extends Abs
    * Called when the mouse is released to handle the end of a click and drag.
    * Called regardless of whether the mouse is in the module. If you need to ensure the mouse is in the module, use {@link #isMouseInModule(int, int)}.
    *
+   * @param state  Mouse button using the 26.3 numbering ({@link com.mojang.blaze3d.platform.InputConstants#MOUSE_BUTTON_LEFT} is 1, right is 3)
    * @return True to prevent the main container handling the mouseclick
    */
   public boolean handleMouseReleased(double mouseX, double mouseY, int state) {

@@ -1,5 +1,6 @@
 package slimeknights.mantle.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.Mth;
 
@@ -206,7 +207,7 @@ public class SliderWidget extends Widget {
 
   @Override
   public void handleMouseClicked(int mouseX, int mouseY, int mouseButton) {
-    if (mouseButton == 0) {
+    if (mouseButton == InputConstants.MOUSE_BUTTON_LEFT) {
       this.leftMouseDown = true;
     }
   }

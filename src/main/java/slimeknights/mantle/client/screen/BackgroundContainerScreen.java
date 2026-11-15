@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.MenuScreens.ScreenConstructor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
@@ -28,9 +29,9 @@ public class BackgroundContainerScreen<T extends AbstractContainerMenu> extends 
 	 * @param background Container background
 	 */
 	public BackgroundContainerScreen(T container, Inventory inventory, Component name, int height, Identifier background) {
-		super(container, inventory, name);
+		// 26.3: image size is final and set through the constructor
+		super(container, inventory, name, DEFAULT_IMAGE_WIDTH, height);
 		this.background = background;
-		this.imageHeight = height;
 		this.inventoryLabelY = this.imageHeight - 94;
 	}
 
@@ -40,17 +41,13 @@ public class BackgroundContainerScreen<T extends AbstractContainerMenu> extends 
 		this.titleLabelX = (this.imageWidth - this.font.width(this.title)) / 2;
 	}
 
-	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks) {
-		// 1.21: super.render() already calls renderBackground (dim overlay + renderBg). Manual call here double-dimmed.
-		super.extractRenderState(graphics, mouseX, mouseY, partialTicks);
-		this.renderTooltip(graphics, mouseX, mouseY);
-	}
+	// 26.3: no extractRenderState override needed, the base method already draws the tooltip
 
 	@Override
-	protected void renderBg(GuiGraphicsExtractor graphics, float partialTicks, int mouseX, int mouseY) {
-		graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-		graphics.blit(this.background, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
+	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTicks) {
+		// dims the world behind the screen
+		super.extractBackground(graphics, mouseX, mouseY, partialTicks);
+		graphics.blit(RenderPipelines.GUI_TEXTURED, this.background, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight, 256, 256);
 	}
 
 	@RequiredArgsConstructor(staticName = "of")

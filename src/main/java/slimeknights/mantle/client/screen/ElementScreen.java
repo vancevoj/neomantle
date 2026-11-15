@@ -2,6 +2,7 @@ package slimeknights.mantle.client.screen;
 
 import lombok.AllArgsConstructor;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 
 /**
@@ -32,12 +33,15 @@ public class ElementScreen {
 
   /**
    * Draws the element at the given x/y coordinates
+   * 26.3: the GUI no longer has a depth offset. Elements drawn later are layered above earlier elements they overlap,
+   * so the offset is ignored and drawing the element after the content it should cover gives the same result.
    *
-   * @param xPos X-Coordinate on the screen
-   * @param yPos Y-Coordinate on the screen
+   * @param xPos       X-Coordinate on the screen
+   * @param yPos       Y-Coordinate on the screen
+   * @param blitOffset Ignored, see above
    */
   public void draw(GuiGraphicsExtractor graphics, int xPos, int yPos, int blitOffset) {
-    graphics.blit(this.texture, xPos, yPos, blitOffset, this.x, this.y, this.w, this.h, this.texW, this.texH);
+    this.draw(graphics, xPos, yPos);
   }
 
   /**
@@ -47,6 +51,18 @@ public class ElementScreen {
    * @param yPos Y-Coordinate on the screen
    */
   public void draw(GuiGraphicsExtractor graphics, int xPos, int yPos) {
-    this.draw(graphics, xPos, yPos, 0);
+    this.drawWithColor(graphics, xPos, yPos, -1);
+  }
+
+  /**
+   * Draws the element at the given x/y coordinates with a color tint.
+   * Replaces setting the shader color around {@link #draw(GuiGraphicsExtractor, int, int)}, which 26.3 removed.
+   *
+   * @param xPos  X-Coordinate on the screen
+   * @param yPos  Y-Coordinate on the screen
+   * @param color Tint in ARGB format, the alpha is required (use {@code 0xFFFFFFFF} or {@code -1} for no tint)
+   */
+  public void drawWithColor(GuiGraphicsExtractor graphics, int xPos, int yPos, int color) {
+    graphics.blit(RenderPipelines.GUI_TEXTURED, this.texture, xPos, yPos, this.x, this.y, this.w, this.h, this.texW, this.texH, color);
   }
 }

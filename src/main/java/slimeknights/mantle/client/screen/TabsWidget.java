@@ -1,6 +1,7 @@
 package slimeknights.mantle.client.screen;
 
 import com.google.common.collect.Lists;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
@@ -52,7 +53,7 @@ public class TabsWidget extends Widget {
 
   @Override
   public void handleMouseClicked(int mouseX, int mouseY, int mouseButton) {
-    if (mouseButton == 0) {
+    if (mouseButton == InputConstants.MOUSE_BUTTON_LEFT) {
       this.leftMouseDown = true;
     }
   }

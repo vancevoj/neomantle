@@ -1,16 +1,20 @@
 package slimeknights.mantle.client;
 
-import net.minecraft.util.Util;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.LayeredDraw;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Util;
+import net.minecraft.util.profiling.Profiler;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.gui.GuiLayer;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.config.Config;
 import slimeknights.mantle.config.Config.HeartRenderer;
@@ -18,11 +22,14 @@ import slimeknights.mantle.config.Config.HeartRenderer;
 import java.util.Random;
 
 /**
- * Replacement for the vanilla {@code PLAYER_HEALTH} GUI layer, registered via {@code RegisterGuiLayersEvent}.
+ * Replacement for the vanilla {@code PLAYER_HEALTH} GUI layer, registered via {@link #register(RegisterGuiLayersEvent)}.
  * In 1.21 the old {@code RenderGuiOverlayEvent} cancel-and-redraw flow became a layer replacement.
+ * This is a HUD layer, it must never be registered on the event bus.
  */
-public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
+public class ExtraHeartRenderHandler implements GuiLayer {
   private static final Identifier ICON_HEARTS = Identifier.fromNamespaceAndPath(Mantle.modId, "textures/gui/extra_hearts.png");
+  /** Width and height of {@link #ICON_HEARTS} */
+  private static final int TEXTURE_SIZE = 256;
   /** Number of heart color variants */
   private static final int HEART_VARIANTS = 12;
   /** Number of heart color variants */
@@ -56,6 +63,8 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
   private static final int ABSORPTION_CONTAINER = 234;
 
   private final Minecraft mc = Minecraft.getInstance();
+  /** Vanilla health layer, drawn instead of the custom hearts when the renderer is disabled in the config */
+  private final GuiLayer vanillaLayer;
   /** Offsets for each heart position */
   private final int[] offsets = new int[20];
 
@@ -69,6 +78,23 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
   private long lastHealthTime = 0;
   private final Random rand = new Random();
 
+  /**
+   * Creates a new heart renderer
+   * @param vanillaLayer  Vanilla health layer, used when the renderer is disabled in the config
+   */
+  public ExtraHeartRenderHandler(GuiLayer vanillaLayer) {
+    this.vanillaLayer = vanillaLayer;
+  }
+
+  /**
+   * Registers the heart renderer in place of the vanilla {@code PLAYER_HEALTH} GUI layer.
+   * Call from a {@link RegisterGuiLayersEvent} listener on the mod bus.
+   * The vanilla layer is wrapped rather than discarded so it still draws when the config disables this renderer.
+   */
+  public static void register(RegisterGuiLayersEvent event) {
+    event.wrapLayer(VanillaGuiLayers.PLAYER_HEALTH, ExtraHeartRenderHandler::new);
+  }
+
   /* HUD */
 
   /**
@@ -80,10 +106,12 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
   public void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
     HeartRenderer renderer = Config.HEART_RENDERER.get();
     if (renderer == HeartRenderer.DISABLE) {
+      // the wrapped vanilla layer does its own visibility checks
+      this.vanillaLayer.render(graphics, deltaTracker);
       return;
     }
-    // ensure its visible: gui shown, survival-style gamemode, and a player camera (mirrors the old shouldDrawSurvivalElements)
-    if (mc.options.hideGui || mc.gameMode == null || !mc.gameMode.canHurtPlayer()) {
+    // ensure its visible: hud shown, survival-style gamemode, and a player camera (mirrors vanilla's survivalVisible check)
+    if (this.mc.gui.hud.isHidden() || this.mc.gameMode == null || !this.mc.gameMode.canHurtPlayer()) {
       return;
     }
     Entity renderViewEnity = this.mc.getCameraEntity();
@@ -93,13 +121,14 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
 
     Profiler.get().push("health");
 
-    // based on the top of Gui#renderPlayerHealth
-    int tickCount = this.mc.gui.getGuiTicks();
+    // based on the top of Hud#extractHealthLevel
+    int tickCount = this.mc.gui.hud.getGuiTicks();
     int health = Mth.ceil(player.getHealth());
     boolean highlight = this.healthBlinkTime > tickCount && (this.healthBlinkTime - tickCount) / 3L % 2L == 1L;
 
     long systemTime = Util.getMillis();
-    if (player.invulnerableTime > 0) {
+    // 26.3: the damage cooldown moved from Entity#invulnerableTime to LivingEntity#damageCooldownTime, matching Hud#extractHealthLevel
+    if (player.damageCooldownTime > 0) {
       if (health < this.lastHealth) {
         this.lastHealthTime = systemTime;
         this.healthBlinkTime = tickCount + 20;
@@ -118,9 +147,8 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
     this.rand.setSeed(tickCount * 312871L);
 
     // setup window size
-    com.mojang.blaze3d.platform.Window window = this.mc.getWindow();
-    int left = window.getGuiScaledWidth() / 2 - 91;
-    int top = window.getGuiScaledHeight() - this.mc.gui.hud.leftHeight;
+    int left = graphics.guiWidth() / 2 - 91;
+    int top = graphics.guiHeight() - this.mc.gui.hud.leftHeight;
 
     // grab max health as the max of it or the health we will display
     // cap it to 20, as this just determines heart count
@@ -133,10 +161,10 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
       // vanilla uses max health here, but between us capping it and it looking horrible at low sizes, use 25
       regen = tickCount % 25;
     }
-    // end code based on Gui#renderPlayerHealth
+    // end code based on Hud#extractHealthLevel
 
     // determine which hearts to display based on status effects
-    // this is inspired by Gui.HeartType#forPlayer, keep it in sync
+    // this is inspired by Hud.HeartType#forPlayer, keep it in sync
     int container = MAX_VARIANT;
     int heartOffset = NORMAL_VARIANT;
     int absorpOffset = ABSORPTION_VARIANT;
@@ -216,8 +244,8 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
     }
 
     // advance the shared HUD offset so layers drawn after us (food, armor, air) stack above the hearts,
-    // matching what vanilla's renderHealthLevel does. GuiGraphicsExtractor.blit binds its own texture, so no manual
-    // RenderSystem state is needed, and because this layer replaces PLAYER_HEALTH there is no event to cancel/repost.
+    // matching what vanilla's extractHealthLevel does. GuiGraphicsExtractor.blit carries its own texture and pipeline, so no
+    // render state is needed, and because this layer replaces PLAYER_HEALTH there is no event to cancel/repost.
     this.mc.gui.hud.leftHeight += ROW_HEIGHT;
     if (!compactAbsorption && absorb > 0) {
       this.mc.gui.hud.leftHeight += absorptionOffset;
@@ -325,11 +353,11 @@ public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
   private void renderHeartRow(GuiGraphicsExtractor graphics, int x, int y, int indexOffset, int uOffset, int vOffset, int start, int end, boolean half) {
     // draw full hearts
     for (int i = start; i < end; i += 1) {
-      graphics.blit(ICON_HEARTS, x + HEART_OFFSET * i, y + offsets[i + indexOffset], uOffset, vOffset, HEART_SIZE, HEART_SIZE);
+      graphics.blit(RenderPipelines.GUI_TEXTURED, ICON_HEARTS, x + HEART_OFFSET * i, y + offsets[i + indexOffset], uOffset, vOffset, HEART_SIZE, HEART_SIZE, TEXTURE_SIZE, TEXTURE_SIZE);
     }
     // draw half heart
     if (half) {
-      graphics.blit(ICON_HEARTS, x + HEART_OFFSET * end, y + offsets[end + indexOffset], uOffset + HEART_SIZE, vOffset, HEART_SIZE, HEART_SIZE);
+      graphics.blit(RenderPipelines.GUI_TEXTURED, ICON_HEARTS, x + HEART_OFFSET * end, y + offsets[end + indexOffset], uOffset + HEART_SIZE, vOffset, HEART_SIZE, HEART_SIZE, TEXTURE_SIZE, TEXTURE_SIZE);
     }
   }
 
