@@ -8,13 +8,14 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.synchronization.SuggestionProviders;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.book.BookLoader;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -37,12 +38,18 @@ public class MantleClientCommand {
       SharedSuggestionProvider.suggest(BookLoader.getAllBooks().stream().map(Identifier::getNamespace).distinct(), builder));
 
     // source command suggestions
-    FileToIdConverter atlases = new FileToIdConverter("textures/atlas", ".png");
-    ClientSourcesCommand.registerMinecraft("atlases", (context, builder)
-      -> SharedSuggestionProvider.suggestResource(Minecraft.getInstance().getModelManager().atlases.atlases.keySet().stream().map(atlases::fileToId), builder));
+    // atlases are owned by the atlas manager since 1.21.9, keyed by the ID of their definition in the atlases folder
+    ClientSourcesCommand.registerMinecraft("atlases", (context, builder) -> {
+      List<Identifier> atlases = new ArrayList<>();
+      Minecraft.getInstance().getAtlasManager().forEach((id, atlas) -> atlases.add(id));
+      return SharedSuggestionProvider.suggestResource(atlases, builder);
+    });
     ClientSourcesCommand.registerMinecraft("blockstates", (context, builder)
       -> SharedSuggestionProvider.suggestResource(BuiltInRegistries.BLOCK.keySet(), builder));
     ClientSourcesCommand.register("item_models", "models/item", ".json", (context, builder)
+      -> SharedSuggestionProvider.suggestResource(BuiltInRegistries.ITEM.keySet(), builder));
+    // client item definitions, used to select the model for an item since 1.21.4
+    ClientSourcesCommand.registerMinecraft("items", (context, builder)
       -> SharedSuggestionProvider.suggestResource(BuiltInRegistries.ITEM.keySet(), builder));
 
     // add command listener

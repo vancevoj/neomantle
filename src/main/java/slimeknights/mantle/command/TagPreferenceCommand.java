@@ -4,6 +4,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -21,7 +22,7 @@ public class TagPreferenceCommand {
    * @param subCommand  Command builder
    */
   public static void register(LiteralArgumentBuilder<CommandSourceStack> subCommand) {
-    subCommand.requires(sender -> sender.hasPermission(MantleCommand.PERMISSION_EDIT_SPAWN))
+    subCommand.requires(Commands.hasPermission(MantleCommand.PERMISSION_EDIT_SPAWN))
       .then(RegistryArgument.argument().then(TagSourceArgument.tagArgument("name").executes(TagPreferenceCommand::run)));
   }
 
@@ -47,10 +48,10 @@ public class TagPreferenceCommand {
     TagKey<T> tag = TagKey.create(registry.key(), name);
     T preference = TagPreference.getPreference(tag).orElse(null);
     if (preference == null) {
-      context.getSource().sendSuccess(() -> Component.translatable(EMPTY_TAG, registry.key().identifier(), name), true);
+      context.getSource().sendSuccess(() -> Component.translatable(EMPTY_TAG, registry.key().identifier().toString(), name.toString()), true);
       return 0;
     } else {
-      context.getSource().sendSuccess(() -> Component.translatable(PREFERENCE, registry.key().identifier(), name, registry.getKey(preference)), true);
+      context.getSource().sendSuccess(() -> Component.translatable(PREFERENCE, registry.key().identifier().toString(), name.toString(), String.valueOf(registry.getKey(preference))), true);
       return 1;
     }
   }

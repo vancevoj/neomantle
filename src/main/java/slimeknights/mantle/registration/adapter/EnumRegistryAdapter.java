@@ -1,9 +1,11 @@
 package slimeknights.mantle.registration.adapter;
 
 import net.minecraft.core.Registry;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
 import slimeknights.mantle.registration.object.EnumObject;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -58,6 +60,48 @@ public class EnumRegistryAdapter<T> extends RegistryAdapter<T> {
     EnumObject.Builder<E,I> builder = new EnumObject.Builder<>(values[0].getDeclaringClass());
     for (E value : values) {
       builder.put(value, register(mapper.apply(value), name + "_" + value.getSerializedName()));
+    }
+    return builder.build();
+  }
+
+  /**
+   * Registers an entry with multiple variants, prefixing the name with the value name.
+   * The mapper receives the registry name, needed for items and blocks as their properties must know their ID before construction.
+   * @param mapper    Function to get an entry for the given enum value and registry name
+   * @param values    Enum values to use for this block
+   * @param name      Name of the block
+   * @return  EnumObject mapping between different block types
+   */
+  public <E extends Enum<E> & StringRepresentable,I extends T> EnumObject<E,I> registerEnum(BiFunction<E,Identifier,I> mapper, E[] values, String name) {
+    if (values.length == 0) {
+      throw new IllegalArgumentException("Must have at least one value");
+    }
+    // note this cast only works because you cannot extend an enum
+    EnumObject.Builder<E,I> builder = new EnumObject.Builder<>(values[0].getDeclaringClass());
+    for (E value : values) {
+      Identifier id = getResource(value.getSerializedName() + "_" + name);
+      builder.put(value, register(mapper.apply(value, id), id));
+    }
+    return builder.build();
+  }
+
+  /**
+   * Registers an entry with multiple variants, suffixing the name with the value name.
+   * The mapper receives the registry name, needed for items and blocks as their properties must know their ID before construction.
+   * @param mapper    Function to get an entry for the given enum value and registry name
+   * @param name      Name of the block
+   * @param values    Enum values to use for this block
+   * @return  EnumObject mapping between different block types
+   */
+  public <E extends Enum<E> & StringRepresentable,I extends T> EnumObject<E,I> registerEnum(BiFunction<E,Identifier,I> mapper, String name, E[] values) {
+    if (values.length == 0) {
+      throw new IllegalArgumentException("Must have at least one value");
+    }
+    // note this cast only works because you cannot extend an enum
+    EnumObject.Builder<E,I> builder = new EnumObject.Builder<>(values[0].getDeclaringClass());
+    for (E value : values) {
+      Identifier id = getResource(name + "_" + value.getSerializedName());
+      builder.put(value, register(mapper.apply(value, id), id));
     }
     return builder.build();
   }

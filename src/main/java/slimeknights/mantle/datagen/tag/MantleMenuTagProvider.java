@@ -4,9 +4,7 @@ import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.PackOutput;
 import net.minecraft.world.inventory.MenuType;
-import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import org.jetbrains.annotations.ApiStatus.Internal;
-import org.jetbrains.annotations.Nullable;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.BuiltinRegistryTagProvider;
 import slimeknights.mantle.datagen.MantleTags;
@@ -16,9 +14,8 @@ import java.util.concurrent.CompletableFuture;
 /** Tag provider for Mantle menu tags */
 @Internal
 public class MantleMenuTagProvider extends BuiltinRegistryTagProvider<MenuType<?>> {
-  @SuppressWarnings("deprecation")
-  public MantleMenuTagProvider(PackOutput packOutput, CompletableFuture<Provider> lookupProvider, @Nullable ExistingFileHelper existingFileHelper) {
-    super(packOutput, BuiltInRegistries.MENU, lookupProvider, Mantle.modId, existingFileHelper);
+  public MantleMenuTagProvider(PackOutput packOutput, CompletableFuture<Provider> lookupProvider) {
+    super(packOutput, BuiltInRegistries.MENU, lookupProvider, Mantle.modId);
   }
 
   @Override
@@ -33,5 +30,10 @@ public class MantleMenuTagProvider extends BuiltinRegistryTagProvider<MenuType<?
       MenuType.FURNACE, MenuType.BLAST_FURNACE, MenuType.SMOKER,
       MenuType.BREWING_STAND
     );
+  }
+
+  @Override
+  public String getName() {
+    return "Mantle Menu Tag Provider";
   }
 }

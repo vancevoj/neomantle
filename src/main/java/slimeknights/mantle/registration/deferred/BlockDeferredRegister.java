@@ -1,12 +1,15 @@
 package slimeknights.mantle.registration.deferred;
 
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DoubleHighBlockItem;
 import net.minecraft.world.item.HangingSignItem;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.SignItem;
+import net.minecraft.world.item.StandingAndWallBlockItem;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ButtonBlock;
@@ -23,11 +26,12 @@ import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.WallSignBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 import net.minecraft.world.level.block.state.properties.BlockSetType;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 import net.minecraft.world.level.block.state.properties.WoodType;
 import net.minecraft.world.level.material.PushReaction;
+import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
+import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import slimeknights.mantle.block.MantleCeilingHangingSignBlock;
@@ -37,10 +41,6 @@ import slimeknights.mantle.block.MantleWallSignBlock;
 import slimeknights.mantle.block.StrippableLogBlock;
 import slimeknights.mantle.block.entity.MantleHangingSignBlockEntity;
 import slimeknights.mantle.block.entity.MantleSignBlockEntity;
-import slimeknights.mantle.item.BurnableBlockItem;
-import slimeknights.mantle.item.BurnableHangingSignItem;
-import slimeknights.mantle.item.BurnableSignItem;
-import slimeknights.mantle.item.BurnableTallBlockItem;
 import slimeknights.mantle.registration.RegistrationHelper;
 import slimeknights.mantle.registration.object.BuildingBlockObject;
 import slimeknights.mantle.registration.object.EnumObject;
@@ -57,14 +57,17 @@ import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
- * Deferred register to handle registering blocks with possible item forms
+ * Deferred register to handle registering blocks with possible item forms.
+ * <p>
+ * Blocks and items need their ID stamped into their properties before construction, so every register method takes a constructor from properties
+ * plus a supplier creating new properties. The supplier must return a new instance each call as blocks keep their properties object.
+ * Block items are passed item properties that already have the ID and the block description prefix set.
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
-  private static final BlockBehaviour.Properties POTTED_PROPS = BlockBehaviour.Properties.of().instabreak().noOcclusion().pushReaction(PushReaction.POPPED);
-
   protected final SynchronizedDeferredRegister<Item> itemRegister;
   public BlockDeferredRegister(String modID) {
     super(Registries.BLOCK, modID);
@@ -77,147 +80,199 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
     itemRegister.register(bus);
   }
 
+  /** Creates properties for a potted plant. Matches the vanilla flower pot except for the push reaction. */
+  private static BlockBehaviour.Properties pottedProps() {
+    return BlockBehaviour.Properties.of().instabreak().noOcclusion().pushReaction(PushReaction.POPPED);
+  }
+
+  /**
+   * Creates properties for the wall variant of a sign, which drops the standing sign and shares its name. Matches vanilla wall signs.
+   * @param props     Base properties
+   * @param standing  Standing sign block
+   * @return  Properties for the wall sign
+   */
+  public static BlockBehaviour.Properties wallVariant(BlockBehaviour.Properties props, Block standing) {
+    return props.overrideLootTable(standing.getLootTable()).overrideDescription(standing.getDescriptionId());
+  }
+
 
   /* Blocks with no items */
 
   /**
    * Registers a block with the block registry
    * @param name   Block ID
-   * @param block  Block supplier
+   * @param block  Block constructor, receives the properties with the ID set
+   * @param props  Supplier creating new block properties
    * @param <B>    Block class
    * @return  Block registry object
    */
-  public <B extends Block> DeferredHolder<? super B, B> registerNoItem(String name, Supplier<? extends B> block) {
-    return register.register(name, block);
+  public <B extends Block> DeferredHolder<Block, B> registerNoItem(String name, Function<BlockBehaviour.Properties, ? extends B> block, Supplier<BlockBehaviour.Properties> props) {
+    return register.register(name, id -> block.apply(RegistrationHelper.blockProperties(id, props)));
   }
 
   /**
    * Registers a block with the block registry
    * @param name   Block ID
-   * @param props  Block properties
+   * @param props  Supplier creating new block properties
    * @return  Block registry object
    */
-  public DeferredHolder<? super Block, Block> registerNoItem(String name, BlockBehaviour.Properties props) {
-    return registerNoItem(name, () -> new Block(props));
+  public DeferredHolder<Block, Block> registerNoItem(String name, Supplier<BlockBehaviour.Properties> props) {
+    return registerNoItem(name, Block::new, props);
   }
 
 
   /* Block item pairs */
 
   /**
+   * Registers a block item for the given block. The item is passed properties with the ID and block description prefix set.
+   * @param name   Item ID
+   * @param block  Block for the item
+   * @param item   Block item constructor
+   * @param <B>    Block type
+   * @return  Item registry object
+   */
+  protected <B extends Block> DeferredHolder<Item, BlockItem> registerBlockItem(String name, Supplier<? extends B> block, BiFunction<? super B, Item.Properties, ? extends BlockItem> item) {
+    return itemRegister.register(name, id -> {
+      B value = block.get();
+      return item.apply(value, RegistrationHelper.blockItemProperties(id, value));
+    });
+  }
+
+  /**
    * Registers a block with the block registry, using the function for the BlockItem
    * @param name   Block ID
-   * @param block  Block supplier
-   * @param item   Function to create a BlockItem from a Block
+   * @param block  Block constructor, receives the properties with the ID set
+   * @param props  Supplier creating new block properties
+   * @param item   Function to create a BlockItem from a Block and item properties
    * @param <B>    Block class
    * @return  Block item registry object pair
    */
-  public <B extends Block> ItemObject<B> register(String name, Supplier<? extends B> block, final Function<? super B, ? extends BlockItem> item) {
-    DeferredHolder<? super B, B> blockObj = registerNoItem(name, block);
-    itemRegister.register(name, () -> item.apply(blockObj.get()));
+  public <B extends Block> ItemObject<B> register(String name, Function<BlockBehaviour.Properties, ? extends B> block, Supplier<BlockBehaviour.Properties> props, BiFunction<? super B, Item.Properties, ? extends BlockItem> item) {
+    DeferredHolder<Block, B> blockObj = registerNoItem(name, block, props);
+    registerBlockItem(name, blockObj, item);
     return new ItemObject<>(blockObj);
   }
 
   /**
    * Registers a block with the block registry, using the function for the BlockItem
-   * @param name        Block ID
-   * @param blockProps  Block supplier
-   * @param item        Function to create a BlockItem from a Block
+   * @param name   Block ID
+   * @param props  Supplier creating new block properties
+   * @param item   Function to create a BlockItem from a Block and item properties
    * @return  Block item registry object pair
    */
-  public ItemObject<Block> register(String name, BlockBehaviour.Properties blockProps, Function<? super Block, ? extends BlockItem> item) {
-    return register(name, () -> new Block(blockProps), item);
+  public ItemObject<Block> register(String name, Supplier<BlockBehaviour.Properties> props, BiFunction<? super Block, Item.Properties, ? extends BlockItem> item) {
+    return register(name, Block::new, props, item);
   }
 
 
   /* Building */
 
   /**
-   * Registers a building block with slabs and stairs, using a custom block
+   * Registers a building block with slabs and stairs, using a custom block. Slabs and stairs copy the properties of the built block.
    * @param name   Block name
-   * @param block  Block supplier
+   * @param block  Block constructor
+   * @param props  Supplier creating new block properties
    * @param item   Item block, used for all variants
    * @return  Building block object
    */
-  public BuildingBlockObject registerBuilding(String name, Supplier<? extends Block> block, Function<? super Block, ? extends BlockItem> item) {
-    ItemObject<Block> blockObj = register(name, block, item);
+  public BuildingBlockObject registerBuilding(String name, Function<BlockBehaviour.Properties, ? extends Block> block, Supplier<BlockBehaviour.Properties> props, BiFunction<? super Block, Item.Properties, ? extends BlockItem> item) {
+    ItemObject<Block> blockObj = register(name, block, props, item);
+    Supplier<BlockBehaviour.Properties> copy = () -> BlockBehaviour.Properties.ofFullCopy(blockObj.get());
     return new BuildingBlockObject(
         blockObj,
-        this.register(name + "_slab", () -> new SlabBlock(BlockBehaviour.Properties.ofFullCopy(blockObj.get())), item),
-        this.register(name + "_stairs", () -> new StairBlock(blockObj.get().defaultBlockState(), BlockBehaviour.Properties.ofFullCopy(blockObj.get())), item));
+        this.register(name + "_slab", SlabBlock::new, copy, item),
+        this.register(name + "_stairs", p -> new StairBlock(blockObj.get().defaultBlockState(), p), copy, item));
   }
 
   /**
    * Registers a block with slab, and stairs
    * @param name      Name of the block
-   * @param props     Block properties
+   * @param props     Supplier creating new block properties, called once per block
    * @param item      Function to get an item from the block
    * @return  BuildingBlockObject class that returns different block types
    */
-  public BuildingBlockObject registerBuilding(String name, BlockBehaviour.Properties props, Function<? super Block, ? extends BlockItem> item) {
+  public BuildingBlockObject registerBuilding(String name, Supplier<BlockBehaviour.Properties> props, BiFunction<? super Block, Item.Properties, ? extends BlockItem> item) {
     ItemObject<Block> blockObj = register(name, props, item);
     return new BuildingBlockObject(blockObj,
-      register(name + "_slab", () -> new SlabBlock(props), item),
-      register(name + "_stairs", () -> new StairBlock(blockObj.get().defaultBlockState(), props), item)
+      register(name + "_slab", SlabBlock::new, props, item),
+      register(name + "_stairs", p -> new StairBlock(blockObj.get().defaultBlockState(), p), props, item)
     );
   }
 
   /**
    * Registers a building block with slabs, stairs and wall, using a custom block
    * @param name   Block name
-   * @param block  Block supplier
+   * @param block  Block constructor
+   * @param props  Supplier creating new block properties
    * @param item   Item block, used for all variants
    * @return  Building block object
    */
-  public WallBuildingBlockObject registerWallBuilding(String name, Supplier<? extends Block> block, Function<? super Block, ? extends BlockItem> item) {
-    BuildingBlockObject obj = this.registerBuilding(name, block, item);
-    return new WallBuildingBlockObject(obj, this.register(name + "_wall", () -> new WallBlock(BlockBehaviour.Properties.ofFullCopy(obj.get())), item));
+  public WallBuildingBlockObject registerWallBuilding(String name, Function<BlockBehaviour.Properties, ? extends Block> block, Supplier<BlockBehaviour.Properties> props, BiFunction<? super Block, Item.Properties, ? extends BlockItem> item) {
+    BuildingBlockObject obj = this.registerBuilding(name, block, props, item);
+    return new WallBuildingBlockObject(obj, this.register(name + "_wall", WallBlock::new, () -> BlockBehaviour.Properties.ofFullCopy(obj.get()), item));
   }
 
   /**
    * Registers a block with slab, stairs, and wall
    * @param name      Name of the block
-   * @param props     Block properties
+   * @param props     Supplier creating new block properties, called once per block
    * @param item      Function to get an item from the block
    * @return  StoneBuildingBlockObject class that returns different block types
    */
-  public WallBuildingBlockObject registerWallBuilding(String name, BlockBehaviour.Properties props, Function<? super Block, ? extends BlockItem> item) {
+  public WallBuildingBlockObject registerWallBuilding(String name, Supplier<BlockBehaviour.Properties> props, BiFunction<? super Block, Item.Properties, ? extends BlockItem> item) {
     return new WallBuildingBlockObject(
       registerBuilding(name, props, item),
-      register(name + "_wall", () -> new WallBlock(props), item)
+      register(name + "_wall", WallBlock::new, props, item)
     );
   }
 
   /**
-   * Registers a building block with slabs, stairs and wall, using a custom block
+   * Registers a building block with slabs, stairs and fence, using a custom block
    * @param name   Block name
-   * @param block  Block supplier
+   * @param block  Block constructor
+   * @param props  Supplier creating new block properties
    * @param item   Item block, used for all variants
    * @return  Building block object
    */
-  public FenceBuildingBlockObject registerFenceBuilding(String name, Supplier<? extends Block> block, Function<? super Block, ? extends BlockItem> item) {
-    BuildingBlockObject obj = this.registerBuilding(name, block, item);
-    return new FenceBuildingBlockObject(obj, this.register(name + "_fence", () -> new FenceBlock(BlockBehaviour.Properties.ofFullCopy(obj.get())), item));
+  public FenceBuildingBlockObject registerFenceBuilding(String name, Function<BlockBehaviour.Properties, ? extends Block> block, Supplier<BlockBehaviour.Properties> props, BiFunction<? super Block, Item.Properties, ? extends BlockItem> item) {
+    BuildingBlockObject obj = this.registerBuilding(name, block, props, item);
+    return new FenceBuildingBlockObject(obj, this.register(name + "_fence", FenceBlock::new, () -> BlockBehaviour.Properties.ofFullCopy(obj.get()), item));
   }
 
   /**
    * Registers a block with slab, stairs, and fence
    * @param name      Name of the block
-   * @param props     Block properties
+   * @param props     Supplier creating new block properties, called once per block
    * @param item      Function to get an item from the block
    * @return  WoodBuildingBlockObject class that returns different block types
    */
-  public FenceBuildingBlockObject registerFenceBuilding(String name, BlockBehaviour.Properties props, Function<? super Block, ? extends BlockItem> item) {
+  public FenceBuildingBlockObject registerFenceBuilding(String name, Supplier<BlockBehaviour.Properties> props, BiFunction<? super Block, Item.Properties, ? extends BlockItem> item) {
     return new FenceBuildingBlockObject(
       registerBuilding(name, props, item),
-      register(name + "_fence", () -> new FenceBlock(props), item)
+      register(name + "_fence", FenceBlock::new, props, item)
     );
+  }
+
+
+  /* Wood */
+
+  /**
+   * Creates a block item function that optionally makes the item a furnace fuel
+   * @param flammable  If true, the item will be a fuel
+   * @param burnTime   Vanilla burn time provider to use
+   * @return  Block item function
+   */
+  private static BiFunction<Block, Item.Properties, BlockItem> fuelItem(boolean flammable, ResourceKey<ContextIntProvider> burnTime) {
+    if (flammable) {
+      return (block, props) -> new BlockItem(block, props.cookingFuel(burnTime));
+    }
+    return BlockItem::new;
   }
 
   /**
    * Registers a new wood object
    * @param name             Name of the wood object
-   * @param behaviorCreator  Logic to create the behavior
+   * @param behaviorCreator  Logic to create the behavior, must return a new properties instance each call
    * @param flammable        If true, this wood type is flammable
    * @return Wood object
    */
@@ -226,60 +281,50 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
     WoodType woodType = new WoodType(resourceName(name), setType);
     BlockSetType.register(setType);
     RegistrationHelper.registerWoodType(woodType);
-    Item.Properties itemProps = new Item.Properties();
 
-    // many of these are already burnable via tags, but simplier to set them all here
-    Function<Integer, Function<? super Block, ? extends BlockItem>> burnableItem;
-    Function<? super Block, ? extends BlockItem> burnableTallItem;
-    BiFunction<? super Block, ? super Block, ? extends BlockItem> burnableSignItem;
-    BiFunction<? super Block, ? super Block, ? extends BlockItem> burnableHangingSignItem;
-    Item.Properties signProps = new Item.Properties().stacksTo(16);
-    if (flammable) {
-      burnableItem     = burnTime -> block -> new BurnableBlockItem(block, itemProps, burnTime);
-      burnableTallItem = block -> new BurnableTallBlockItem(block, itemProps, 200);
-      burnableSignItem = (standing, wall) -> new BurnableSignItem(signProps, standing, wall, 200);
-      burnableHangingSignItem = (standing, wall) -> new BurnableHangingSignItem(signProps, standing, wall, 200);
-    } else {
-      Function<? super Block, ? extends BlockItem> defaultItemBlock = block -> new BlockItem(block, itemProps);
-      burnableItem = burnTime -> defaultItemBlock;
-      burnableTallItem = block -> new DoubleHighBlockItem(block, itemProps);
-      burnableSignItem = (standing, wall) -> new SignItem(signProps, standing, wall);
-      burnableHangingSignItem = (standing, wall) -> new HangingSignItem(standing, wall, signProps);
-    }
+    // many of these are already burnable via tags, but simpler to set them all here
+    // burn times use the vanilla fuel providers for the matching wooden blocks, so furnace types scale them like vanilla wood
+    BiFunction<Block, Item.Properties, BlockItem> woodBlockItem = fuelItem(flammable, ContextIntProviders.COOKING_TIME_WOOD_BLOCKS);
+    BiFunction<Block, Item.Properties, BlockItem> woodSlabItem = fuelItem(flammable, ContextIntProviders.COOKING_TIME_WOOD_SLABS);
+    BiFunction<Block, Item.Properties, BlockItem> tallItem = (block, props) -> new DoubleHighBlockItem(block, flammable ? props.cookingFuel(ContextIntProviders.COOKING_TIME_WOOD_ITEMS_LARGE) : props);
+    UnaryOperator<Item.Properties> signFuel = props -> flammable ? props.cookingFuel(ContextIntProviders.COOKING_TIME_WOOD_ITEMS_LARGE) : props;
 
     // planks
-    Function<? super Block, ? extends BlockItem> burnable300 = burnableItem.apply(300);
-    BlockBehaviour.Properties planksProps = behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(2.0f, 3.0f);
-    BuildingBlockObject planks = registerBuilding(name + "_planks", planksProps, block -> burnableItem.apply(block instanceof SlabBlock ? 150 : 300).apply(block));
-    ItemObject<FenceBlock> fence = register(name + "_fence", () -> new FenceBlock(Properties.ofFullCopy(planks.get()).forceSolidOn()), burnable300);
+    BuildingBlockObject planks = registerBuilding(name + "_planks",
+      () -> behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(2.0f, 3.0f),
+      (block, props) -> (block instanceof SlabBlock ? woodSlabItem : woodBlockItem).apply(block, props));
+    ItemObject<FenceBlock> fence = register(name + "_fence", FenceBlock::new, () -> BlockBehaviour.Properties.ofFullCopy(planks.get()).forceSolidOn(), woodBlockItem);
     // logs and wood
-    Supplier<? extends RotatedPillarBlock> stripped = () -> new RotatedPillarBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(2.0f));
-    ItemObject<RotatedPillarBlock> strippedLog = register("stripped_" + name + "_log", stripped, burnable300);
-    ItemObject<RotatedPillarBlock> strippedWood = register("stripped_" + name + "_wood", stripped, burnable300);
-    ItemObject<RotatedPillarBlock> log = register(name + "_log", () -> new StrippableLogBlock(strippedLog, behaviorCreator.apply(WoodBlockObject.WoodVariant.LOG).instrument(NoteBlockInstrument.BASS).strength(2.0f)), burnable300);
-    ItemObject<RotatedPillarBlock> wood = register(name + "_wood", () -> new StrippableLogBlock(strippedWood, behaviorCreator.apply(WoodBlockObject.WoodVariant.WOOD).instrument(NoteBlockInstrument.BASS).strength(2.0f)), burnable300);
+    Supplier<BlockBehaviour.Properties> strippedProps = () -> behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(2.0f);
+    ItemObject<RotatedPillarBlock> strippedLog = register("stripped_" + name + "_log", RotatedPillarBlock::new, strippedProps, woodBlockItem);
+    ItemObject<RotatedPillarBlock> strippedWood = register("stripped_" + name + "_wood", RotatedPillarBlock::new, strippedProps, woodBlockItem);
+    ItemObject<RotatedPillarBlock> log = register(name + "_log", props -> new StrippableLogBlock(strippedLog, props), () -> behaviorCreator.apply(WoodVariant.LOG).instrument(NoteBlockInstrument.BASS).strength(2.0f), woodBlockItem);
+    ItemObject<RotatedPillarBlock> wood = register(name + "_wood", props -> new StrippableLogBlock(strippedWood, props), () -> behaviorCreator.apply(WoodVariant.WOOD).instrument(NoteBlockInstrument.BASS).strength(2.0f), woodBlockItem);
 
     // doors
-    ItemObject<DoorBlock> door = register(name + "_door", () -> new DoorBlock(setType, behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().pushReaction(PushReaction.POPPED)), burnableTallItem);
-    ItemObject<TrapDoorBlock> trapdoor = register(name + "_trapdoor", () -> new TrapDoorBlock(setType, behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().isValidSpawn(Blocks::never)), burnable300);
-    ItemObject<FenceGateBlock> fenceGate = register(name + "_fence_gate", () -> new FenceGateBlock(woodType, BlockBehaviour.Properties.ofFullCopy(fence.get())), burnable300);
+    ItemObject<DoorBlock> door = register(name + "_door", props -> new DoorBlock(setType, props), () -> behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().pushReaction(PushReaction.POPPED), tallItem);
+    ItemObject<TrapDoorBlock> trapdoor = register(name + "_trapdoor", props -> new TrapDoorBlock(setType, props), () -> behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().isValidSpawn(Blocks::never), woodBlockItem);
+    ItemObject<FenceGateBlock> fenceGate = register(name + "_fence_gate", props -> new FenceGateBlock(woodType, props), () -> BlockBehaviour.Properties.ofFullCopy(fence.get()), woodBlockItem);
     // redstone
-    BlockBehaviour.Properties redstoneProps = behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().pushReaction(PushReaction.POPPED).strength(0.5F);
-    ItemObject<PressurePlateBlock> pressurePlate = register(name + "_pressure_plate", () -> new PressurePlateBlock(setType, redstoneProps), burnable300);
-    ItemObject<ButtonBlock> button = register(name + "_button", () -> new ButtonBlock(setType, 30, redstoneProps), burnableItem.apply(100));
+    Supplier<BlockBehaviour.Properties> redstoneProps = () -> behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().pushReaction(PushReaction.POPPED).strength(0.5F);
+    ItemObject<PressurePlateBlock> pressurePlate = register(name + "_pressure_plate", props -> new PressurePlateBlock(setType, props), redstoneProps, woodBlockItem);
+    ItemObject<ButtonBlock> button = register(name + "_button", props -> new ButtonBlock(setType, 30, props), redstoneProps, fuelItem(flammable, ContextIntProviders.COOKING_TIME_WOOD_ITEMS_EXTRA_SMALL));
     // signs
-    DeferredHolder<? super StandingSignBlock, StandingSignBlock> standingSign = registerNoItem(name + "_sign", () -> new MantleStandingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollision().strength(1.0F), woodType));
-    DeferredHolder<? super WallSignBlock, WallSignBlock> wallSign = registerNoItem(name + "_wall_sign", () -> new MantleWallSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollision().strength(1.0F).lootFrom(standingSign), woodType));
-    DeferredHolder<? super MantleCeilingHangingSignBlock, MantleCeilingHangingSignBlock> hangingSign = registerNoItem(name + "_hanging_sign", () -> new MantleCeilingHangingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollision().strength(1.0F), woodType));
-    DeferredHolder<? super MantleWallHangingSignBlock, MantleWallHangingSignBlock> wallHangingSign = registerNoItem(name + "_wall_hanging_sign", () -> new MantleWallHangingSignBlock(behaviorCreator.apply(WoodBlockObject.WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollision().strength(1.0F).lootFrom(hangingSign), woodType));
+    Supplier<BlockBehaviour.Properties> signProps = () -> behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).forceSolidOn().noCollision().strength(1.0F);
+    DeferredHolder<Block, StandingSignBlock> standingSign = registerNoItem(name + "_sign", props -> new MantleStandingSignBlock(props, woodType), signProps);
+    DeferredHolder<Block, WallSignBlock> wallSign = registerNoItem(name + "_wall_sign", props -> new MantleWallSignBlock(props, woodType), () -> wallVariant(signProps.get(), standingSign.get()));
+    DeferredHolder<Block, MantleCeilingHangingSignBlock> hangingSign = registerNoItem(name + "_hanging_sign", props -> new MantleCeilingHangingSignBlock(props, woodType), signProps);
+    DeferredHolder<Block, MantleWallHangingSignBlock> wallHangingSign = registerNoItem(name + "_wall_hanging_sign", props -> new MantleWallHangingSignBlock(props, woodType), () -> wallVariant(signProps.get(), hangingSign.get()));
     // tell mantle to inject these into the TE
     MantleSignBlockEntity.registerSignBlock(standingSign);
     MantleSignBlockEntity.registerSignBlock(wallSign);
     MantleHangingSignBlockEntity.registerSignBlock(hangingSign);
     MantleHangingSignBlockEntity.registerSignBlock(wallHangingSign);
     // sign is included automatically in asItem of the standing sign
-    this.itemRegister.register(name + "_sign", () -> burnableSignItem.apply(standingSign.get(), wallSign.get()));
-    this.itemRegister.register(name + "_hanging_sign", () -> burnableHangingSignItem.apply(hangingSign.get(), wallHangingSign.get()));
+    this.itemRegister.register(name + "_sign", id -> new StandingAndWallBlockItem(standingSign.get(), wallSign.get(), Direction.DOWN,
+      signFuel.apply(RegistrationHelper.blockItemProperties(id, standingSign.get()).stacksTo(16).signText())));
+    this.itemRegister.register(name + "_hanging_sign", id -> new HangingSignItem(hangingSign.get(), wallHangingSign.get(),
+      signFuel.apply(RegistrationHelper.blockItemProperties(id, hangingSign.get()).stacksTo(16).signText())));
     // finally, return
     return new WoodBlockObject(resource(name), woodType,
                                planks, log, strippedLog, wood, strippedWood,
@@ -291,24 +336,23 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
   /* Flower pots */
 
   /**
-   * Registers a potted form of the given block using the vanilla pot
+   * Registers a potted form of the given block using the vanilla pot.
+   * NeoForge fills the empty pot's plant table automatically when the block registry is baked.
    * @param name  Name of the flower
    * @param block Block to put in the block
    * @return  Potted block instance
    */
-  public DeferredHolder<? super FlowerPotBlock, FlowerPotBlock> registerPotted(String name, Supplier<? extends Block> block) {
-    DeferredHolder<? super FlowerPotBlock, FlowerPotBlock> potted = registerNoItem("potted_" + name, () -> new FlowerPotBlock(() -> (FlowerPotBlock)Blocks.FLOWER_POT, block, POTTED_PROPS));
-    ((FlowerPotBlock)Blocks.FLOWER_POT).addPlant(resource(name), potted);
-    return potted;
+  public DeferredHolder<Block, FlowerPotBlock> registerPotted(String name, Supplier<? extends Block> block) {
+    return registerNoItem("potted_" + name, props -> new FlowerPotBlock(() -> (FlowerPotBlock)Blocks.FLOWER_POT, block, props), BlockDeferredRegister::pottedProps);
   }
 
   /** Registers a potted form of the given block using the vanilla pot */
-  public DeferredHolder<? super FlowerPotBlock, FlowerPotBlock> registerPotted(DeferredHolder<? super Block, ? extends Block> block) {
+  public DeferredHolder<Block, FlowerPotBlock> registerPotted(DeferredHolder<? super Block, ? extends Block> block) {
     return registerPotted(block.getId().getPath(), block);
   }
 
   /** Registers a potted form of the given block using the vanilla pot */
-  public DeferredHolder<? super FlowerPotBlock, FlowerPotBlock> registerPotted(ItemObject<? extends Block> block) {
+  public DeferredHolder<Block, FlowerPotBlock> registerPotted(ItemObject<? extends Block> block) {
     return registerPotted(block.getId().getPath(), block);
   }
 
@@ -319,39 +363,42 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
    * Registers an item with multiple variants, prefixing the name with the value name
    * @param values    Enum values to use for this block
    * @param name      Name of the block
-   * @param mapper    Function to get a block for the given enum value
+   * @param mapper    Function to get a block for the given enum value and block properties
+   * @param props     Function creating new block properties for the given enum value
    * @param item      Function to get an item from the block
    * @return  EnumObject mapping between different block types
    */
   public <T extends Enum<T>, B extends Block> EnumObject<T,B> registerEnum(
-      T[] values, String name, Function<T,? extends B> mapper, Function<? super B, ? extends BlockItem> item) {
-    return registerEnum(values, name, (fullName, value) -> register(fullName, () -> mapper.apply(value), item));
+      T[] values, String name, BiFunction<T, BlockBehaviour.Properties, ? extends B> mapper, Function<T, BlockBehaviour.Properties> props, BiFunction<? super B, Item.Properties, ? extends BlockItem> item) {
+    return registerEnum(values, name, (fullName, value) -> register(fullName, p -> mapper.apply(value, p), () -> props.apply(value), item));
   }
 
   /**
    * Registers a block with multiple variants, suffixing the name with the value name
    * @param name      Name of the block
    * @param values    Enum values to use for this block
-   * @param mapper    Function to get a block for the given enum value
+   * @param mapper    Function to get a block for the given enum value and block properties
+   * @param props     Function creating new block properties for the given enum value
    * @param item      Function to get an item from the block
    * @return  EnumObject mapping between different block types
    */
   public <T extends Enum<T>, B extends Block> EnumObject<T,B> registerEnum(
-      String name, T[] values, Function<T,? extends B> mapper, Function<? super B, ? extends BlockItem> item) {
-    return registerEnum(name, values, (fullName, value) -> register(fullName, () -> mapper.apply(value), item));
+      String name, T[] values, BiFunction<T, BlockBehaviour.Properties, ? extends B> mapper, Function<T, BlockBehaviour.Properties> props, BiFunction<? super B, Item.Properties, ? extends BlockItem> item) {
+    return registerEnum(name, values, (fullName, value) -> register(fullName, p -> mapper.apply(value, p), () -> props.apply(value), item));
   }
 
   /**
    * Registers a block with enum variants, but no item form
    * @param values  Enum value list
    * @param name    Suffix after value name
-   * @param mapper  Function to map types to blocks
+   * @param mapper  Function to map types and block properties to blocks
+   * @param props   Function creating new block properties for the given enum value
    * @param <T>  Type of enum
    * @param <B>  Type of block
    * @return  Enum object
    */
-  public <T extends Enum<T>, B extends Block> EnumObject<T, B> registerEnumNoItem(T[] values, String name, Function<T, ? extends B> mapper) {
-    return registerEnum(values, name, (fullName, value) -> registerNoItem(fullName, () -> mapper.apply(value)));
+  public <T extends Enum<T>, B extends Block> EnumObject<T, B> registerEnumNoItem(T[] values, String name, BiFunction<T, BlockBehaviour.Properties, ? extends B> mapper, Function<T, BlockBehaviour.Properties> props) {
+    return registerEnum(values, name, (fullName, value) -> registerNoItem(fullName, p -> mapper.apply(value, p), () -> props.apply(value)));
   }
 
   /** Registers a potted form of the given block using the vanilla pot */
@@ -382,55 +429,58 @@ public class BlockDeferredRegister extends DeferredRegisterWrapper<Block> {
 
   /**
    * Creates a new metal item object
-   * @param name           Metal name
-   * @param tagName        Name to use for tags for this block
-   * @param blockSupplier  Supplier for the block
-   * @param blockItem      Block item
-   * @param itemProps      Properties for the item
+   * @param name        Metal name
+   * @param tagName     Name to use for tags for this block
+   * @param block       Block constructor
+   * @param blockProps  Supplier creating new block properties
+   * @param blockItem   Block item
+   * @param itemProps   Operator for the ingot and nugget properties, called once per item
    * @return  Metal item object
    */
-  public MetalItemObject registerMetal(String name, String tagName, Supplier<Block> blockSupplier, Function<Block,? extends BlockItem> blockItem, Item.Properties itemProps) {
-    ItemObject<Block> block = register(name + "_block", blockSupplier, blockItem);
-    Supplier<Item> itemSupplier = () -> new Item(itemProps);
-    DeferredHolder<? super Item, Item> ingot = itemRegister.register(name + "_ingot", itemSupplier);
-    DeferredHolder<? super Item, Item> nugget = itemRegister.register(name + "_nugget", itemSupplier);
-    return new MetalItemObject(tagName, block, ingot, nugget);
+  public MetalItemObject registerMetal(String name, String tagName, Function<BlockBehaviour.Properties, ? extends Block> block, Supplier<BlockBehaviour.Properties> blockProps,
+                                       BiFunction<? super Block, Item.Properties, ? extends BlockItem> blockItem, UnaryOperator<Item.Properties> itemProps) {
+    ItemObject<Block> blockObj = register(name + "_block", block, blockProps, blockItem);
+    DeferredHolder<Item, Item> ingot = itemRegister.register(name + "_ingot", id -> new Item(RegistrationHelper.itemProperties(id, itemProps)));
+    DeferredHolder<Item, Item> nugget = itemRegister.register(name + "_nugget", id -> new Item(RegistrationHelper.itemProperties(id, itemProps)));
+    return new MetalItemObject(tagName, blockObj, ingot, nugget);
   }
 
   /**
    * Creates a new metal item object
-   * @param name           Metal name
-   * @param blockSupplier  Supplier for the block
-   * @param blockItem      Block item
-   * @param itemProps      Properties for the item
+   * @param name        Metal name
+   * @param block       Block constructor
+   * @param blockProps  Supplier creating new block properties
+   * @param blockItem   Block item
+   * @param itemProps   Operator for the ingot and nugget properties, called once per item
    * @return  Metal item object
    */
-  public MetalItemObject registerMetal(String name, Supplier<Block> blockSupplier, Function<Block,? extends BlockItem> blockItem, Item.Properties itemProps) {
-    return registerMetal(name, name, blockSupplier, blockItem, itemProps);
+  public MetalItemObject registerMetal(String name, Function<BlockBehaviour.Properties, ? extends Block> block, Supplier<BlockBehaviour.Properties> blockProps,
+                                       BiFunction<? super Block, Item.Properties, ? extends BlockItem> blockItem, UnaryOperator<Item.Properties> itemProps) {
+    return registerMetal(name, name, block, blockProps, blockItem, itemProps);
   }
 
   /**
    * Creates a new metal item object
    * @param name        Metal name
    * @param tagName     Name to use for tags for this block
-   * @param blockProps  Properties for the block
+   * @param blockProps  Supplier creating new block properties
    * @param blockItem   Block item
-   * @param itemProps   Properties for the item
+   * @param itemProps   Operator for the ingot and nugget properties, called once per item
    * @return  Metal item object
    */
-  public MetalItemObject registerMetal(String name, String tagName, BlockBehaviour.Properties blockProps, Function<Block,? extends BlockItem> blockItem, Item.Properties itemProps) {
-    return registerMetal(name, tagName, () -> new Block(blockProps), blockItem, itemProps);
+  public MetalItemObject registerMetal(String name, String tagName, Supplier<BlockBehaviour.Properties> blockProps, BiFunction<? super Block, Item.Properties, ? extends BlockItem> blockItem, UnaryOperator<Item.Properties> itemProps) {
+    return registerMetal(name, tagName, Block::new, blockProps, blockItem, itemProps);
   }
 
   /**
    * Creates a new metal item object
    * @param name        Metal name
-   * @param blockProps  Properties for the block
+   * @param blockProps  Supplier creating new block properties
    * @param blockItem   Block item
-   * @param itemProps   Properties for the item
+   * @param itemProps   Operator for the ingot and nugget properties, called once per item
    * @return  Metal item object
    */
-  public MetalItemObject registerMetal(String name, BlockBehaviour.Properties blockProps, Function<Block,? extends BlockItem> blockItem, Item.Properties itemProps) {
+  public MetalItemObject registerMetal(String name, Supplier<BlockBehaviour.Properties> blockProps, BiFunction<? super Block, Item.Properties, ? extends BlockItem> blockItem, UnaryOperator<Item.Properties> itemProps) {
     return registerMetal(name, name, blockProps, blockItem, itemProps);
   }
 }

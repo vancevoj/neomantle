@@ -43,8 +43,9 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.fluid.FluidUtil;
 import slimeknights.mantle.command.argument.RegistryTagSource;
 import slimeknights.mantle.command.argument.TagSource;
 import slimeknights.mantle.command.argument.TagSourceArgument;
@@ -61,7 +62,7 @@ import java.util.Set;
 @SuppressWarnings("deprecation")
 public class TagsForCommand {
   /** Tag type cannot be found */
-  protected static final Dynamic2CommandExceptionType VALUE_NOT_FOUND = new Dynamic2CommandExceptionType((type, name) -> Component.translatable("command.mantle.tags_for.not_found", type, name));
+  protected static final Dynamic2CommandExceptionType VALUE_NOT_FOUND = new Dynamic2CommandExceptionType((type, name) -> Component.translatable("command.mantle.tags_for.not_found", String.valueOf(type), String.valueOf(name)));
 
   /* Missing target errors */
   private static final Component NO_HELD_BLOCK = Component.translatable("command.mantle.tags_for.no_held_block");
@@ -122,7 +123,7 @@ public class TagsForCommand {
    * @return  Number of tags printed
    */
   private static <T> int printOwningTags(CommandContext<CommandSourceStack> context, TagSource<T> registry, T value, @Nullable Identifier key) {
-    MutableComponent output = Component.translatable("command.mantle.tags_for.success", registry.key().identifier(), key);
+    MutableComponent output = Component.translatable("command.mantle.tags_for.success", registry.key().identifier().toString(), String.valueOf(key));
     List<Identifier> tags = registry.tagsFor(value).map(TagKey::location).toList();
     if (tags.isEmpty()) {
       output.append("\n* ").append(NO_TAGS);
@@ -179,13 +180,11 @@ public class TagsForCommand {
   private static int heldFluid(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
     CommandSourceStack source = context.getSource();
     ItemStack stack = source.getPlayerOrException().getMainHandItem();
-    IFluidHandlerItem handler = stack.getCapability(Capabilities.Fluid.ITEM);
-    if (handler != null && handler.getTanks() > 0) {
-      FluidStack fluidStack = handler.getFluidInTank(0);
-      if (!fluidStack.isEmpty()) {
-        Fluid fluid = fluidStack.getFluid();
-        return printOwningTags(context, BuiltInRegistries.FLUID, fluid);
-      }
+    // handles empty stacks and items without a fluid handler
+    FluidStack fluidStack = FluidUtil.getFirstStackContained(stack);
+    if (!fluidStack.isEmpty()) {
+      Fluid fluid = fluidStack.getFluid();
+      return printOwningTags(context, BuiltInRegistries.FLUID, fluid);
     }
     source.sendSuccess(() -> NO_HELD_FLUID, true);
     return 0;
@@ -227,9 +226,11 @@ public class TagsForCommand {
   private static int heldEntity(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
     CommandSourceStack source = context.getSource();
     ItemStack stack = source.getPlayerOrException().getMainHandItem();
-    if (stack.getItem() instanceof SpawnEggItem egg) {
-      EntityType<?> type = egg.getType(stack);
-      return printOwningTags(context, BuiltInRegistries.ENTITY_TYPE, type);
+    if (stack.getItem() instanceof SpawnEggItem) {
+      EntityType<?> type = SpawnEggItem.getType(stack);
+      if (type != null) {
+        return printOwningTags(context, BuiltInRegistries.ENTITY_TYPE, type);
+      }
     }
     source.sendSuccess(() -> NO_HELD_ENTITY, true);
     return 0;
@@ -276,12 +277,12 @@ public class TagsForCommand {
         return printOwningTags(context, BuiltInRegistries.FLUID, fluid.getType());
       }
       // next try fluid capability
-      IFluidHandler fluidHandler = level.getCapability(Capabilities.Fluid.BLOCK, pos, blockTrace.getDirection());
+      ResourceHandler<FluidResource> fluidHandler = level.getCapability(Capabilities.Fluid.BLOCK, pos, blockTrace.getDirection());
       if (fluidHandler != null) {
-        if (fluidHandler.getTanks() > 0) {
-          FluidStack fluidStack = fluidHandler.getFluidInTank(0);
-          if (!fluidStack.isEmpty()) {
-            return printOwningTags(context, BuiltInRegistries.FLUID, fluidStack.getFluid());
+        if (fluidHandler.size() > 0) {
+          FluidResource resource = fluidHandler.getResource(0);
+          if (!resource.isEmpty()) {
+            return printOwningTags(context, BuiltInRegistries.FLUID, resource.getFluid());
           }
         }
       }
@@ -329,7 +330,7 @@ public class TagsForCommand {
     double range = Objects.requireNonNull(player.getAttribute(Attributes.ENTITY_INTERACTION_RANGE)).getValue();
     Vec3 direction = start.add(look.x * range, look.y * range, look.z * range);
     AABB bb = player.getBoundingBox().expandTowards(look.x * range, look.y * range, look.z * range).expandTowards(1, 1, 1);
-    EntityHitResult entityTrace = ProjectileUtil.getEntityHitResult(source.getLevel(), player, start, direction, bb, e -> true);
+    EntityHitResult entityTrace = ProjectileUtil.getEntityHitResult(source.getLevel(), player, start, direction, bb, e -> true, 0.3F);
     if (entityTrace != null) {
       EntityType<?> target = entityTrace.getEntity().getType();
       return printOwningTags(context, BuiltInRegistries.ENTITY_TYPE, target);

@@ -1,9 +1,6 @@
 package slimeknights.mantle.registration.adapter;
 
 import com.google.common.collect.ImmutableSet;
-import com.mojang.datafixers.types.Type;
-import net.minecraft.util.Util;
-import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -11,7 +8,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType.BlockEntitySupplie
 import net.minecraft.core.Registry;
 import slimeknights.mantle.registration.object.EnumObject;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -32,16 +28,6 @@ public class BlockEntityTypeRegistryAdapter extends RegistryAdapter<BlockEntityT
   }
 
   /**
-   * Gets the data fixer type for the tile entity instance
-   * @param name  Tile entity name
-   * @return  Data fixer type
-   */
-  @Nullable
-  private Type<?> getType(String name) {
-    return Util.fetchChoiceType(References.BLOCK_ENTITY, resourceName(name));
-  }
-
-  /**
    * Registers a tile entity type for a single block
    * @param factory  Tile entity factory
    * @param block    Single block to add
@@ -49,9 +35,8 @@ public class BlockEntityTypeRegistryAdapter extends RegistryAdapter<BlockEntityT
    * @param <T>      Tile entity type
    * @return  Registry object instance
    */
-  @SuppressWarnings("ConstantConditions")
   public <T extends BlockEntity> BlockEntityType<T> register(BlockEntitySupplier<? extends T> factory, Block block, String name) {
-    return register(BlockEntityType.Builder.<T>of(factory, block).build(getType(name)), name);
+    return register(new BlockEntityType<T>(factory, Set.of(block)), name);
   }
 
   /**
@@ -62,9 +47,8 @@ public class BlockEntityTypeRegistryAdapter extends RegistryAdapter<BlockEntityT
    * @param <T>      Tile entity type
    * @return  Registry object instance
    */
-  @SuppressWarnings("ConstantConditions")
   public <T extends BlockEntity> BlockEntityType<T> register(BlockEntitySupplier<? extends T> factory, Collection<? extends Block> blocks, String name) {
-    return register(new BlockEntityType<>(factory, Set.copyOf(blocks), getType(name)), name);
+    return register(new BlockEntityType<T>(factory, Set.copyOf(blocks)), name);
   }
 
   /**

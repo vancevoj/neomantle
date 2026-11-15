@@ -18,6 +18,7 @@ import slimeknights.mantle.fluid.transfer.EmptyPotionTransfer;
 import slimeknights.mantle.fluid.transfer.FillFluidContainerTransfer;
 import slimeknights.mantle.fluid.transfer.FillFluidWithNBTTransfer;
 import slimeknights.mantle.recipe.condition.TagFilledCondition;
+import slimeknights.mantle.recipe.helper.IngredientHelper;
 import slimeknights.mantle.recipe.helper.ItemOutput;
 import slimeknights.mantle.recipe.ingredient.FluidIngredient;
 
@@ -65,7 +66,7 @@ public class MantleFluidTransferProvider extends AbstractFluidContainerTransferP
     ICondition[] potionConditions;
     ICondition[] waterConditions;
     if (bottleTag != null) {
-      container = Ingredient.of(bottleTag);
+      container = IngredientHelper.tag(bottleTag);
       ICondition containerCondition = new TagFilledCondition<>(bottleTag);
       waterConditions = new ICondition[]{containerCondition};
       potionConditions = new ICondition[]{potionCondition, containerCondition};

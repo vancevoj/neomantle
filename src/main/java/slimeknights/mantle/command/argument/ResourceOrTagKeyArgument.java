@@ -63,7 +63,7 @@ public record ResourceOrTagKeyArgument<T>(@Nullable ResourceKey<? extends Regist
   @Override
   public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
     if (registry != null && context.getSource() instanceof SharedSuggestionProvider suggestions) {
-      return suggestions.suggestRegistryElements(registry, ElementSuggestionType.ALL, builder, context);
+      return suggestions.suggestRegistryElements(registry, ElementSuggestionType.ALL, builder, context, value -> true);
     }
     return Suggestions.empty();
   }
@@ -117,14 +117,14 @@ public record ResourceOrTagKeyArgument<T>(@Nullable ResourceKey<? extends Regist
     @Override
     public void serializeToJson(Template template, JsonObject json) {
       if (template.registry != null) {
-        json.addProperty("registry", template.registry.location().toString());
+        json.addProperty("registry", template.registry.identifier().toString());
       }
     }
 
     @Override
     public void serializeToNetwork(Template template, FriendlyByteBuf buffer) {
       if (template.registry != null) {
-        buffer.writeIdentifier(template.registry.location());
+        buffer.writeIdentifier(template.registry.identifier());
       } else {
         buffer.writeUtf("");
       }

@@ -26,11 +26,14 @@ import java.util.stream.Collectors;
  * This redirect swaps in a merge function that keeps the first value and logs a warning, so a duplicate name
  * degrades gracefully instead of crashing. It only changes behavior when a collision actually exists; with the
  * unique serialized names every well-behaved enum has, the merge function never runs.
+ * <p>
+ * Since 26.x there are two {@code createNameLookup} overloads and only the two argument one builds the map (for enums with more than 16 values),
+ * so the target method is given with its full descriptor.
  */
 @Mixin(StringRepresentable.class)
 public interface StringRepresentableMixin {
   @Redirect(
-    method = "createNameLookup",
+    method = "createNameLookup([Ljava/lang/Object;Ljava/util/function/Function;)Ljava/util/function/Function;",
     at = @At(value = "INVOKE", target = "Ljava/util/stream/Collectors;toMap(Ljava/util/function/Function;Ljava/util/function/Function;)Ljava/util/stream/Collector;"),
     require = 0)
   private static <T, K, U> Collector<T, ?, Map<K, U>> mantle$tolerateDuplicateSerializedNames(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends U> valueMapper) {

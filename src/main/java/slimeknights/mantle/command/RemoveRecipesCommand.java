@@ -27,13 +27,17 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.context.ContextMap;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeInput;
+import net.minecraft.world.item.crafting.RecipeMap;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplayContext;
 import net.neoforged.neoforge.common.conditions.NeverCondition;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import slimeknights.mantle.Mantle;
@@ -69,9 +73,9 @@ public class RemoveRecipesCommand {
 
   // failure
   /** Error on invalid item or tag ID */
-  private static final DynamicCommandExceptionType ITEM_NOT_FOUND = new DynamicCommandExceptionType(id -> Mantle.makeComponent("command", "item.not_found", id));
+  private static final DynamicCommandExceptionType ITEM_NOT_FOUND = new DynamicCommandExceptionType(id -> Mantle.makeComponent("command", "item.not_found", String.valueOf(id)));
   /** Error on invalid preset */
-  private static final DynamicCommandExceptionType PRESET_NOT_FOUND = new DynamicCommandExceptionType(id -> Mantle.makeComponent("command", "remove_recipes.preset_not_found", id));
+  private static final DynamicCommandExceptionType PRESET_NOT_FOUND = new DynamicCommandExceptionType(id -> Mantle.makeComponent("command", "remove_recipes.preset_not_found", String.valueOf(id)));
 
   // presets
   /** Loadable for saving a list of recipe types */
@@ -79,9 +83,9 @@ public class RemoveRecipesCommand {
   /** Folder containing all preset JSONs */
   public static FileToIdConverter PRESETS = FileToIdConverter.json("mantle/remove_recipes");
 
-  /** Suggestion builder for recipe IDs */
+  /** Suggestion builder for recipe IDs, recipes are a reloadable registry since 26.3 */
   private static final SuggestionProvider<CommandSourceStack> SUGGESTS_RECIPES = (context, builder)
-    -> SharedSuggestionProvider.suggestResource(context.getSource().getRecipeNames(), builder);
+    -> SharedSuggestionProvider.suggestResource(context.getSource().getServer().getRecipeManager().getRecipes().stream().map(recipe -> recipe.id().identifier()), builder);
   /** Suggests presets for the command */
   private static final SuggestionProvider<CommandSourceStack> SUGGEST_PRESETS = SourcesCommand.suggestFolder(PRESETS);
 
@@ -179,8 +183,8 @@ public class RemoveRecipesCommand {
   private static void findAdvancements(ServerLevel level, List<Identifier> recipes, List<Identifier> advancements) {
     Set<Identifier> isRelevant = new HashSet<>(recipes);
     for (AdvancementHolder advancement : level.getServer().getAdvancements().getAllAdvancements()) {
-      for (Identifier reward : advancement.value().rewards().recipes()) {
-        if (isRelevant.contains(reward)) {
+      for (ResourceKey<Recipe<?>> reward : advancement.value().rewards().recipes()) {
+        if (isRelevant.contains(reward.identifier())) {
           advancements.add(advancement.id());
         }
       }
@@ -221,33 +225,49 @@ public class RemoveRecipesCommand {
   }
 
 
+  /**
+   * Checks if any result of the recipe matches the requested item predicate.
+   * Since 1.21.2 recipes have no generic result getter, so this uses the recipe displays used by the recipe book and JEI.
+   */
+  private static boolean matchesResult(Recipe<?> recipe, Predicate<Item> removeResult, ContextMap displayContext) {
+    for (RecipeDisplay display : recipe.display()) {
+      for (ItemStack stack : display.result().resolveForStacks(displayContext)) {
+        if (!stack.isEmpty() && removeResult.test(stack.getItem())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Checks if any ingredient of the recipe matches the requested item predicate.
+   * Since 1.21.2 recipes have no generic ingredient list, so this uses the placement info used by the recipe book.
+   */
+  private static boolean matchesInput(Recipe<?> recipe, Predicate<Item> removeInput) {
+    for (Ingredient ingredient : recipe.placementInfo().ingredients()) {
+      if (ingredient.items().anyMatch(item -> removeInput.test(item.value()))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Runs the command */
   @SuppressWarnings("unchecked")  // not like we are using the generics at all
   private static <I extends RecipeInput, T extends Recipe<I>> int run(CommandContext<CommandSourceStack> context, List<RecipeType<?>> recipeTypes, @Nullable Predicate<Item> removeResult, @Nullable Predicate<Item> removeInput, long startTime) {
     // iterate all recipes for the type storing recipes that craft the tag
     ServerLevel level = context.getSource().getLevel();
     RegistryAccess access = level.registryAccess();
+    RecipeMap recipeMap = level.getServer().getRecipeManager().recipeMap();
+    ContextMap displayContext = SlotDisplayContext.fromLevel(level);
     List<Identifier> recipes = new ArrayList<>();
     for (RecipeType<?> recipeType : recipeTypes) {
-      for (RecipeHolder<T> holder : level.getRecipeManager().getAllRecipesFor((RecipeType<T>) recipeType)) {
+      for (RecipeHolder<T> holder : recipeMap.byType((RecipeType<T>) recipeType)) {
         Recipe<I> recipe = holder.value();
-        // result must match or not be requested
-        if (removeResult == null || removeResult.test(recipe.getResultItem(access).getItem())) {
-          // no input predicate? we are done
-          if (removeInput == null) {
-            recipes.add(holder.id());
-          } else {
-            // at least one ingredient must match the ingredient predicate
-            ingredientLoop:
-            for (Ingredient ingredient : recipe.getIngredients()) {
-              for (ItemStack stack : ingredient.getItems()) {
-                if (removeInput.test(stack.getItem())) {
-                  recipes.add(holder.id());
-                  break ingredientLoop;
-                }
-              }
-            }
-          }
+        // result must match or not be requested, at least one ingredient must match or not be requested
+        if ((removeResult == null || matchesResult(recipe, removeResult, displayContext)) && (removeInput == null || matchesInput(recipe, removeInput))) {
+          recipes.add(holder.id().identifier());
         }
       }
     }
@@ -291,7 +311,7 @@ public class RemoveRecipesCommand {
     Path data = pack.resolve(PackType.SERVER_DATA.getDirectory());
     Path path = data.resolve(id.getNamespace() + "/recipe/" + id.getPath() + ".json");
     if (!GeneratePackHelper.saveConditionRemove(context.getSource().getServer().registryAccess(), path)) {
-      throw GeneratePackHelper.FAILED_SAVE.create(id);
+      throw GeneratePackHelper.FAILED_SAVE.create(id.toString());
     }
 
     // create the object for removing advancements

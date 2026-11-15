@@ -41,7 +41,7 @@ public class DumpTagCommand {
    * @param subCommand  Command builder
    */
   public static void register(LiteralArgumentBuilder<CommandSourceStack> subCommand) {
-    subCommand.requires(sender -> sender.hasPermission(MantleCommand.PERMISSION_EDIT_SPAWN))
+    subCommand.requires(Commands.hasPermission(MantleCommand.PERMISSION_EDIT_SPAWN))
       .then(Action.LOG.build())
       .then(Action.SAVE.build())
       .then(Action.SOURCES.build());
@@ -142,17 +142,17 @@ public class DumpTagCommand {
         // save creates a file in the data dump location of the tag at the proper path
         Path output = DumpAllTagsCommand.getOutputFile(context).toPath().resolve(path.getNamespace() + "/" + path.getPath());
         saveTag(list, output);
-        context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_tag.success_log", regName, name, GeneratePackHelper.getOutputComponent(output)), true);
+        context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_tag.success_log", regName.toString(), name.toString(), GeneratePackHelper.getOutputComponent(output)), true);
       }
       case LOG -> {
         // log writes the merged JSON to the console
-        Component message = Component.translatable("command.mantle.dump_tag.success", regName, name);
+        Component message = Component.translatable("command.mantle.dump_tag.success", regName.toString(), name.toString());
         context.getSource().sendSuccess(() -> message, true);
         Mantle.logger.info("Tag dump of {} tag '{}':\n{}", regName, name, tagToJson(list));
       }
       case SOURCES -> {
         // sources prints a list of each entry and the source of the entry
-        Component message = Component.translatable("command.mantle.dump_tag.success", regName, name);
+        Component message = Component.translatable("command.mantle.dump_tag.success", regName.toString(), name.toString());
         context.getSource().sendSuccess(() -> message, true);
         StringBuilder builder = new StringBuilder();
         builder.append("Tag list dump of ").append(regName).append(" tag ").append(name).append(" with sources:");

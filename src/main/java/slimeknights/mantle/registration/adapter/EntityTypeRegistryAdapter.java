@@ -1,6 +1,8 @@
 package slimeknights.mantle.registration.adapter;
 
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 
@@ -27,6 +29,6 @@ public class EntityTypeRegistryAdapter extends RegistryAdapter<EntityType<?>> {
    * @return  Registered entity type
    */
   public <T extends Entity> EntityType<T> register(EntityType.Builder<T> builder, String name) {
-    return register(builder.build(resourceName(name)), name);
+    return register(builder.build(ResourceKey.create(Registries.ENTITY_TYPE, getResource(name))), name);
   }
 }

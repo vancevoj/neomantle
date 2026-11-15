@@ -1,7 +1,6 @@
 package slimeknights.mantle.command;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -11,24 +10,25 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.resources.Resource;
-import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.util.GsonHelper;
+import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
+import net.neoforged.neoforge.common.loot.LootModifierManager;
+import net.neoforged.neoforge.resource.NeoForgeReloadListeners;
 import slimeknights.mantle.Mantle;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
-/** Command to dump global loot modifiers */
+/**
+ * Command to dump global loot modifiers.
+ * <p>
+ * Since 26.3 NeoForge has no global loot modifier index file, every file under {@code loot_modifiers} is loaded and ordered by priority.
+ * This command dumps the loaded modifiers in the order they apply, along with their priority.
+ */
 public class DumpLootModifiers {
-  /** Resource location of the global loot manager "tag" */
-  protected static final Identifier GLOBAL_LOOT_MODIFIERS = Identifier.fromNamespaceAndPath("forge", "loot_modifiers/global_loot_modifiers.json");
+  /** Resource location of the dumped loot modifier ordering */
+  protected static final Identifier GLOBAL_LOOT_MODIFIERS = Identifier.fromNamespaceAndPath("neoforge", "loot_modifier_order.json");
   /** Path for saving the loot modifiers */
   private static final String LOOT_MODIFIER_PATH = GLOBAL_LOOT_MODIFIERS.getNamespace() + "/" + GLOBAL_LOOT_MODIFIERS.getPath();
 
@@ -42,57 +42,38 @@ public class DumpLootModifiers {
    * @param subCommand  Command builder
    */
   public static void register(LiteralArgumentBuilder<CommandSourceStack> subCommand) {
-    subCommand.requires(sender -> sender.hasPermission(MantleCommand.PERMISSION_EDIT_SPAWN))
+    subCommand.requires(Commands.hasPermission(MantleCommand.PERMISSION_EDIT_SPAWN))
               .then(Commands.literal("save").executes(source -> run(source, true)))
               .then(Commands.literal("log").executes(source -> run(source, false)));
   }
 
 
-  /** Runs the command, dumping the tag */
+  /** Runs the command, dumping the loot modifiers */
   private static int run(CommandContext<CommandSourceStack> context, boolean saveFile) throws CommandSyntaxException {
-    List<Identifier> finalLocations = new ArrayList<>();
-    ResourceManager manager = context.getSource().getServer().getResourceManager();
-    // logic based on forge logic for reading loot managers
-    for (Resource resource : manager.getResourceStack(GLOBAL_LOOT_MODIFIERS)) {
-      try (Reader reader = resource.openAsReader()) {
-        JsonObject json = GsonHelper.fromJson(DumpTagCommand.GSON, reader, JsonObject.class);
-        if (json == null) {
-          // no json
-          Mantle.logger.error("Couldn't load global loot modifiers from {} in data pack {} as it is empty or null", GLOBAL_LOOT_MODIFIERS, resource.sourcePackId());
-        } else {
-          // replace: remove all lower
-          if (GsonHelper.getAsBoolean(json, "replace", false)) {
-            finalLocations.clear();
-          }
-          JsonArray entryList = GsonHelper.getAsJsonArray(json, "entries");
-          for (JsonElement entry : entryList) {
-            Identifier res = Identifier.tryParse(GsonHelper.convertToString(entry, "entry"));
-            if (res != null) {
-              finalLocations.remove(res);
-              finalLocations.add(res);
-            }
-          }
-        }
-      }
-      catch (RuntimeException | IOException ex) {
-        Mantle.logger.error("Couldn't read global loot modifier list {} in data pack {}", GLOBAL_LOOT_MODIFIERS, resource.sourcePackId(), ex);
-      }
+    LootModifierManager manager;
+    try {
+      manager = context.getSource().getServer().getServerResources().managers().getListener(NeoForgeReloadListeners.LOOT_MODIFIERS_KEY);
+    } catch (RuntimeException ex) {
+      Mantle.logger.error("Failed to fetch the global loot modifier manager", ex);
+      throw ERROR_READING_LOOT_MODIFIERS.create();
     }
 
-    // save the list as JSON
+    // modifiers are already sorted in the order they apply
     JsonArray entries = new JsonArray();
-    for (Identifier location : finalLocations) {
-      entries.add(location.toString());
+    for (IGlobalLootModifier modifier : manager.getSortedModifiers()) {
+      Identifier id = manager.getId(modifier);
+      JsonObject entry = new JsonObject();
+      entry.addProperty("id", id == null ? "<unknown>" : id.toString());
+      entry.addProperty("priority", modifier.priority());
+      entries.add(entry);
     }
     JsonObject json = new JsonObject();
-    json.addProperty("replace", false);
     json.add("entries", entries);
 
     // if requested, save
     if (saveFile) {
       // save file
-      File output = new File(DumpAllTagsCommand.getOutputFile(context), LOOT_MODIFIER_PATH);
-      Path path = output.toPath();
+      Path path = DumpAllTagsCommand.getOutputFile(context).toPath().resolve(LOOT_MODIFIER_PATH);
       try {
         Files.createDirectories(path.getParent());
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
@@ -101,13 +82,13 @@ public class DumpLootModifiers {
       } catch (IOException ex) {
         Mantle.logger.error("Couldn't save global loot manager to {}", path, ex);
       }
-      context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_loot_modifiers.success_save", GeneratePackHelper.getOutputComponent(output)), true);
+      context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_loot_modifiers.success_save", GeneratePackHelper.getOutputComponent(path)), true);
     } else {
       // print to console
       context.getSource().sendSuccess(() -> LOOT_MODIFIER_SUCCESS_LOG, true);
-      Mantle.logger.info("Dump of global loot modifiers:\n{}", DumpTagCommand.GSON.toJson(json));
+      Mantle.logger.info("Dump of global loot modifiers in application order:\n{}", DumpTagCommand.GSON.toJson(json));
     }
     // return a number to finish
-    return finalLocations.size();
+    return entries.size();
   }
 }

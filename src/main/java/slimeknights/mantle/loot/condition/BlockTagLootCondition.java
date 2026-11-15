@@ -5,19 +5,17 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.advancements.predicates.StatePropertiesPredicate;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootContext;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParam;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
-import slimeknights.mantle.loot.MantleLoot;
 
 import java.util.Optional;
 import java.util.Set;
 
-/** Variant of {@link net.minecraft.world.level.storage.loot.predicates.LootItemBlockStatePropertyCondition} that allows using a tag for block type instead of a block */
+/** Variant of {@link net.minecraft.world.level.storage.loot.predicates.MatchBlock} that allows using a tag for block type instead of a block */
 public record BlockTagLootCondition(TagKey<Block> tag, Optional<StatePropertiesPredicate> properties) implements LootItemCondition {
   /** Codec for this condition */
   public static final MapCodec<BlockTagLootCondition> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
@@ -40,12 +38,12 @@ public record BlockTagLootCondition(TagKey<Block> tag, Optional<StatePropertiesP
   }
 
   @Override
-  public Set<LootContextParam<?>> getReferencedContextParams() {
+  public Set<ContextKey<?>> getReferencedContextParams() {
     return Set.of(LootContextParams.BLOCK_STATE);
   }
 
   @Override
-  public LootItemConditionType getType() {
-    return MantleLoot.BLOCK_TAG_CONDITION;
+  public MapCodec<BlockTagLootCondition> codec() {
+    return CODEC;
   }
 }

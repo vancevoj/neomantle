@@ -33,6 +33,7 @@ import slimeknights.mantle.registration.object.FlowingFluidObject;
 import slimeknights.mantle.registration.object.FluidObject;
 
 import javax.annotation.Nullable;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -139,44 +140,65 @@ public class FluidDeferredRegister extends DeferredRegisterWrapper<Fluid> {
 
     /* Bucket */
 
-    /** Creates the bucket using the given supplier */
-    public Builder bucket(Function<Supplier<? extends Fluid>, Item> constructor) {
+    /**
+     * Creates the bucket using the given constructor
+     * @param constructor  Constructor taking the still fluid supplier and the item properties. The properties have the ID set and the bucket properties applied.
+     * @return  Builder instance
+     */
+    public Builder bucket(BiFunction<Supplier<? extends Fluid>, Item.Properties, ? extends Item> constructor) {
       if (this.bucket != null) {
         throw new IllegalStateException("Bucket already created for " + name);
       }
-      return bucket(itemRegister.register(name + "_bucket", () -> constructor.apply(stillDelayed)));
+      return bucket(itemRegister.register(name + "_bucket", id -> constructor.apply(stillDelayed, RegistrationHelper.itemProperties(id, RegistrationHelper.BUCKET_PROPS))));
     }
 
     /** Creates the default bucket */
     public Builder bucket() {
-      return bucket(itemRegister.register(name + "_bucket", () -> new BucketItem(stillDelayed.get(), RegistrationHelper.BUCKET_PROPS)));
+      return bucket((fluid, props) -> new BucketItem(fluid.get(), props));
     }
 
 
     /* Block */
 
-    /** Creates the block form using the given supplier */
+    /**
+     * Creates the block form using the given constructor
+     * @param constructor  Constructor taking the still fluid supplier and the block properties. The properties have the ID set.
+     * @param props        Supplier creating new block properties
+     * @return  Builder instance
+     */
     @SuppressWarnings({"unchecked", "rawtypes"})  // if you are calling this method, you must have a flowing fluid by the end, we throw later if not
-    public Builder block(Function<Supplier<? extends FlowingFluid>, LiquidBlock> constructor) {
+    public Builder block(BiFunction<Supplier<? extends FlowingFluid>, BlockBehaviour.Properties, ? extends LiquidBlock> constructor, Supplier<BlockBehaviour.Properties> props) {
       if (this.block != null) {
         throw new IllegalStateException("Block already created for " + name);
       }
-      return block(blockRegister.register(name + "_fluid", () -> constructor.apply((Supplier<FlowingFluid>)(Supplier)stillDelayed)));
+      return block(blockRegister.register(name + "_fluid", id -> constructor.apply((Supplier<FlowingFluid>)(Supplier)stillDelayed, RegistrationHelper.blockProperties(id, props))));
+    }
+
+    /**
+     * Creates the block form using the given constructor and the default fluid block properties
+     * @param color        Map color for the block
+     * @param lightLevel   Light level for the block
+     * @param constructor  Constructor taking the still fluid supplier and the block properties. The properties have the ID set.
+     * @return  Builder instance
+     */
+    public Builder block(MapColor color, int lightLevel, BiFunction<Supplier<? extends FlowingFluid>, BlockBehaviour.Properties, ? extends LiquidBlock> constructor) {
+      return block(constructor, () -> createProperties(color, lightLevel));
     }
 
     /** Creates the default block from the given material and light level */
     public Builder block(MapColor color, int lightLevel) {
-      return block(sup -> new LiquidBlock(sup.get(), createProperties(color, lightLevel)));
+      // fluids register before blocks, so the still fluid is available when the block is constructed
+      return block(color, lightLevel, (sup, props) -> new LiquidBlock(sup.get(), props));
     }
 
     /** Creates a block that lights entities on fire and damages them over time */
     public Builder burningBlock(MapColor color, int lightLevel, int burnTime, float damage) {
-      return block(BurningLiquidBlock.createBurning(color, lightLevel, burnTime, damage));
+      return block(color, lightLevel, (sup, props) -> new BurningLiquidBlock(sup, props, burnTime, damage));
     }
 
     /** Creates a block that applies an effect to the target entity */
     public Builder mobEffectBlock(MapColor color, int lightLevel, Supplier<MobEffectInstance> effect) {
-      return block(MobEffectLiquidBlock.createEffect(color, lightLevel, effect));
+      return block(color, lightLevel, (sup, props) -> new MobEffectLiquidBlock(sup, props, effect));
     }
 
 

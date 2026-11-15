@@ -14,7 +14,6 @@ import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
-import net.minecraft.tags.TagKey;
 import org.jetbrains.annotations.ApiStatus.Internal;
 
 import static net.minecraft.commands.synchronization.SuggestionProviders.register;
@@ -27,7 +26,7 @@ import static slimeknights.mantle.Mantle.getResource;
  */
 public class RegistryArgument {
   /* Name is invalid */
-  private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(name -> Component.translatable("command.mantle.registry.not_found", name));
+  private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(name -> Component.translatable("command.mantle.registry.not_found", String.valueOf(name)));
 
   // suggestion providers
   /** Suggestion provider for a registry */
@@ -45,7 +44,7 @@ public class RegistryArgument {
     // TODO 1.21: rename to "registry_tags"
     TAG = register(getResource("valid_tags"), (context, builder) -> {
       Registry<?> result = get(context);
-      return SharedSuggestionProvider.suggestResource(result.getTagNames().map(TagKey::location), builder);
+      return SharedSuggestionProvider.suggestResource(result.getTags().map(tag -> tag.key().location()), builder);
     });
     VALUE = register(getResource("registry_values"), (context, builder) -> {
       Registry<?> result = get(context);
@@ -70,7 +69,7 @@ public class RegistryArgument {
   public static Registry<?> getResult(CommandContext<? extends SharedSuggestionProvider> context, String name) throws CommandSyntaxException {
     Identifier id = context.getArgument(name, Identifier.class);
     return context.getSource().registryAccess()
-                   .registry(ResourceKey.createRegistryKey(id))
+                   .lookup(ResourceKey.createRegistryKey(id))
                    .orElseThrow(() -> NOT_FOUND.create(id));
   }
 

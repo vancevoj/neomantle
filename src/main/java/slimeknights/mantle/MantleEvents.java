@@ -1,8 +1,8 @@
 package slimeknights.mantle;
 
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 /** Handles events for any Mantle driven logic. */
 @EventBusSubscriber(modid = Mantle.modId)
@@ -47,7 +48,8 @@ public class MantleEvents {
   static void onLivingDeath(LivingDeathEvent event) {
     // this is the latest we can add slot markers to the items so we can return them to slots
     LivingEntity entity = event.getEntity();
-    if (!entity.level().getGameRules().get(GameRules.KEEP_INVENTORY) && entity instanceof Player player && !(player instanceof FakePlayer)) {
+    // game rules are only available on the server level since 1.21.11
+    if (entity.level() instanceof ServerLevel level && !level.getGameRules().get(GameRules.KEEP_INVENTORY) && entity instanceof Player player && !(player instanceof FakePlayer)) {
       Inventory inventory = player.getInventory();
 
       // just iterate the whole inventory, no slot specific behavior
@@ -67,7 +69,7 @@ public class MantleEvents {
   static void onPlayerDropItems(LivingDropsEvent event) {
     // only care about real players with keep inventory off
     LivingEntity entity = event.getEntity();
-    if (!entity.level().getGameRules().get(GameRules.KEEP_INVENTORY) && entity instanceof Player player && !(entity instanceof FakePlayer)) {
+    if (entity.level() instanceof ServerLevel level && !level.getGameRules().get(GameRules.KEEP_INVENTORY) && entity instanceof Player player && !(entity instanceof FakePlayer)) {
       Collection<ItemEntity> drops = event.getDrops();
       Iterator<ItemEntity> iter = drops.iterator();
       Inventory inventory = player.getInventory();
@@ -77,8 +79,9 @@ public class MantleEvents {
         ItemStack stack = itemEntity.getItem();
         // find items with our soulbound tag set and move them back into the inventory, will move them over later
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        if (data != null && data.contains(SOULBOUND_SLOT) && data.copyTag().contains(SOULBOUND_SLOT, Tag.TAG_ANY_NUMERIC)) {
-          int slot = data.copyTag().getInt(SOULBOUND_SLOT);
+        Optional<Integer> soulboundSlot = data != null && data.contains(SOULBOUND_SLOT) ? data.copyTag().getInt(SOULBOUND_SLOT) : Optional.empty();
+        if (soulboundSlot.isPresent()) {
+          int slot = soulboundSlot.get();
           // return the tool to its requested slot if possible, remove from the drops
           if (inventory.getItem(slot).isEmpty()) {
             inventory.setItem(slot, stack);
@@ -114,7 +117,7 @@ public class MantleEvents {
     Player original = event.getOriginal();
     Player clone = event.getEntity();
     // inventory already copied
-    if (clone.level().getGameRules().get(GameRules.KEEP_INVENTORY) || original.isSpectator()) {
+    if (!(clone.level() instanceof ServerLevel level) || level.getGameRules().get(GameRules.KEEP_INVENTORY) || original.isSpectator()) {
       return;
     }
     // find items with the soulbound tag set and move them over
@@ -126,7 +129,7 @@ public class MantleEvents {
       ItemStack stack = originalInv.getItem(i);
       if (!stack.isEmpty()) {
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        if (data != null && data.contains(SOULBOUND_SLOT) && data.copyTag().contains(SOULBOUND_SLOT, Tag.TAG_ANY_NUMERIC)) {
+        if (data != null && data.contains(SOULBOUND_SLOT) && data.copyTag().getInt(SOULBOUND_SLOT).isPresent()) {
           if (cloneInv.getItem(i).isEmpty()) {
             cloneInv.setItem(i, stack);
           } else {
@@ -143,7 +146,7 @@ public class MantleEvents {
       if (!cloneInv.add(stack)) {
         // last resort, somehow we just cannot put the stack anywhere, so drop it on the ground
         // this should never happen, but better to be safe
-        clone.drop(stack, false);
+        clone.drop(stack, false, Prediction.SERVER_ONLY);
       }
     }
   }

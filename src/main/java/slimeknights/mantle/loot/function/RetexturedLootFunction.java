@@ -2,20 +2,19 @@ package slimeknights.mantle.loot.function;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.Holder;
+import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction;
-import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParam;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.block.entity.IRetexturedBlockEntity;
-import slimeknights.mantle.loot.MantleLoot;
 import slimeknights.mantle.util.RetexturedHelper;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -28,20 +27,20 @@ public class RetexturedLootFunction extends LootItemConditionalFunction {
     commonFields(inst).apply(inst, RetexturedLootFunction::new));
 
   /**
-   * Creates a new instance from the given conditions
-   * @param conditions Conditions list
+   * Creates a new instance from the given condition
+   * @param condition  Condition for this function, if empty always runs
    */
-  public RetexturedLootFunction(List<LootItemCondition> conditions) {
-    super(conditions);
+  public RetexturedLootFunction(Optional<Holder<LootItemCondition>> condition) {
+    super(condition);
   }
 
   /** Creates a new instance with no conditions */
   public RetexturedLootFunction() {
-    super(List.of());
+    this(Optional.empty());
   }
 
   @Override
-  public Set<LootContextParam<?>> getReferencedContextParams() {
+  public Set<ContextKey<?>> getReferencedContextParams() {
     return Set.of(LootContextParams.BLOCK_ENTITY);
   }
 
@@ -58,7 +57,7 @@ public class RetexturedLootFunction extends LootItemConditionalFunction {
   }
 
   @Override
-  public LootItemFunctionType<RetexturedLootFunction> getType() {
-    return MantleLoot.RETEXTURED_FUNCTION;
+  public MapCodec<RetexturedLootFunction> codec() {
+    return CODEC;
   }
 }

@@ -4,8 +4,13 @@ import com.mojang.brigadier.arguments.ArgumentType;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.DefaultedRegistry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.properties.WoodType;
 import slimeknights.mantle.util.RegistryHelper;
 
@@ -13,14 +18,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class RegistrationHelper {
   /** Wood types to register with the texture atlas */
   private static final List<WoodType> WOOD_TYPES = new ArrayList<>();
 
-  /** Properties for a standard bucket item */
-  public static final Item.Properties BUCKET_PROPS = new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1);
+  /**
+   * Properties for a standard bucket item. This is an operator rather than a properties instance as properties may not be shared between items,
+   * as each item stamps its ID into its properties before construction.
+   */
+  public static final UnaryOperator<Item.Properties> BUCKET_PROPS = props -> props.craftRemainder(Items.BUCKET).stacksTo(1);
 
   /**
    * Used to mark injected registry objects, as despite being set to null they will be nonnull at runtime.
@@ -63,5 +72,39 @@ public class RegistrationHelper {
   @SuppressWarnings("unchecked")
   public static <T extends ArgumentType<?>> Class<T> genericArgumentType(Class<? super T> type) {
     return (Class<T>) type;
+  }
+
+
+  /* Properties */
+
+  /**
+   * Creates item properties for the item with the given ID. Items need their ID set in the properties before the constructor runs.
+   * @param id     Item ID
+   * @param props  Operator to apply to the new properties
+   * @return  Item properties with the ID set
+   */
+  public static Item.Properties itemProperties(Identifier id, UnaryOperator<Item.Properties> props) {
+    return props.apply(new Item.Properties()).setId(ResourceKey.create(Registries.ITEM, id));
+  }
+
+  /**
+   * Creates item properties for a block item with the given ID, matching vanilla block items.
+   * Uses the block description ID and copies the required features from the block.
+   * @param id     Item ID
+   * @param block  Block for the item
+   * @return  Item properties with the ID set
+   */
+  public static Item.Properties blockItemProperties(Identifier id, Block block) {
+    return new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)).useBlockDescriptionPrefix().requiredFeatures(block.requiredFeatures());
+  }
+
+  /**
+   * Creates block properties for the block with the given ID. Blocks need their ID set in the properties before the constructor runs.
+   * @param id     Block ID
+   * @param props  Supplier of new properties. Must return a new instance each call, as blocks keep their properties.
+   * @return  Block properties with the ID set
+   */
+  public static BlockBehaviour.Properties blockProperties(Identifier id, Supplier<BlockBehaviour.Properties> props) {
+    return props.get().setId(ResourceKey.create(Registries.BLOCK, id));
   }
 }

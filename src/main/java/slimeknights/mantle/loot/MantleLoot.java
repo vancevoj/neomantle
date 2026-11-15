@@ -4,15 +4,8 @@ import com.google.gson.JsonDeserializer;
 import com.mojang.serialization.MapCodec;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.level.storage.loot.entries.LootPoolEntryType;
-import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
-import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
-import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import slimeknights.mantle.Mantle;
@@ -30,29 +23,33 @@ import slimeknights.mantle.recipe.condition.TagFilledCondition;
 
 import static slimeknights.mantle.loot.condition.ILootModifierCondition.MODIFIER_CONDITIONS;
 
+/**
+ * Registration for Mantle loot logic.
+ * <p>
+ * Since 26.1 the loot type registries hold the {@link MapCodec} directly instead of a type wrapper, so these fields are the registered codecs.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MantleLoot {
   /** Matches if the passed tag is empty */
-  public static LootItemConditionType TAG_EMPTY;
+  public static final MapCodec<TagEmptyCondition<?>> TAG_EMPTY = TagEmptyCondition.CODEC;
   /** Matches if the passed tag is filled */
-  public static LootItemConditionType TAG_FILLED;
+  public static final MapCodec<TagFilledCondition<?>> TAG_FILLED = TagFilledCondition.CODEC;
   /** Condition to match a block tag and property predicate */
-  public static LootItemConditionType BLOCK_TAG_CONDITION;
+  public static final MapCodec<BlockTagLootCondition> BLOCK_TAG_CONDITION = BlockTagLootCondition.CODEC;
   /** Condition for global loot modifiers that ensures a context set is present. Useful to check if we are in a specific context like entity. */
-  public static LootItemConditionType HAS_CONTEXT_SET;
+  public static final MapCodec<HasLootContextSetCondition> HAS_CONTEXT_SET = HasLootContextSetCondition.CODEC;
   /** Function to add block entity texture to a dropped item */
-  public static LootItemFunctionType<RetexturedLootFunction> RETEXTURED_FUNCTION;
+  public static final MapCodec<RetexturedLootFunction> RETEXTURED_FUNCTION = RetexturedLootFunction.CODEC;
   /** Function to add a fluid to an item fluid capability */
-  public static LootItemFunctionType<SetFluidLootFunction> SET_FLUID_FUNCTION;
+  public static final MapCodec<SetFluidLootFunction> SET_FLUID_FUNCTION = SetFluidLootFunction.CODEC;
   /** Entry to pull a value from a tag preference */
-  public static LootPoolEntryType TAG_PREFERENCE;
+  public static final MapCodec<TagPreferenceLootEntry> TAG_PREFERENCE = TagPreferenceLootEntry.CODEC;
 
 
   /**
    * Called during registration to register any relevant loot logic.
    * <p>
-   * In NeoForge 1.21.1 loot conditions, functions, entries, and global loot modifier serializers are all codec based
-   * ({@link MapCodec}); the old JSON {@code Serializer} classes and {@code GlobalLootModifierSerializer} are gone.
+   * Loot conditions, functions, entries, and global loot modifier serializers are all codec based ({@link MapCodec}).
    */
   public static void registerGlobalLootModifiers(final RegisterEvent event) {
     ResourceKey<?> key = event.getRegistryKey();
@@ -66,27 +63,17 @@ public class MantleLoot {
       MODIFIER_CONDITIONS.registerDeserializer(EmptyModifierLootCondition.ID, EmptyModifierLootCondition.INSTANCE);
       MODIFIER_CONDITIONS.registerDeserializer(ContainsItemModifierLootCondition.ID, (JsonDeserializer<? extends ILootModifierCondition>) ContainsItemModifierLootCondition::deserialize);
     } else if (key == Registries.LOOT_FUNCTION_TYPE) {
-      RETEXTURED_FUNCTION = registerFunction("fill_retextured_block", RetexturedLootFunction.CODEC);
-      SET_FLUID_FUNCTION = registerFunction("set_fluid", SetFluidLootFunction.CODEC);
+      event.register(Registries.LOOT_FUNCTION_TYPE, Mantle.getResource("fill_retextured_block"), () -> RETEXTURED_FUNCTION);
+      event.register(Registries.LOOT_FUNCTION_TYPE, Mantle.getResource("set_fluid"), () -> SET_FLUID_FUNCTION);
 
     } else if (key == Registries.LOOT_CONDITION_TYPE) {
-      BLOCK_TAG_CONDITION = Registry.register(BuiltInRegistries.LOOT_CONDITION_TYPE, Mantle.getResource("block_tag"), new LootItemConditionType(BlockTagLootCondition.CODEC));
-      HAS_CONTEXT_SET = Registry.register(BuiltInRegistries.LOOT_CONDITION_TYPE, Mantle.getResource("has_context_set"), new LootItemConditionType(HasLootContextSetCondition.CODEC));
-      TAG_EMPTY = Registry.register(BuiltInRegistries.LOOT_CONDITION_TYPE, Mantle.getResource("tag_empty"), new LootItemConditionType(TagEmptyCondition.CODEC));
-      TAG_FILLED = Registry.register(BuiltInRegistries.LOOT_CONDITION_TYPE, Mantle.getResource("tag_filled"), new LootItemConditionType(TagFilledCondition.CODEC));
+      event.register(Registries.LOOT_CONDITION_TYPE, Mantle.getResource("block_tag"), () -> BLOCK_TAG_CONDITION);
+      event.register(Registries.LOOT_CONDITION_TYPE, Mantle.getResource("has_context_set"), () -> HAS_CONTEXT_SET);
+      event.register(Registries.LOOT_CONDITION_TYPE, Mantle.getResource("tag_empty"), () -> TAG_EMPTY);
+      event.register(Registries.LOOT_CONDITION_TYPE, Mantle.getResource("tag_filled"), () -> TAG_FILLED);
 
     } else if (key == Registries.LOOT_POOL_ENTRY_TYPE) {
-      TAG_PREFERENCE = Registry.register(BuiltInRegistries.LOOT_POOL_ENTRY_TYPE, Mantle.getResource("tag_preference"), new LootPoolEntryType(TagPreferenceLootEntry.CODEC));
+      event.register(Registries.LOOT_POOL_ENTRY_TYPE, Mantle.getResource("tag_preference"), () -> TAG_PREFERENCE);
     }
-  }
-
-  /**
-   * Registers a loot function
-   * @param name   Loot function name
-   * @param codec  Loot function codec
-   * @return  Registered loot function
-   */
-  private static <T extends LootItemFunction> LootItemFunctionType<T> registerFunction(String name, MapCodec<T> codec) {
-    return Registry.register(BuiltInRegistries.LOOT_FUNCTION_TYPE, Mantle.getResource(name), new LootItemFunctionType<>(codec));
   }
 }

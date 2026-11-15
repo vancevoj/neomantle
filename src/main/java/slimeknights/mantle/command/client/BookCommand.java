@@ -1,22 +1,35 @@
 package slimeknights.mantle.command.client;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.pipeline.TextureTarget;
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.textures.GpuTexture;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.render.GuiRenderer;
+import net.minecraft.client.gui.render.pip.GuiBannerResultRenderer;
+import net.minecraft.client.gui.render.pip.GuiBookModelRenderer;
+import net.minecraft.client.gui.render.pip.GuiEntityRenderer;
+import net.minecraft.client.gui.render.pip.GuiProfilerChartRenderer;
+import net.minecraft.client.gui.render.pip.GuiSkinRenderer;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.state.WindowRenderState;
+import net.minecraft.client.renderer.state.gui.GuiRenderState;
+import net.minecraft.client.renderer.state.gui.pip.GuiBannerResultRenderState;
+import net.minecraft.client.renderer.state.gui.pip.GuiBookModelRenderState;
+import net.minecraft.client.renderer.state.gui.pip.GuiEntityRenderState;
+import net.minecraft.client.renderer.state.gui.pip.GuiProfilerChartRenderState;
+import net.minecraft.client.renderer.state.gui.pip.GuiSkinRenderState;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.IdentifierArgument;
@@ -25,10 +38,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.client.ClientHooks;
+import net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration;
 import org.apache.commons.lang3.text.WordUtils;
-import org.joml.Matrix4f;
-import org.joml.Matrix4fStack;
-import org.lwjgl.opengl.GL11;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.book.BookLoader;
 import slimeknights.mantle.client.book.data.BookData;
@@ -43,6 +55,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Objects;
 
 /** A command for different book operations, currently open and export_images */
 public class BookCommand {
@@ -62,7 +76,7 @@ public class BookCommand {
    * @param subCommand  Command builder
    */
   public static void register(LiteralArgumentBuilder<CommandSourceStack> subCommand) {
-    subCommand.requires(source -> source.hasPermission(MantleCommand.PERMISSION_GAME_COMMANDS) && source.getEntity() instanceof AbstractClientPlayer)
+    subCommand.requires(source -> MantleCommand.PERMISSION_GAME_COMMANDS.check(source.permissions()) && source.getEntity() instanceof AbstractClientPlayer)
       .then(Commands.literal("open")
         .then(Commands.argument("id", IdentifierArgument.id()).suggests(MantleClientCommand.REGISTERED_BOOKS)
           .executes(BookCommand::openBook)))
@@ -103,7 +117,7 @@ public class BookCommand {
     BookData bookData = BookLoader.getBook(book);
     if(bookData != null) {
       // Delay execution to ensure chat window is closed
-      Minecraft.getInstance().tell(() ->
+      Minecraft.getInstance().execute(() ->
         bookData.openGui(Component.literal("Book"), "", null, null)
       );
     } else {
@@ -181,7 +195,8 @@ public class BookCommand {
   private static int doExport(Identifier book, int scale, boolean html, String bookKey) {
     BookData bookData = BookLoader.getBook(book);
 
-    Path gameDirectory = Minecraft.getInstance().gameDirectory.toPath();
+    Minecraft minecraft = Minecraft.getInstance();
+    Path gameDirectory = minecraft.gameDirectory.toPath();
     // images go in screenshots
     Path screenshotDir = Paths.get(gameDirectory.toString(), Screenshot.SCREENSHOT_DIR, "mantle_book", book.getNamespace(), book.getPath());
     // html goes in root folder
@@ -189,44 +204,46 @@ public class BookCommand {
     if (bookData != null) {
       // ensure outputs exist
       if (!screenshotDir.toFile().mkdirs() && !screenshotDir.toFile().exists()) {
-        throw new RuntimeException(Component.translatable(EXPORT_FAIL_IO, screenshotDir).getString());
+        throw new RuntimeException(Component.translatable(EXPORT_FAIL_IO, screenshotDir.toString()).getString());
       }
       if (htmlDir != null && !htmlDir.toFile().mkdirs() && !htmlDir.toFile().exists()) {
-        throw new RuntimeException(Component.translatable(EXPORT_FAIL_IO, htmlDir).getString());
+        throw new RuntimeException(Component.translatable(EXPORT_FAIL_IO, htmlDir.toString()).getString());
       }
 
       int width = BookScreen.PAGE_WIDTH_UNSCALED * 2 * scale;
       int height = BookScreen.PAGE_HEIGHT_UNSCALED * scale;
-      float zFar = 1000.0F + 10000.0F * 3;
 
       bookData.load();
       BookScreen screen = new BookScreen(Component.literal("Book"), bookData, "", null, null);
-      screen.init(Minecraft.getInstance(), width / scale, height / scale);
+      screen.init(width / scale, height / scale);
       screen.drawArrows = false;
       screen.mouseInput = false;
       screen.drawText = !html;
       screen.enableAnimations = false;
 
-      Matrix4f matrix = (new Matrix4f()).setOrtho(0.0F, width, height, 0.0F, 1000.0F, zFar);
-      RenderSystem.setProjectionMatrix(matrix, VertexSorting.ORTHOGRAPHIC_Z);
-
-      Matrix4fStack stack = RenderSystem.getModelViewStack();
-      stack.pushMatrix();
-      stack.identity();
-      stack.translate(0, 0, 1000F - zFar);
-      stack.scale(scale, scale, 1);
-      RenderSystem.applyModelViewMatrix();
-      Lighting.setupFor3DItems();
-
-      RenderTarget target = new TextureTarget(width, height, true, Minecraft.ON_OSX);
-      target.enableStencil();
+      // GUI rendering is split into an extract phase and a render phase since 1.21.6, and the GUI renderer always draws to the main render target.
+      // So pages are extracted into our own GUI render state and rendered into the top left corner of the main target at the requested scale,
+      // with each page copied out of the target before the next one is drawn. The main target is restored afterwards.
+      GameRenderer gameRenderer = minecraft.gameRenderer;
+      RenderTarget target = gameRenderer.mainRenderTarget();
+      WindowRenderState window = gameRenderer.gameRenderState().windowRenderState;
+      int oldTargetWidth = target.width;
+      int oldTargetHeight = target.height;
+      int oldWindowWidth = window.width;
+      int oldWindowHeight = window.height;
+      int oldGuiScale = window.guiScale;
+      if (target.width < width || target.height < height) {
+        target.resize(Math.max(target.width, width), Math.max(target.height, height));
+      }
+      // GUI projection uses the window size and GUI scale, so make one GUI pixel match the export scale
+      window.width = target.width;
+      window.height = target.height;
+      window.guiScale = scale;
+      GuiRenderState renderState = new GuiRenderState();
+      GuiRenderer guiRenderer = new GuiRenderer(renderState, gameRenderer.featureRenderDispatcher(), pictureInPictureRenderers(minecraft));
+      PageExports exports = new PageExports(screenshotDir, htmlDir);
 
       try {
-        MultiBufferSource.BufferSource buffer = Minecraft.getInstance().renderBuffers().bufferSource();
-        target.bindWrite(true);
-
-        GuiGraphicsExtractor gui = new GuiGraphicsExtractor(Minecraft.getInstance(), buffer);
-
         // title goes export title -> regular title -> path
         String exportTitle = bookData.appearance.exportTitle;
         if (exportTitle.isEmpty()) {
@@ -241,12 +258,7 @@ public class BookCommand {
         String modName = mod == null ? book.getNamespace() : mod.getModInfo().getDisplayName();
 
         do {
-          RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
-
           screen.tick();
-
-          RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
-            GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE);
 
           int page = screen.getPage_();
           // draw text on the cover; we just want it as an image
@@ -254,31 +266,24 @@ public class BookCommand {
             screen.drawText = page < 0;
           }
 
-          gui.pose().pushPose();
-          screen.render(gui, 0, 0, 0);
-          gui.flush();
-          gui.pose().popPose();
-
-          try (NativeImage image = takeScreenshot(target)) {
-            String pageFormat = page < 0 ? "cover" :  (html ? "clean_" : "page_") + page;
-            Path path = Paths.get(screenshotDir.toString(), pageFormat + ".png");
-
-            if (page == -1) { // the cover is half the width
-              try (NativeImage scaled = new NativeImage(image.format(), width / 2, height, false)) {
-                image.copyRect(scaled, image.getWidth() / 2 - width / 4, 0, 0, 0,
-                  width / 2, height, false, false);
-                scaled.writeToFile(path);
-              } catch (Exception e) {
-                Mantle.logger.error("Failed to save screenshot", e);
-                throw new RuntimeException(Component.translatable(EXPORT_FAIL).getString());
-              }
-            } else {
-              image.writeToFile(path);
-            }
-          } catch (Exception e) {
-            Mantle.logger.error("Failed to save screenshot", e);
-            throw new RuntimeException(Component.translatable(EXPORT_FAIL).getString());
+          // extract and render the page, cleared to transparent so the image keeps transparency
+          GpuTexture colorTexture = Objects.requireNonNull(target.getColorTexture(), "Main render target missing color texture");
+          RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(colorTexture, GuiRenderer.CLEAR_COLOR, Objects.requireNonNull(target.getDepthTexture()), 0.0);
+          GuiGraphicsExtractor graphics = new GuiGraphicsExtractor(minecraft, renderState, 0, 0);
+          screen.extractRenderState(graphics, 0, 0, 0);
+          gameRenderer.lighting().setupFor(Lighting.Entry.ITEMS_3D);
+          gameRenderer.useUiLightmap = true;
+          try {
+            guiRenderer.render();
+            guiRenderer.endFrame();
+          } finally {
+            gameRenderer.useUiLightmap = false;
           }
+
+          // copy the page out of the target, the image is saved once the GPU finishes the copy
+          String pageFormat = page < 0 ? "cover" :  (html ? "clean_" : "page_") + page;
+          Path path = Paths.get(screenshotDir.toString(), pageFormat + ".png");
+          exports.save(colorTexture, target.height, width, height, page == -1, path);
 
           if (html) {
             File file = Paths.get(htmlDir.toString(), page < 0 ? "index.html" : "page-" + page + ".html").toFile();
@@ -301,20 +306,116 @@ public class BookCommand {
             throw new RuntimeException(Component.translatable(EXPORT_FAIL).getString());
           }
         }
+      } catch (RuntimeException e) {
+        // do not report success for a partial export
+        exports.failed = true;
+        throw e;
       } finally {
-        stack.popMatrix();
-        RenderSystem.applyModelViewMatrix();
-        RenderSystem.defaultBlendFunc();
-        target.unbindWrite();
-        target.destroyBuffers();
+        guiRenderer.close();
+        window.width = oldWindowWidth;
+        window.height = oldWindowHeight;
+        window.guiScale = oldGuiScale;
+        if (target.width != oldTargetWidth || target.height != oldTargetHeight) {
+          target.resize(oldTargetWidth, oldTargetHeight);
+        }
+        exports.finish();
       }
     } else {
       bookNotFound(book);
       return 1;
     }
-
-    sendFileMessage(screenshotDir, htmlDir);
     return 0;
+  }
+
+  /** Creates the picture in picture renderers for the export GUI renderer, matching the ones the game renderer uses */
+  private static List<PictureInPictureRendererRegistration<?>> pictureInPictureRenderers(Minecraft minecraft) {
+    return ClientHooks.gatherPictureInPictureRenderers(List.of(
+      new PictureInPictureRendererRegistration<>(GuiEntityRenderState.class, () -> new GuiEntityRenderer(minecraft.getEntityRenderDispatcher())),
+      new PictureInPictureRendererRegistration<>(GuiSkinRenderState.class, GuiSkinRenderer::new),
+      new PictureInPictureRendererRegistration<>(GuiBookModelRenderState.class, GuiBookModelRenderer::new),
+      new PictureInPictureRendererRegistration<>(GuiBannerResultRenderState.class, () -> new GuiBannerResultRenderer(minecraft.getAtlasManager())),
+      new PictureInPictureRendererRegistration<>(GuiProfilerChartRenderState.class, GuiProfilerChartRenderer::new)
+    ));
+  }
+
+  /** Tracks page images being copied from the GPU, sending the success message once the last one is saved */
+  private static class PageExports {
+    private final Path screenshotDir;
+    @Nullable
+    private final Path htmlDir;
+    /** Number of pages still waiting on the GPU */
+    private int pending = 0;
+    /** Set once all pages are queued */
+    private boolean finished = false;
+    /** Set if any page failed to save */
+    private boolean failed = false;
+
+    private PageExports(Path screenshotDir, @Nullable Path htmlDir) {
+      this.screenshotDir = screenshotDir;
+      this.htmlDir = htmlDir;
+    }
+
+    /**
+     * Copies a page from the top left corner of the texture and saves it once the copy completes.
+     * Like {@link Screenshot#takeScreenshot(RenderTarget, java.util.function.Consumer)}, but keeps transparency and only copies the page region.
+     * @param texture        Texture to copy from
+     * @param textureHeight  Full height of the texture, as textures are stored bottom up
+     * @param width          Width of the page region
+     * @param height         Height of the page region
+     * @param cover          If true, this is the cover which is half the width
+     * @param path           Path to save the image
+     */
+    private void save(GpuTexture texture, int textureHeight, int width, int height, boolean cover, Path path) {
+      int blockSize = texture.getFormat().blockSize();
+      GpuBuffer buffer = RenderSystem.getDevice().createBuffer(() -> "Mantle book export", GpuBuffer.USAGE_MAP_READ | GpuBuffer.USAGE_COPY_DST, (long)width * height * blockSize);
+      pending++;
+      RenderSystem.getDevice().createCommandEncoder().copyTextureToBuffer(texture, buffer, 0L, () -> {
+        try (GpuBufferSlice.MappedView read = buffer.map(true, false); NativeImage image = new NativeImage(width, height, false)) {
+          // rows are stored bottom up, so flip while reading
+          for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+              image.setPixelABGR(x, height - y - 1, read.data().getInt((x + y * width) * blockSize));
+            }
+          }
+          if (cover) {
+            // the cover is half the width
+            try (NativeImage scaled = new NativeImage(image.format(), width / 2, height, false)) {
+              image.copyRect(scaled, width / 2 - width / 4, 0, 0, 0, width / 2, height, false, false);
+              scaled.writeToFile(path);
+            }
+          } else {
+            image.writeToFile(path);
+          }
+        } catch (Exception e) {
+          Mantle.logger.error("Failed to save screenshot {}", path, e);
+          failed = true;
+        } finally {
+          buffer.close();
+          pending--;
+          sendMessageIfDone();
+        }
+      }, 0, 0, textureHeight - height, width, height);
+    }
+
+    /** Marks all pages as queued */
+    private void finish() {
+      finished = true;
+      sendMessageIfDone();
+    }
+
+    /** Sends the result message once all pages are saved */
+    private void sendMessageIfDone() {
+      if (finished && pending == 0) {
+        if (failed) {
+          Player player = Minecraft.getInstance().player;
+          if (player != null) {
+            player.sendSystemMessage(Component.translatable(EXPORT_FAIL).withStyle(ChatFormatting.RED));
+          }
+        } else {
+          sendFileMessage(screenshotDir, htmlDir);
+        }
+      }
+    }
   }
 
 
@@ -337,30 +438,17 @@ public class BookCommand {
     if (player != null) {
       Component fileComponent = GeneratePackHelper.getOutputComponent(screenshotDir);
       if (htmlDir != null) {
-        player.displayClientMessage(Component.translatable(EXPORT_SUCCESS_HTML, fileComponent, GeneratePackHelper.getOutputComponent(htmlDir)), false);
+        player.sendSystemMessage(Component.translatable(EXPORT_SUCCESS_HTML, fileComponent, GeneratePackHelper.getOutputComponent(htmlDir)));
       } else {
-        player.displayClientMessage(Component.translatable(EXPORT_SUCCESS, fileComponent), false);
+        player.sendSystemMessage(Component.translatable(EXPORT_SUCCESS, fileComponent));
       }
     }
-  }
-
-  /**
-   * Duplicate of {@link net.minecraft.client.Screenshot#takeScreenshot}, but with transparency
-   */
-  private static NativeImage takeScreenshot(RenderTarget pFramebuffer) {
-    int i = pFramebuffer.width;
-    int j = pFramebuffer.height;
-    NativeImage nativeimage = new NativeImage(i, j, false);
-    RenderSystem.bindTexture(pFramebuffer.getColorTextureId());
-    nativeimage.downloadTexture(0, false);
-    nativeimage.flipY();
-    return nativeimage;
   }
 
   public static void bookNotFound(Identifier book) {
     Player player = Minecraft.getInstance().player;
     if (player != null) {
-      player.displayClientMessage(Component.translatable(BOOK_NOT_FOUND, book).withStyle(ChatFormatting.RED), false);
+      player.sendSystemMessage(Component.translatable(BOOK_NOT_FOUND, book.toString()).withStyle(ChatFormatting.RED));
     }
   }
 }

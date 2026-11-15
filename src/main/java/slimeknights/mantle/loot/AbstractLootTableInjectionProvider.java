@@ -1,13 +1,13 @@
 package slimeknights.mantle.loot;
 
 import com.google.gson.JsonObject;
-import com.mojang.serialization.JsonOps;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.PackOutput.Target;
 import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import slimeknights.mantle.data.GenericDataProvider;
+import slimeknights.mantle.util.JsonHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +33,7 @@ public abstract class AbstractLootTableInjectionProvider extends GenericDataProv
     return allOf(builders.stream().map(builder -> {
       JsonObject json = LootTableInjection.LOADABLE.serialize(builder.build()).getAsJsonObject();
       if (builder.conditions.length > 0) {
-        ICondition.writeConditions(JsonOps.INSTANCE, json, List.of(builder.conditions));
+        ICondition.writeConditions(JsonHelper.registryOps(), json, List.of(builder.conditions));
       }
       return saveJson(output, Identifier.fromNamespaceAndPath(domain, builder.path), json);
     }));

@@ -31,7 +31,7 @@ import static slimeknights.mantle.Mantle.getResource;
  */
 public class TagSourceArgument {
   /* Name is invalid */
-  private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(name -> Component.translatable("command.mantle.tag_source.not_found", name));
+  private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(name -> Component.translatable("command.mantle.tag_source.not_found", String.valueOf(name)));
   /** Map of non-registry tag sources */
   private static final Map<ResourceKey<? extends Registry<?>>,TagSource<?>> CUSTOM_TAG_SOURCES = new HashMap<>();
 
@@ -49,7 +49,7 @@ public class TagSourceArgument {
   @Internal
   public static void registerSuggestions() {
     SOURCE = register(getResource("tag_source"), (context, builder) ->
-      SharedSuggestionProvider.suggestResource(allKeys(context).map(ResourceKey::location), builder));
+      SharedSuggestionProvider.suggestResource(allKeys(context).map(ResourceKey::identifier), builder));
     TAG = register(getResource("tag_source_tag"), (context, builder) -> {
       TagSource<?> result = get(context);
       return SharedSuggestionProvider.suggestResource(result.tagKeys().map(TagKey::location), builder);
@@ -135,7 +135,7 @@ public class TagSourceArgument {
       return custom;
     }
     return new RegistryTagSource<>(context.getSource().registryAccess()
-      .registry(key)
+      .lookup(key)
       .orElseThrow(() -> NOT_FOUND.create(id)));
   }
 }

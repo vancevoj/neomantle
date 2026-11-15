@@ -2,10 +2,7 @@ package slimeknights.mantle;
 
 import net.minecraft.util.Util;
 import net.minecraft.commands.synchronization.ArgumentTypeInfos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.data.DataGenerator;
-import net.minecraft.data.PackOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
@@ -14,8 +11,8 @@ import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -30,6 +27,7 @@ import org.apache.logging.log4j.Logger;
 import slimeknights.mantle.block.entity.MantleHangingSignBlockEntity;
 import slimeknights.mantle.block.entity.MantleSignBlockEntity;
 import slimeknights.mantle.client.ClientEvents;
+import slimeknights.mantle.client.model.MantleModelEvents;
 import slimeknights.mantle.command.MantleCommand;
 import slimeknights.mantle.command.argument.ResourceOrTagKeyArgument;
 import slimeknights.mantle.config.Config;
@@ -66,6 +64,7 @@ import slimeknights.mantle.loot.MantleLoot;
 import slimeknights.mantle.network.MantleNetwork;
 import slimeknights.mantle.recipe.MantleRecipes;
 import slimeknights.mantle.recipe.condition.MantleConditions;
+import slimeknights.mantle.recipe.helper.RecipeHelper;
 import slimeknights.mantle.recipe.helper.TagPreference;
 import slimeknights.mantle.recipe.ingredient.MantleIngredients;
 import slimeknights.mantle.registration.MantleRegistrations;
@@ -75,7 +74,6 @@ import slimeknights.mantle.util.OffhandCooldownTracker;
 
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Mantle
@@ -97,14 +95,17 @@ public class Mantle {
   /* Proxies for sides, used for graphics processing */
   public Mantle(net.neoforged.bus.api.IEventBus modBus, ModContainer container) {
     container.registerConfig(Type.CLIENT, Config.CLIENT_SPEC);
-    container.registerConfig(Type.SERVER, Config.SERVER_SPEC);
+    // server configs are synced configs since 26.3, the file is now mantle-synced.toml
+    container.registerConfig(Type.SYNCED, Config.SERVER_SPEC);
 
     FluidContainerTransferManager.INSTANCE.init();
     MantleTags.init();
 
     instance = this;
     modBus.addListener(EventPriority.NORMAL, false, FMLCommonSetupEvent.class, this::commonSetup);
-    modBus.addListener(EventPriority.NORMAL, false, GatherDataEvent.class, this::gatherData);
+    // GatherDataEvent is sealed in 26.3, listen to the subtypes. The build runs a single client data run, which fires only the client event
+    modBus.addListener(EventPriority.NORMAL, false, GatherDataEvent.Client.class, this::gatherClientData);
+    modBus.addListener(EventPriority.NORMAL, false, GatherDataEvent.Server.class, this::gatherServerData);
     modBus.addListener(EventPriority.NORMAL, false, RegisterEvent.class, this::register);
     modBus.addListener(MantleNetwork::registerPackets);
     OffhandCooldownTracker.register(modBus);
@@ -112,9 +113,12 @@ public class Mantle {
     MantleIngredients.init(modBus);
     MantleRecipes.init(modBus);
     NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, PlayerInteractEvent.RightClickBlock.class, LecternBookItem::interactWithBlock);
+    // recipes are no longer synced by default since 26.3, send the types Mantle and its dependents need
+    NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, OnDatapackSyncEvent.class, RecipeHelper::sendRecipesToClient);
 
     if (FMLEnvironment.getDist() == Dist.CLIENT) {
       ClientEvents.onConstruct();
+      MantleModelEvents.init(modBus);
     }
   }
 
@@ -216,19 +220,24 @@ public class Mantle {
     }
   }
 
-  private void gatherData(final GatherDataEvent event) {
-    DataGenerator generator = event.getGenerator();
-    boolean server = event.includeServer();
-    boolean client = event.includeClient();
-    PackOutput packOutput = generator.getPackOutput();
-    CompletableFuture<HolderLookup.Provider> lookupProvider = event.getLookupProvider();
-    ExistingFileHelper existingFileHelper = event.getExistingFileHelper();
-    generator.addProvider(server, new MantleBlockTagProvider(packOutput, lookupProvider, existingFileHelper));
-    generator.addProvider(server, new MantleFluidTagProvider(packOutput, lookupProvider, existingFileHelper));
-    generator.addProvider(server, new MantleMenuTagProvider(packOutput, lookupProvider, existingFileHelper));
-    generator.addProvider(server, new MantleFluidTransferProvider(packOutput));
-    generator.addProvider(client, new MantleFluidTooltipProvider(packOutput));
-    generator.addProvider(client, new MantleSpriteSourceProvider(packOutput, lookupProvider, existingFileHelper));
+  /** Adds providers for server data, called for both server and client data runs */
+  private static void addServerProviders(GatherDataEvent event) {
+    event.createProvider(MantleBlockTagProvider::new);
+    event.createProvider(MantleFluidTagProvider::new);
+    event.createProvider(MantleMenuTagProvider::new);
+    event.createProvider(MantleFluidTransferProvider::new);
+  }
+
+  /** Gathers data for a server data run */
+  private void gatherServerData(final GatherDataEvent.Server event) {
+    addServerProviders(event);
+  }
+
+  /** Gathers data for a client data run. Like NeoForge, client runs generate both client and server data so a single run covers everything. */
+  private void gatherClientData(final GatherDataEvent.Client event) {
+    addServerProviders(event);
+    event.createProvider(MantleFluidTooltipProvider::new);
+    event.createProvider(MantleSpriteSourceProvider::new);
   }
 
   /**

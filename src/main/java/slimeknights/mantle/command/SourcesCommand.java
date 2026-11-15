@@ -23,13 +23,13 @@ import java.util.List;
 /** Command to list all sources for a file in a datapack */
 public class SourcesCommand {
   /** Error on invalid item or tag ID */
-  private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(id -> Mantle.makeComponent("command", "sources.not_found", id));
+  private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(id -> Mantle.makeComponent("command", "sources.not_found", String.valueOf(id)));
   /** List of subcommands to add */
   private static final List<SourceFolder> FOLDERS = new ArrayList<>();
 
   /** Registers this command with the builder */
   public static void register(LiteralArgumentBuilder<CommandSourceStack> subCommand) {
-    subCommand = subCommand.requires(source -> source.hasPermission(MantleCommand.PERMISSION_EDIT_SPAWN));
+    subCommand = subCommand.requires(Commands.hasPermission(MantleCommand.PERMISSION_EDIT_SPAWN));
     subCommand.then(Commands.literal("path")
       .then(Commands.argument("path", IdentifierArgument.id())
         .executes(context -> run(context, context.getSource().getServer().getResourceManager(), IdentifierArgument.getId(context, "path")))));
@@ -58,7 +58,7 @@ public class SourcesCommand {
     }
     // print all the packs its found in
     context.getSource().sendSuccess(() -> {
-      MutableComponent component = Component.translatable("command.mantle.sources.success", path);
+      MutableComponent component = Component.translatable("command.mantle.sources.success", path.toString());
       for (String pack : packs) {
         component = component.append(Component.literal("\n* " + (pack.isEmpty() ? "<unnamed>" : pack)));
       }

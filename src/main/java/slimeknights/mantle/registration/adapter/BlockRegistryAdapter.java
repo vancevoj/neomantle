@@ -1,5 +1,6 @@
 package slimeknights.mantle.registration.adapter;
 
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -21,7 +22,6 @@ import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 import net.minecraft.world.level.block.state.properties.BlockSetType;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 import net.minecraft.world.level.block.state.properties.WoodType;
-import net.minecraft.core.Registry;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
 import net.neoforged.neoforge.fluids.BaseFlowingFluid;
@@ -33,6 +33,7 @@ import slimeknights.mantle.block.StrippableLogBlock;
 import slimeknights.mantle.block.entity.MantleHangingSignBlockEntity;
 import slimeknights.mantle.block.entity.MantleSignBlockEntity;
 import slimeknights.mantle.registration.RegistrationHelper;
+import slimeknights.mantle.registration.deferred.BlockDeferredRegister;
 import slimeknights.mantle.registration.deferred.FluidDeferredRegister;
 import slimeknights.mantle.registration.object.BuildingBlockObject;
 import slimeknights.mantle.registration.object.FenceBuildingBlockObject;
@@ -40,13 +41,18 @@ import slimeknights.mantle.registration.object.WallBuildingBlockObject;
 import slimeknights.mantle.registration.object.WoodBlockObject;
 import slimeknights.mantle.registration.object.WoodBlockObject.WoodVariant;
 
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static slimeknights.mantle.util.RegistryHelper.getHolder;
 
+
 /**
  * Provides utility registration methods when registering blocks.
+ * <p>
+ * Blocks need their ID stamped into their properties before construction, so methods creating blocks take a constructor from properties
+ * along with a supplier creating new properties. Blocks keep their properties object, so the supplier must return a new instance each call.
  */
 @SuppressWarnings({"unused", "WeakerAccess"})
 public class BlockRegistryAdapter extends EnumRegistryAdapter<Block> {
@@ -62,6 +68,18 @@ public class BlockRegistryAdapter extends EnumRegistryAdapter<Block> {
   }
 
   /**
+   * Registers a block, passing the constructor properties with the ID set
+   * @param constructor  Block constructor
+   * @param props        Supplier creating new block properties
+   * @param name         Block name
+   * @param <T>          Block type
+   * @return  Registered block
+   */
+  public <T extends Block> T register(Function<Properties, T> constructor, Supplier<Properties> props, String name) {
+    return register(constructor.apply(RegistrationHelper.blockProperties(getResource(name), props)), name);
+  }
+
+  /**
    * Registers a block override based on the given block
    * @param constructor  Override constructor
    * @param base         Base block
@@ -69,7 +87,7 @@ public class BlockRegistryAdapter extends EnumRegistryAdapter<Block> {
    * @return  Registered block
    */
   public <T extends Block> T registerOverride(Function<Properties, T> constructor, Block base) {
-    return register(constructor.apply(BlockBehaviour.Properties.ofFullCopy(base)), base);
+    return register(constructor.apply(RegistrationHelper.blockProperties(Objects.requireNonNull(BuiltInRegistries.BLOCK.getKey(base)), () -> BlockBehaviour.Properties.ofFullCopy(base))), base);
   }
 
   /* Building */
@@ -79,43 +97,49 @@ public class BlockRegistryAdapter extends EnumRegistryAdapter<Block> {
    * Uses the vanilla slab and stair blocks. Uses the passed blocks properties for both.
    * Slabs and stairs are registered with a "_slab" and "_stairs" prefix
    *
-   * @param block  The main block to register and whose properties to use
-   * @param name   The registry name to use for the block and as base for the slab and stairs
+   * @param constructor  Constructor for the main block
+   * @param props        Supplier creating new properties for the main block. Slabs and stairs copy the properties of the main block.
+   * @param name         The registry name to use for the block and as base for the slab and stairs
    * @return  BuildingBlockObject for the given block
    */
-  public BuildingBlockObject registerBuilding(Block block, String name) {
+  public BuildingBlockObject registerBuilding(Function<Properties, ? extends Block> constructor, Supplier<Properties> props, String name) {
+    Block block = this.register(constructor, props, name);
     return new BuildingBlockObject(
-      this.register(block, name),
-      this.register(new SlabBlock(BlockBehaviour.Properties.ofFullCopy(block)), name + "_slab"),
-      this.register(new StairBlock(block.defaultBlockState(), BlockBehaviour.Properties.ofFullCopy(block)), name + "_stairs")
+      block,
+      this.register(SlabBlock::new, () -> BlockBehaviour.Properties.ofFullCopy(block), name + "_slab"),
+      this.register(p -> new StairBlock(block.defaultBlockState(), p), () -> BlockBehaviour.Properties.ofFullCopy(block), name + "_stairs")
     );
   }
 
   /**
-   * Same as {@link #registerBuilding(Block, String)}, but also includes a wall variant
+   * Same as {@link #registerBuilding(Function, Supplier, String)}, but also includes a wall variant
    *
-   * @param block  The main block to register and whose properties to use
-   * @param name   The registry name to use for the block and as base for the slab and stairs
+   * @param constructor  Constructor for the main block
+   * @param props        Supplier creating new properties for the main block. Other variants copy the properties of the main block.
+   * @param name         The registry name to use for the block and as base for the slab and stairs
    * @return  BuildingBlockObject for the given block
    */
-  public WallBuildingBlockObject registerWallBuilding(Block block, String name) {
+  public WallBuildingBlockObject registerWallBuilding(Function<Properties, ? extends Block> constructor, Supplier<Properties> props, String name) {
+    BuildingBlockObject building = registerBuilding(constructor, props, name);
     return new WallBuildingBlockObject(
-      registerBuilding(block, name),
-      this.register(new WallBlock(BlockBehaviour.Properties.ofFullCopy(block)), name + "_wall")
+      building,
+      this.register(WallBlock::new, () -> BlockBehaviour.Properties.ofFullCopy(building.get()), name + "_wall")
     );
   }
 
   /**
-   * Same as {@link #registerBuilding(Block, String)}, but also includes a fence variant
+   * Same as {@link #registerBuilding(Function, Supplier, String)}, but also includes a fence variant
    *
-   * @param block  The main block to register and whose properties to use
-   * @param name   The registry name to use for the block and as base for the slab and stairs
+   * @param constructor  Constructor for the main block
+   * @param props        Supplier creating new properties for the main block. Other variants copy the properties of the main block.
+   * @param name         The registry name to use for the block and as base for the slab and stairs
    * @return  BuildingBlockObject for the given block
    */
-  public FenceBuildingBlockObject registerFenceBuilding(Block block, String name) {
+  public FenceBuildingBlockObject registerFenceBuilding(Function<Properties, ? extends Block> constructor, Supplier<Properties> props, String name) {
+    BuildingBlockObject building = registerBuilding(constructor, props, name);
     return new FenceBuildingBlockObject(
-      registerBuilding(block, name),
-      this.register(new FenceBlock(BlockBehaviour.Properties.ofFullCopy(block)), name + "_fence")
+      building,
+      this.register(FenceBlock::new, () -> BlockBehaviour.Properties.ofFullCopy(building.get()), name + "_fence")
     );
   }
 
@@ -123,40 +147,39 @@ public class BlockRegistryAdapter extends EnumRegistryAdapter<Block> {
   /**
    * Registers a new wood object
    * @param name             Name of the wood object
-   * @param behaviorCreator  Logic to create the behavior
+   * @param behaviorCreator  Logic to create the behavior, must return a new properties instance each call
    * @return Wood object
    */
   public WoodBlockObject registerWood(String name, Function<WoodVariant,BlockBehaviour.Properties> behaviorCreator) {
     BlockSetType setType = new BlockSetType(resourceName(name));
     WoodType woodType = new WoodType(resourceName(name), setType);
     BlockSetType.register(setType);
-    WoodType.register(woodType);
     RegistrationHelper.registerWoodType(woodType);
 
     // planks
-    BlockBehaviour.Properties planksProps = behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(2.0f, 3.0f);
-    BuildingBlockObject planks = registerBuilding(new Block(planksProps), name + "_planks");
-    FenceBlock fence = register(new FenceBlock(Properties.ofFullCopy(planks.get()).forceSolidOn()), name + "_fence");
+    BuildingBlockObject planks = registerBuilding(Block::new, () -> behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(2.0f, 3.0f), name + "_planks");
+    FenceBlock fence = register(FenceBlock::new, () -> Properties.ofFullCopy(planks.get()).forceSolidOn(), name + "_fence");
     // logs and wood
-    Supplier<? extends RotatedPillarBlock> stripped = () -> new RotatedPillarBlock(behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(2.0f));
-    RotatedPillarBlock strippedLog = register(stripped.get(), "stripped_" + name + "_log");
-    RotatedPillarBlock strippedWood = register(stripped.get(), "stripped_" + name + "_wood");
-    RotatedPillarBlock log = register(new StrippableLogBlock(getHolder(BuiltInRegistries.BLOCK, strippedLog), behaviorCreator.apply(WoodVariant.LOG).instrument(NoteBlockInstrument.BASS).strength(2.0f)), name + "_log");
-    RotatedPillarBlock wood = register(new StrippableLogBlock(getHolder(BuiltInRegistries.BLOCK, strippedWood), behaviorCreator.apply(WoodVariant.WOOD).instrument(NoteBlockInstrument.BASS).strength(2.0f)), name + "_wood");
+    Supplier<Properties> stripped = () -> behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(2.0f);
+    RotatedPillarBlock strippedLog = register(RotatedPillarBlock::new, stripped, "stripped_" + name + "_log");
+    RotatedPillarBlock strippedWood = register(RotatedPillarBlock::new, stripped, "stripped_" + name + "_wood");
+    RotatedPillarBlock log = register(p -> new StrippableLogBlock(getHolder(BuiltInRegistries.BLOCK, strippedLog), p), () -> behaviorCreator.apply(WoodVariant.LOG).instrument(NoteBlockInstrument.BASS).strength(2.0f), name + "_log");
+    RotatedPillarBlock wood = register(p -> new StrippableLogBlock(getHolder(BuiltInRegistries.BLOCK, strippedWood), p), () -> behaviorCreator.apply(WoodVariant.WOOD).instrument(NoteBlockInstrument.BASS).strength(2.0f), name + "_wood");
 
     // doors
-    DoorBlock door = register(new DoorBlock(setType, behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().pushReaction(PushReaction.POPPED)), name + "_door");
-    TrapDoorBlock trapdoor = register(new TrapDoorBlock(setType, behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().isValidSpawn(Blocks::never)), name + "_trapdoor");
-    FenceGateBlock fenceGate = register(new FenceGateBlock(woodType, Properties.ofFullCopy(fence)), name + "_fence_gate");
+    DoorBlock door = register(p -> new DoorBlock(setType, p), () -> behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().pushReaction(PushReaction.POPPED), name + "_door");
+    TrapDoorBlock trapdoor = register(p -> new TrapDoorBlock(setType, p), () -> behaviorCreator.apply(WoodVariant.PLANKS).instrument(NoteBlockInstrument.BASS).strength(3.0F).noOcclusion().isValidSpawn(Blocks::never), name + "_trapdoor");
+    FenceGateBlock fenceGate = register(p -> new FenceGateBlock(woodType, p), () -> Properties.ofFullCopy(fence), name + "_fence_gate");
     // redstone
-    BlockBehaviour.Properties redstoneProps = behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().pushReaction(PushReaction.POPPED).strength(0.5F);
-    PressurePlateBlock pressurePlate = register(new PressurePlateBlock(setType, redstoneProps), name + "_pressure_plate");
-    ButtonBlock button = register(new ButtonBlock(setType, 30, redstoneProps), name + "_button");
+    Supplier<Properties> redstoneProps = () -> behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().pushReaction(PushReaction.POPPED).strength(0.5F);
+    PressurePlateBlock pressurePlate = register(p -> new PressurePlateBlock(setType, p), redstoneProps, name + "_pressure_plate");
+    ButtonBlock button = register(p -> new ButtonBlock(setType, 30, p), redstoneProps, name + "_button");
     // signs
-    StandingSignBlock standingSign = register(new MantleStandingSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().strength(1.0F), woodType), name + "_sign");
-    WallSignBlock wallSign = register(new MantleWallSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().strength(1.0F).dropsLike(standingSign), woodType), name + "_wall_sign");
-    MantleCeilingHangingSignBlock hangingSign = register(new MantleCeilingHangingSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().strength(1.0F), woodType), name + "_hanging_sign");
-    MantleWallHangingSignBlock wallHangingSign = register(new MantleWallHangingSignBlock(behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().strength(1.0F).dropsLike(hangingSign), woodType), name + "_wall_hanging_sign");
+    Supplier<Properties> signProps = () -> behaviorCreator.apply(WoodVariant.PLANKS).forceSolidOn().instrument(NoteBlockInstrument.BASS).noCollision().strength(1.0F);
+    StandingSignBlock standingSign = register(p -> new MantleStandingSignBlock(p, woodType), signProps, name + "_sign");
+    WallSignBlock wallSign = register(p -> new MantleWallSignBlock(p, woodType), () -> BlockDeferredRegister.wallVariant(signProps.get(), standingSign), name + "_wall_sign");
+    MantleCeilingHangingSignBlock hangingSign = register(p -> new MantleCeilingHangingSignBlock(p, woodType), signProps, name + "_hanging_sign");
+    MantleWallHangingSignBlock wallHangingSign = register(p -> new MantleWallHangingSignBlock(p, woodType), () -> BlockDeferredRegister.wallVariant(signProps.get(), hangingSign), name + "_wall_hanging_sign");
     // tell mantle to inject these into the TE
     MantleSignBlockEntity.registerSignBlock(() -> standingSign);
     MantleSignBlockEntity.registerSignBlock(() -> wallSign);
@@ -177,6 +200,6 @@ public class BlockRegistryAdapter extends EnumRegistryAdapter<Block> {
    * @return  Fluid block instance
    */
   public LiquidBlock registerFluidBlock(Supplier<? extends BaseFlowingFluid> fluid, MapColor color, int lightLevel, String name) {
-    return register(new LiquidBlock(fluid.get(), FluidDeferredRegister.createProperties(color, lightLevel)), name + "_fluid");
+    return register(p -> new LiquidBlock(fluid.get(), p), () -> FluidDeferredRegister.createProperties(color, lightLevel), name + "_fluid");
   }
 }

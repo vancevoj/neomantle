@@ -28,12 +28,12 @@ public record RegistryTagSource<T>(Registry<T> registry) implements TagSource<T>
 
   @Override
   public boolean hasTag(TagKey<T> tag) {
-    return registry.getTag(tag).isPresent();
+    return registry.get(tag).isPresent();
   }
 
   @Override
   public Stream<TagKey<T>> tagKeys() {
-    return registry.getTagNames();
+    return registry.getTags().map(HolderSet.Named::key);
   }
 
 
@@ -42,7 +42,7 @@ public record RegistryTagSource<T>(Registry<T> registry) implements TagSource<T>
   @Nullable
   @Override
   public List<T> valuesInTag(TagKey<T> tag) {
-    HolderSet.Named<T> holder = registry.getTag(tag).orElse(null);
+    HolderSet.Named<T> holder = registry.get(tag).orElse(null);
     if (holder == null) {
       return null;
     }
@@ -52,7 +52,7 @@ public record RegistryTagSource<T>(Registry<T> registry) implements TagSource<T>
   @Nullable
   @Override
   public List<Identifier> keysInTag(TagKey<T> tag) {
-    HolderSet.Named<T> holder = registry.getTag(tag).orElse(null);
+    HolderSet.Named<T> holder = registry.get(tag).orElse(null);
     if (holder == null) {
       return null;
     }
@@ -68,7 +68,7 @@ public record RegistryTagSource<T>(Registry<T> registry) implements TagSource<T>
   public T getValue(Identifier key) {
     // prevent defaulting registries from returning their default
     if (registry.containsKey(key)) {
-      return registry.get(key);
+      return registry.getValue(key);
     }
     return null;
   }
