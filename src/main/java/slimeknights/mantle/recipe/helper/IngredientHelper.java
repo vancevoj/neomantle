@@ -5,12 +5,14 @@ import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.context.ContextMap;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.item.crafting.display.SlotDisplayContext;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import slimeknights.mantle.client.SafeClientAccess;
@@ -67,16 +69,44 @@ public final class IngredientHelper {
   /**
    * Gets the display stacks for the given ingredient, replacing {@code Ingredient#getItems()} from before 1.21.2.
    * Uses the ingredient display so custom ingredients can show components (such as potions).
+   * Item tags are looked up by key in the current registries, so tag ingredients created before tags were bound
+   * (such as static defaults from {@link #tag(TagKey)}) still list the current tag contents.
    * @param ingredient  Ingredient to display
    * @return  List of display stacks, empty if the ingredient cannot be resolved (for instance, unbound tags)
    */
   public static List<ItemStack> getStacks(Ingredient ingredient) {
+    ContextMap context = displayContext();
     try {
-      return ingredient.display().resolveForStacks(displayContext());
+      return bindTags(ingredient.display(), context).resolveForStacks(context);
     } catch (RuntimeException e) {
       // unbound tags throw when dereferenced, treat them as empty for display
       return List.of();
     }
+  }
+
+  /**
+   * Replaces named item tags in the display (directly or inside composites) with the tag from the context registries.
+   * A named set made before tags were bound (see {@link #namedSet(Registry, TagKey)}) is never bound itself, and a set from an older reload holds stale contents.
+   * @param display  Display to update
+   * @param context  Display context, unchanged display if it has no registries or their tags are not bound
+   * @return  Display listing the current tag contents
+   */
+  private static SlotDisplay bindTags(SlotDisplay display, ContextMap context) {
+    if (display instanceof SlotDisplay.TagSlotDisplay(HolderSet<Item> tag) && tag instanceof HolderSet.Named<Item> named) {
+      RegistryAccess registries = context.get(SlotDisplayContext.REGISTRIES);
+      if (registries != null) {
+        try {
+          return registries.lookupOrThrow(Registries.ITEM).get(named.key())
+            .<SlotDisplay>map(SlotDisplay.TagSlotDisplay::new)
+            .orElse(SlotDisplay.Empty.INSTANCE);
+        } catch (IllegalStateException e) {
+          // tags are not bound in the registry yet, keep the original set
+        }
+      }
+    } else if (display instanceof SlotDisplay.Composite(List<SlotDisplay> contents)) {
+      return new SlotDisplay.Composite(contents.stream().map(child -> bindTags(child, context)).toList());
+    }
+    return display;
   }
 
   /** Gets the context for resolving slot displays on the current side */
