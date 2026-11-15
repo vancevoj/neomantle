@@ -1,27 +1,53 @@
 package slimeknights.mantle.inventory;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.items.IItemHandlerModifiable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.transfer.IndexModifier;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.TransferPreconditions;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.transaction.SnapshotJournal;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import org.slf4j.Logger;
 import slimeknights.mantle.block.entity.MantleBlockEntity;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Objects;
 
 /**
  * Item handler containing exactly one item.
+ * <p>
+ * Changes made through the transfer API are kept in the handler while the transaction is open, and are applied using {@link #setStack(ItemStack)}
+ * when the root transaction commits. This means overrides of {@link #setStack(ItemStack)} (for instance to sync the stack) run once per change,
+ * and never for simulated transfers.
  */
 @SuppressWarnings("unused")
-@RequiredArgsConstructor
-public abstract class SingleItemHandler<T extends MantleBlockEntity> implements IItemHandlerModifiable {
+public abstract class SingleItemHandler<T extends MantleBlockEntity> extends SnapshotJournal<SingleItemHandler.Pending> implements ResourceHandler<ItemResource>, IndexModifier<ItemResource> {
+  private static final Logger LOGGER = LogUtils.getLogger();
+
   protected final T parent;
   private final int maxStackSize;
 
   /** Current item in this slot */
-  @Getter
   private ItemStack stack = ItemStack.EMPTY;
+  /** Stack set during the current transaction, null if unchanged. Never modified, only replaced */
+  @Nullable
+  private ItemStack pending = null;
+
+  public SingleItemHandler(T parent, int maxStackSize) {
+    this.parent = parent;
+    this.maxStackSize = maxStackSize;
+  }
+
+  /** Gets the current item in this slot, ignoring changes in transactions that are not yet committed */
+  public ItemStack getStack() {
+    return stack;
+  }
 
   /**
    * Sets the stack in this duct
@@ -39,101 +65,142 @@ public abstract class SingleItemHandler<T extends MantleBlockEntity> implements 
    */
   protected abstract boolean isItemValid(ItemStack stack);
 
+  /** Gets the stack including changes from the current transaction. Must not be modified */
+  private ItemStack getCurrent() {
+    return pending != null ? pending : stack;
+  }
+
+  /** Gets the slot limit for the given item */
+  private int getLimit(ItemResource resource) {
+    return Math.min(maxStackSize, resource.getMaxStackSize());
+  }
+
 
   /* Properties */
 
   @Override
-  public boolean isItemValid(int slot, ItemStack stack) {
-    return slot == 0 && isItemValid(stack);
-  }
-
-  @Override
-  public int getSlots() {
+  public int size() {
     return 1;
   }
 
   @Override
-  public int getSlotLimit(int slot) {
-    return maxStackSize;
+  public ItemResource getResource(int index) {
+    Objects.checkIndex(index, size());
+    return ItemResource.of(getCurrent());
   }
 
-  @Nonnull
   @Override
-  public ItemStack getStackInSlot(int slot) {
-    if (slot == 0) {
-      return stack;
-    }
-    return ItemStack.EMPTY;
+  public long getAmountAsLong(int index) {
+    Objects.checkIndex(index, size());
+    return getCurrent().getCount();
+  }
+
+  @Override
+  public long getCapacityAsLong(int index, ItemResource resource) {
+    Objects.checkIndex(index, size());
+    return resource.isEmpty() ? maxStackSize : getLimit(resource);
+  }
+
+  @Override
+  public boolean isValid(int index, ItemResource resource) {
+    Objects.checkIndex(index, size());
+    TransferPreconditions.checkNonEmpty(resource);
+    return isItemValid(resource.toStack());
   }
 
 
   /* Interaction */
 
+  /** Sets the stack immediately, should not be called during a transaction */
   @Override
-  public void setStackInSlot(int slot, ItemStack stack) {
-    if (slot == 0) {
-      setStack(stack);
-    }
-  }
-  
-  @Nonnull
-  @Override
-  public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-    if (stack.isEmpty()) {
-      return ItemStack.EMPTY;
-    }
-    if (slot == 0) {
-      ItemStack current = getStack();
-      if (current.isEmpty()) {
-        if (this.isItemValid(slot, stack)) {
-          // insert up to the stack limit
-          int size = Math.min(stack.getCount(), getSlotLimit(0));
-          if (!simulate) {
-            this.setStack(stack.copyWithCount(size));
-          }
-          return stack.copyWithCount(stack.getCount() - size);
-        }
-      } else if (ItemStack.isSameItemSameComponents(current, stack)) {
-        // increase up to the stack limit
-        int added = Math.min(stack.getCount(), getSlotLimit(0) - current.getCount());
-        if (added > 0) {
-          if (!simulate) {
-            current.grow(added);
-            setStack(current);
-          }
-          return stack.copyWithCount(stack.getCount() - added);
-        }
-      }
-    }
-    return stack;
+  public void set(int index, ItemResource resource, int amount) {
+    Objects.checkIndex(index, size());
+    setStack(resource.isEmpty() || amount <= 0 ? ItemStack.EMPTY : resource.toStack(amount));
   }
 
-  @Nonnull
   @Override
-  public ItemStack extractItem(int slot, int amount, boolean simulate) {
-    if (amount == 0 || slot != 0) {
-      return ItemStack.EMPTY;
-    }
-    if (stack.isEmpty()) {
-      return ItemStack.EMPTY;
-    }
-
-    // if amount is less than our size, need to do some shrinking
-    if (amount < stack.getCount()) {
-      ItemStack result = stack.copyWithCount(amount);
-      if (!simulate) {
-        setStack(stack.copyWithCount(stack.getCount() - amount));
+  public int insert(int index, ItemResource resource, int amount, TransactionContext transaction) {
+    Objects.checkIndex(index, size());
+    TransferPreconditions.checkNonEmptyNonNegative(resource, amount);
+    ItemStack current = getCurrent();
+    if (current.isEmpty()) {
+      // insert up to the stack limit
+      int size = Math.min(amount, getLimit(resource));
+      if (size > 0 && isItemValid(resource.toStack(size))) {
+        updateSnapshots(transaction);
+        pending = resource.toStack(size);
+        return size;
       }
-      return result;
+    } else if (resource.matches(current)) {
+      // increase up to the stack limit
+      int added = Math.min(amount, getLimit(resource) - current.getCount());
+      if (added > 0) {
+        updateSnapshots(transaction);
+        pending = current.copyWithCount(current.getCount() + added);
+        return added;
+      }
     }
-    // equal to or bigger means we give them our stack directly
-    if (simulate) {
-      return stack.copy();
-    } else {
-      ItemStack ret = stack;
-      setStack(ItemStack.EMPTY);
-      return ret;
+    return 0;
+  }
+
+  @Override
+  public int extract(int index, ItemResource resource, int amount, TransactionContext transaction) {
+    Objects.checkIndex(index, size());
+    TransferPreconditions.checkNonEmptyNonNegative(resource, amount);
+    ItemStack current = getCurrent();
+    if (amount == 0 || current.isEmpty() || !resource.matches(current)) {
+      return 0;
     }
+    int extracted = Math.min(amount, current.getCount());
+    updateSnapshots(transaction);
+    pending = extracted < current.getCount() ? current.copyWithCount(current.getCount() - extracted) : ItemStack.EMPTY;
+    return extracted;
+  }
+
+
+  /* Transactions */
+
+  /** Snapshot of the pending stack */
+  protected record Pending(@Nullable ItemStack stack) {}
+
+  @Override
+  protected Pending createSnapshot() {
+    return new Pending(pending);
+  }
+
+  @Override
+  protected void revertToSnapshot(Pending snapshot) {
+    pending = snapshot.stack();
+  }
+
+  @Override
+  protected void onRootCommit(Pending originalState) {
+    if (pending != null) {
+      ItemStack newStack = pending;
+      pending = null;
+      setStack(newStack);
+    }
+  }
+
+
+  /* NBT */
+
+  /**
+   * Writes the stack to the given output, using the same fields as the old NBT format. Typically called with a child output.
+   * @param output  Output
+   */
+  public void writeToNBT(ValueOutput output) {
+    if (!stack.isEmpty()) {
+      output.store(ItemStack.MAP_CODEC, stack);
+    }
+  }
+
+  /**
+   * Reads the stack from the given input
+   * @param input  Input
+   */
+  public void readFromNBT(ValueInput input) {
+    stack = input.read(ItemStack.MAP_CODEC).orElse(ItemStack.EMPTY);
   }
 
   /**
@@ -142,12 +209,10 @@ public abstract class SingleItemHandler<T extends MantleBlockEntity> implements 
    * @return  Module in NBT
    */
   public CompoundTag writeToNBT(HolderLookup.Provider registries) {
-    CompoundTag nbt = new CompoundTag();
     if (!stack.isEmpty()) {
-      // 1.21: ItemStack.save RETURNS the encoded tag and must be used; discarding it lost the stack on save
-      return (CompoundTag) stack.save(registries, nbt);
+      return (CompoundTag) ItemStack.CODEC.encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), stack).getOrThrow();
     }
-    return nbt;
+    return new CompoundTag();
   }
 
   /**
@@ -156,6 +221,8 @@ public abstract class SingleItemHandler<T extends MantleBlockEntity> implements 
    * @param registries  Registry access
    */
   public void readFromNBT(CompoundTag nbt, HolderLookup.Provider registries) {
-    stack = ItemStack.parseOptional(registries, nbt);
+    stack = nbt.isEmpty() ? ItemStack.EMPTY : ItemStack.OPTIONAL_CODEC.parse(registries.createSerializationContext(NbtOps.INSTANCE), nbt)
+                                                                      .resultOrPartial(error -> LOGGER.error("Failed to read item: {}", error))
+                                                                      .orElse(ItemStack.EMPTY);
   }
 }

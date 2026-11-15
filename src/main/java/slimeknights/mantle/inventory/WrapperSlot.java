@@ -1,11 +1,11 @@
 package slimeknights.mantle.inventory;
 
-import com.mojang.datafixers.util.Pair;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
+import javax.annotation.Nullable;
 import java.util.Optional;
 
 /**
@@ -51,6 +51,11 @@ public class WrapperSlot extends Slot {
   }
 
   @Override
+  public void setByPlayer(ItemStack stack, ItemStack previous) {
+    this.parent.setByPlayer(stack, previous);
+  }
+
+  @Override
   public void set(ItemStack stack) {
     this.parent.set(stack);
   }
@@ -70,8 +75,9 @@ public class WrapperSlot extends Slot {
     return this.parent.getMaxStackSize(stack);
   }
 
+  @Nullable
   @Override
-  public Pair<Identifier, Identifier> getNoItemIcon() {
+  public Identifier getNoItemIcon() {
     return this.parent.getNoItemIcon();
   }
 
@@ -91,8 +97,8 @@ public class WrapperSlot extends Slot {
   }
 
   @Override
-  public Slot setBackground(Identifier atlas, Identifier sprite) {
-    return this.parent.setBackground(atlas, sprite);
+  public Slot setBackground(Identifier sprite) {
+    return this.parent.setBackground(sprite);
   }
 
   @Override
@@ -103,6 +109,11 @@ public class WrapperSlot extends Slot {
   @Override
   public ItemStack safeTake(int pCount, int pDecrement, Player pPlayer) {
     return this.parent.safeTake(pCount, pDecrement, pPlayer);
+  }
+
+  @Override
+  public ItemStack safeClone(Player player) {
+    return this.parent.safeClone(player);
   }
 
   @Override
@@ -118,5 +129,10 @@ public class WrapperSlot extends Slot {
   @Override
   public boolean isHighlightable() {
     return this.parent.isHighlightable();
+  }
+
+  @Override
+  public boolean isFake() {
+    return this.parent.isFake();
   }
 }

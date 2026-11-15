@@ -2,6 +2,7 @@ package slimeknights.mantle.block;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
@@ -17,7 +18,9 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.item.ItemUtil;
 import slimeknights.mantle.block.entity.INameableMenuProvider;
 import slimeknights.mantle.block.entity.InventoryBlockEntity;
 import slimeknights.mantle.inventory.BaseContainerMenu;
@@ -89,28 +92,33 @@ public abstract class InventoryBlock extends Block implements EntityBlock {
 
   /* Inventory handling */
 
-  @Override
-  protected void onRemove(BlockState state, Level worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
-    if (state.getBlock() != newState.getBlock()) {
-      BlockEntity te = worldIn.getBlockEntity(pos);
-      if (te != null) {
-        // NeoForge 1.21.1: by the time onRemove runs, the chunk already stores newState (air) at pos, so
-        // worldIn.getCapability(ItemHandler.BLOCK, pos, null) looks up providers for newState.getBlock()
-        // (= air, no provider) and returns null -> the inventory never dropped. The block entity itself is
-        // still present here, so read its handler directly. Block entities that are not an InventoryBlockEntity
-        // only expose their items through the capability, so query it with the old state and block entity passed
-        // explicitly, which skips the (now-air) world lookup.
-        IItemHandler inventory = te instanceof InventoryBlockEntity inv
-                                 ? inv.getItemHandler()
-                                 : worldIn.getCapability(Capabilities.Item.BLOCK, pos, state, te, null);
-        if (inventory != null) {
-          dropInventoryItems(state, worldIn, pos, inventory);
-        }
-        worldIn.updateNeighbourForOutputSignal(pos, this);
-      }
+  /**
+   * Drops the inventory of the given block entity when it is removed. Called by {@link slimeknights.mantle.block.entity.MantleBlockEntity#preRemoveSideEffects(BlockPos, BlockState)},
+   * as since 1.21.5 blocks no longer get a removal hook while the block entity still exists. Block entities not extending {@code MantleBlockEntity} use the vanilla
+   * behavior of dropping their contents if they are a {@link net.minecraft.world.Container}.
+   * @param state   Block state being removed
+   * @param level   Level instance
+   * @param pos     Block position
+   * @param te      Block entity being removed
+   */
+  public void onBlockEntityRemoved(BlockState state, Level level, BlockPos pos, BlockEntity te) {
+    // by the time the block entity is removed, the chunk already stores the new state at pos, so
+    // level.getCapability(Item.BLOCK, pos, null) would look up providers for the new block (typically air, no provider)
+    // and return null. Read the handler of an InventoryBlockEntity directly; block entities that are not an
+    // InventoryBlockEntity only expose their items through the capability, so query it with the old state and block
+    // entity passed explicitly, which skips the world lookup (neotinkers #25).
+    ResourceHandler<ItemResource> inventory = te instanceof InventoryBlockEntity inv
+                                              ? inv.getItemHandler()
+                                              : level.getCapability(Capabilities.Item.BLOCK, pos, state, te, null);
+    if (inventory != null) {
+      dropInventoryItems(state, level, pos, inventory);
     }
+  }
 
-    super.onRemove(state, worldIn, pos, newState, isMoving);
+  @Override
+  protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+    super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
+    Containers.updateNeighboursAfterDestroy(state, level, pos);
   }
 
   /**
@@ -121,7 +129,7 @@ public abstract class InventoryBlock extends Block implements EntityBlock {
    * @param inventory   Item handler
    */
   @SuppressWarnings("unused") // API
-  protected void dropInventoryItems(BlockState state, Level worldIn, BlockPos pos, IItemHandler inventory) {
+  protected void dropInventoryItems(BlockState state, Level worldIn, BlockPos pos, ResourceHandler<ItemResource> inventory) {
     dropInventoryItems(worldIn, pos, inventory);
   }
 
@@ -131,12 +139,15 @@ public abstract class InventoryBlock extends Block implements EntityBlock {
    * @param pos        Position to drop
    * @param inventory  Inventory instance
    */
-  public static void dropInventoryItems(Level world, BlockPos pos, IItemHandler inventory) {
+  public static void dropInventoryItems(Level world, BlockPos pos, ResourceHandler<ItemResource> inventory) {
     double x = pos.getX();
     double y = pos.getY();
     double z = pos.getZ();
-    for(int i = 0; i < inventory.getSlots(); ++i) {
-      Containers.dropItemStack(world, x, y, z, inventory.getStackInSlot(i));
+    for(int i = 0; i < inventory.size(); ++i) {
+      ItemStack stack = ItemUtil.getStack(inventory, i);
+      if (!stack.isEmpty()) {
+        Containers.dropItemStack(world, x, y, z, stack);
+      }
     }
   }
 

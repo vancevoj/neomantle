@@ -4,7 +4,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.BlockGetter;
@@ -13,12 +12,13 @@ import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.HitResult;
 import slimeknights.mantle.block.entity.IRetexturedBlockEntity;
 import slimeknights.mantle.util.RetexturedHelper;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Logic for a retexturable block. Use alongside {@link IRetexturedBlockEntity} and {@link RetexturedHelper}
@@ -36,13 +36,21 @@ public abstract class RetexturedBlock extends Block implements EntityBlock {
   }
 
   @Override
-  public ItemStack getCloneItemStack(BlockState state, HitResult target, LevelReader world, BlockPos pos, Player player) {
+  public ItemStack getCloneItemStack(LevelReader world, BlockPos pos, BlockState state, boolean includeData, Player player) {
     return getPickBlock(world, pos, state);
   }
 
-  @Override
-  public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-    RetexturedHelper.addTooltip(stack, tooltip, flag);
+  /**
+   * Adds the texture tooltip for a stack of this block. Since 1.21.5 blocks no longer add item tooltips, so this is called by
+   * {@link slimeknights.mantle.item.BlockTooltipItem} for retextured blocks; other block items should call it from {@code appendHoverText}.
+   * @param stack    Block item stack
+   * @param tooltip  Tooltip consumer
+   * @param flag     Tooltip flag
+   */
+  public static void appendTextureTooltip(ItemStack stack, Consumer<Component> tooltip, TooltipFlag flag) {
+    List<Component> lines = new ArrayList<>();
+    RetexturedHelper.addTooltip(stack, lines, flag);
+    lines.forEach(tooltip);
   }
 
 

@@ -1,14 +1,15 @@
 package slimeknights.mantle.block.entity;
 
+import com.mojang.logging.LogUtils;
 import lombok.Getter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.Container;
+import net.minecraft.world.ItemStackWithSlot;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.Nameable;
 import net.minecraft.world.entity.player.Player;
@@ -16,15 +17,21 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.items.IItemHandlerModifiable;
-import net.neoforged.neoforge.items.wrapper.InvWrapper;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import slimeknights.mantle.inventory.ContainerItemHandler;
+import org.slf4j.Logger;
 import slimeknights.mantle.util.ItemStackList;
 
 // Updated version of InventoryLogic in Mantle. Also contains a few bugfixes DOES NOT OVERRIDE createMenu
 public abstract class InventoryBlockEntity extends NameableBlockEntity implements Container, MenuProvider, Nameable {
+  private static final Logger LOGGER = LogUtils.getLogger();
   private static final String TAG_INVENTORY_SIZE = "InventorySize";
   private static final String TAG_ITEMS = "Items";
-  private static final String TAG_SLOT = "Slot";
   /**
    * Default stack size limit. Acts as a high ceiling so the real cap is each item's own max stack size
    * ({@link ItemStack#getMaxStackSize()}), matching the rest of the game. Previously this was a flat 64,
@@ -39,12 +46,14 @@ public abstract class InventoryBlockEntity extends NameableBlockEntity implement
   private final boolean saveSizeToNBT;
   protected int stackSizeLimit;
   /**
-   * Item handler exposing this inventory. In NeoForge 1.21.1 the capability is no longer provided via {@code getCapability};
+   * Item handler exposing this inventory. The capability is not provided by the block entity;
    * the owning mod registers this handler in {@code RegisterCapabilitiesEvent} via
    * {@code event.registerBlockEntity(Capabilities.Item.BLOCK, type, (be, side) -> be.getItemHandler())}.
+   * By default a {@link ContainerItemHandler}, which applies changes through {@link #setItem(int, ItemStack)} when the transaction commits
+   * and respects {@link #getMaxStackSize(ItemStack)}.
    */
   @Getter
-  protected IItemHandlerModifiable itemHandler;
+  protected ResourceHandler<ItemResource> itemHandler;
 
   /**
    * @param name Localization String for the inventory title. Can be overridden through setCustomName
@@ -61,7 +70,7 @@ public abstract class InventoryBlockEntity extends NameableBlockEntity implement
     this.saveSizeToNBT = saveSizeToNBT;
     this.inventory = NonNullList.withSize(inventorySize, ItemStack.EMPTY);
     this.stackSizeLimit = maxStackSize;
-    this.itemHandler = new InvWrapper(this);
+    this.itemHandler = new ContainerItemHandler(this);
   }
 
   /* Inventory management */
@@ -202,80 +211,81 @@ public abstract class InventoryBlockEntity extends NameableBlockEntity implement
     return entityplayer.distanceToSqr(this.worldPosition.getX() + 0.5D, this.worldPosition.getY() + 0.5D, this.worldPosition.getZ() + 0.5D) <= 64D;
   }
 
-  @Override
-  public void startOpen(Player player) {}
-
-  @Override
-  public void stopOpen(Player player) {}
-
   /* NBT */
 
   @Override
-  public void loadAdditional(CompoundTag tags, HolderLookup.Provider registries) {
-    super.loadAdditional(tags, registries);
+  protected void loadAdditional(ValueInput input) {
+    super.loadAdditional(input);
     if (saveSizeToNBT) {
-      this.resizeInternal(tags.getInt(TAG_INVENTORY_SIZE));
+      this.resizeInternal(input.getIntOr(TAG_INVENTORY_SIZE, 0));
     }
-    this.readInventoryFromNBT(tags, registries);
+    this.readInventoryFromNBT(input);
   }
 
   @Override
-  public void saveSynced(CompoundTag tags, HolderLookup.Provider registries) {
-    super.saveSynced(tags, registries);
+  public void saveSynced(ValueOutput output) {
+    super.saveSynced(output);
     // only sync the size to the client by default
     if (saveSizeToNBT) {
-      tags.putInt(TAG_INVENTORY_SIZE, this.inventory.size());
+      output.putInt(TAG_INVENTORY_SIZE, this.inventory.size());
     }
   }
 
   @Override
-  public void saveAdditional(CompoundTag tags, HolderLookup.Provider registries) {
-    super.saveAdditional(tags, registries);
-    this.writeInventoryToNBT(tags, registries);
+  protected void saveAdditional(ValueOutput output) {
+    super.saveAdditional(output);
+    this.writeInventoryToNBT(output);
   }
 
   /**
-   * Writes the contents of the inventory to the tag
+   * Writes the contents of the inventory to the output, in the vanilla {@code Items} list format with a {@code Slot} byte per stack
    */
-  public void writeInventoryToNBT(CompoundTag tag, HolderLookup.Provider registries) {
+  public void writeInventoryToNBT(ValueOutput output) {
     Container inventory = this;
-    ListTag nbttaglist = new ListTag();
-
+    ValueOutput.TypedOutputList<ItemStackWithSlot> list = output.list(TAG_ITEMS, ItemStackWithSlot.CODEC);
     for (int i = 0; i < inventory.getContainerSize(); i++) {
-      if (!inventory.getItem(i).isEmpty()) {
-        CompoundTag itemTag = new CompoundTag();
-        itemTag.putByte(TAG_SLOT, (byte) i);
-        // 1.21: ItemStack.save() RETURNS the encoded tag and does not mutate the prefix in place
-        // (1.20 mutated it). The old code ignored the return, so each entry was written as just
-        // {Slot:i} with no item id -> items were lost on save and never synced (casting table items
-        // invisible, "No key id in MapLike[{Slot:Nb}]" errors). Store the returned merged tag.
-        nbttaglist.add(inventory.getItem(i).save(registries, itemTag));
+      ItemStack stack = inventory.getItem(i);
+      if (!stack.isEmpty()) {
+        list.add(new ItemStackWithSlot(i, stack));
       }
     }
-
-    tag.put(TAG_ITEMS, nbttaglist);
   }
 
   /**
-   * Reads an inventory from the tag. Overwrites current content
+   * Reads an inventory from the input. Overwrites current content of each slot present in the input
    */
-  public void readInventoryFromNBT(CompoundTag tag, HolderLookup.Provider registries) {
-    ListTag list = tag.getList(TAG_ITEMS, Tag.TAG_COMPOUND);
-
-    for (int i = 0; i < list.size(); ++i) {
-      CompoundTag itemTag = list.getCompound(i);
-      int slot = itemTag.getByte(TAG_SLOT) & 255;
-      if (slot < this.inventory.size()) {
-        // 1.21: the slot compound carries a "Slot" byte alongside the item; an empty slot saved as
-        // just {Slot:N} (no "id") makes the strict ItemStack codec throw ("No key id in MapLike"),
-        // which dropped the synced item client-side (casting table contents looked invisible).
-        ItemStack stack = itemTag.contains("id") ? ItemStack.parseOptional(registries, itemTag) : ItemStack.EMPTY;
+  public void readInventoryFromNBT(ValueInput input) {
+    for (ItemStackWithSlot entry : input.listOrEmpty(TAG_ITEMS, ItemStackWithSlot.CODEC)) {
+      if (entry.isValidInContainer(this.inventory.size())) {
+        ItemStack stack = entry.stack();
         int limit = this.getMaxStackSize(stack);
         if (!stack.isEmpty() && stack.getCount() > limit) {
           stack.setCount(limit);
         }
-        this.inventory.set(slot, stack);
+        this.inventory.set(entry.slot(), stack);
       }
+    }
+  }
+
+  /**
+   * Writes the contents of the inventory to the tag, for code still working with raw tags (such as update tags)
+   * @see #writeInventoryToNBT(ValueOutput)
+   */
+  public void writeInventoryToNBT(CompoundTag tag, HolderLookup.Provider registries) {
+    try (ProblemReporter.ScopedCollector problems = new ProblemReporter.ScopedCollector(this.problemPath(), LOGGER)) {
+      TagValueOutput output = TagValueOutput.createWithContext(problems, registries);
+      writeInventoryToNBT(output);
+      tag.merge(output.buildResult());
+    }
+  }
+
+  /**
+   * Reads an inventory from the tag, for code still working with raw tags (such as update tags)
+   * @see #readInventoryFromNBT(ValueInput)
+   */
+  public void readInventoryFromNBT(CompoundTag tag, HolderLookup.Provider registries) {
+    try (ProblemReporter.ScopedCollector problems = new ProblemReporter.ScopedCollector(this.problemPath(), LOGGER)) {
+      readInventoryFromNBT(TagValueInput.create(problems, registries, tag));
     }
   }
 

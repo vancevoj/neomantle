@@ -1,21 +1,17 @@
 package slimeknights.mantle.item;
 
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.SignItem;
-import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.core.Direction;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.StandingAndWallBlockItem;
 import net.minecraft.world.level.block.Block;
 
-import javax.annotation.Nullable;
-
-public class BurnableSignItem extends SignItem {
-  private final int burnTime;
-  public BurnableSignItem(Properties propertiesIn, Block floorBlockIn, Block wallBlockIn, int burnTime) {
-    super(propertiesIn, floorBlockIn, wallBlockIn);
-    this.burnTime = burnTime;
-  }
-
-  @Override
-  public int getBurnTime(ItemStack itemStack, @Nullable RecipeType<?> recipeType) {
-    return burnTime;
+/**
+ * Sign item usable as furnace fuel.
+ * Vanilla removed {@code SignItem} in 26.3, signs are now a {@link StandingAndWallBlockItem} with {@link Item.Properties#signText()}.
+ * @see BurnableBlockItem#withBurnTime(Item.Properties, int)
+ */
+public class BurnableSignItem extends StandingAndWallBlockItem {
+  public BurnableSignItem(Item.Properties propertiesIn, Block floorBlockIn, Block wallBlockIn, int burnTime) {
+    super(floorBlockIn, wallBlockIn, Direction.DOWN, BurnableBlockItem.withBurnTime(propertiesIn.signText(), burnTime));
   }
 }

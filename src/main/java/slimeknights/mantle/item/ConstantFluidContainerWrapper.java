@@ -1,86 +1,118 @@
 package slimeknights.mantle.item;
 
-import lombok.Getter;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.TransferPreconditions;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
-import javax.annotation.Nonnull;
+import java.util.Objects;
 
-/** Represents a fluid handler for a container item with a constant fluid */
-public class ConstantFluidContainerWrapper implements IFluidHandlerItem {
-  /** Contained fluid */
+/**
+ * Represents a fluid handler for a container item with a constant fluid.
+ * The fluid can only be drained, one full container at a time; each drained container is exchanged for the empty container through the item access.
+ * Register it for an item using {@code event.registerItem(Capabilities.Fluid.ITEM, (stack, access) -> new ConstantFluidContainerWrapper(fluid, access), item)}.
+ */
+public class ConstantFluidContainerWrapper implements ResourceHandler<FluidResource> {
+  /** Contained fluid in a single container */
   private final FluidStack fluid;
-  /** If true, the container is now empty */
-  private boolean empty = false;
-  /** Item stack representing the current state */
-  @Getter
-  @Nonnull
-  protected ItemStack container;
-  /** Empty version of the container */
-  private final ItemStack emptyStack;
+  /** Access to the container stack */
+  protected final ItemAccess access;
+  /** Filled container item, if the access no longer contains this item then the container was drained */
+  private final Item filled;
+  /** Empty version of the container, if empty the container is consumed on drain */
+  private final ItemResource emptyContainer;
 
-  public ConstantFluidContainerWrapper(FluidStack fluid, ItemStack container, ItemStack emptyStack) {
+  public ConstantFluidContainerWrapper(FluidStack fluid, ItemAccess access, ItemStack emptyStack) {
     this.fluid = fluid;
-    this.container = container;
-    this.emptyStack = emptyStack;
+    this.access = access;
+    this.filled = access.getResource().getItem();
+    this.emptyContainer = ItemResource.of(emptyStack);
   }
 
-  public ConstantFluidContainerWrapper(FluidStack fluid, ItemStack container) {
-    this(fluid, container, container.getCraftingRemainingItem());
+  public ConstantFluidContainerWrapper(FluidStack fluid, ItemAccess access) {
+    this(fluid, access, getRemainder(access.getResource()));
+  }
+
+  /** Gets the crafting remainder of the given item, used as the default empty container */
+  private static ItemStack getRemainder(ItemResource resource) {
+    if (resource.isEmpty()) {
+      return ItemStack.EMPTY;
+    }
+    ItemStackTemplate remainder = resource.toStack().getCraftingRemainder();
+    return remainder == null ? ItemStack.EMPTY : remainder.create();
+  }
+
+  /** Gets the number of filled containers currently in the access */
+  private int getFilledContainers() {
+    if (fluid.isEmpty()) {
+      return 0;
+    }
+    ItemResource current = access.getResource();
+    return !current.isEmpty() && current.getItem() == filled ? access.getAmount() : 0;
   }
 
   @Override
-  public int getTanks() {
+  public int size() {
     return 1;
   }
 
   @Override
-  public int getTankCapacity(int tank) {
-    return fluid.getAmount();
+  public FluidResource getResource(int index) {
+    Objects.checkIndex(index, size());
+    return getFilledContainers() > 0 ? FluidResource.of(fluid) : FluidResource.EMPTY;
   }
 
   @Override
-  public boolean isFluidValid(int tank, @Nonnull FluidStack stack) {
-    return stack.isEmpty() || stack.getFluid() == fluid.getFluid();
-  }
-
-  @Nonnull
-  @Override
-  public FluidStack getFluidInTank(int tank) {
-    return empty ? FluidStack.EMPTY : fluid;
+  public long getAmountAsLong(int index) {
+    Objects.checkIndex(index, size());
+    return (long) fluid.getAmount() * getFilledContainers();
   }
 
   @Override
-  public int fill(FluidStack resource, FluidAction action) {
+  public long getCapacityAsLong(int index, FluidResource resource) {
+    Objects.checkIndex(index, size());
+    return (long) fluid.getAmount() * access.getAmount();
+  }
+
+  @Override
+  public boolean isValid(int index, FluidResource resource) {
+    Objects.checkIndex(index, size());
+    TransferPreconditions.checkNonEmpty(resource);
+    return resource.getFluid() == fluid.getFluid();
+  }
+
+  @Override
+  public int insert(int index, FluidResource resource, int amount, TransactionContext transaction) {
+    Objects.checkIndex(index, size());
+    TransferPreconditions.checkNonEmptyNonNegative(resource, amount);
     return 0;
   }
 
-  @Nonnull
   @Override
-  public FluidStack drain(FluidStack resource, FluidAction action) {
+  public int extract(int index, FluidResource resource, int amount, TransactionContext transaction) {
+    Objects.checkIndex(index, size());
+    TransferPreconditions.checkNonEmptyNonNegative(resource, amount);
     // cannot drain if: already drained, requested the wrong type, or requested too little
-    if (empty || resource.getFluid() != fluid.getFluid() || resource.getAmount() < fluid.getAmount()) {
-      return FluidStack.EMPTY;
+    int containers = getFilledContainers();
+    if (containers == 0 || !resource.matches(fluid)) {
+      return 0;
     }
-    if (action == FluidAction.EXECUTE) {
-      container = emptyStack;
-      empty = true;
+    int toEmpty = Math.min(containers, amount / fluid.getAmount());
+    if (toEmpty <= 0) {
+      return 0;
     }
-    return fluid.copy();
-  }
-
-  @Nonnull
-  @Override
-  public FluidStack drain(int maxDrain, FluidAction action) {
-    // cannot drain if: already drained, requested the wrong type, or requested too little
-    if (empty || maxDrain < fluid.getAmount()) {
-      return FluidStack.EMPTY;
+    int emptied;
+    if (emptyContainer.isEmpty()) {
+      emptied = access.extract(access.getResource(), toEmpty, transaction);
+    } else {
+      emptied = access.exchange(emptyContainer, toEmpty, transaction);
     }
-    if (action == FluidAction.EXECUTE) {
-      container = emptyStack;
-      empty = true;
-    }
-    return fluid.copy();
+    return emptied * fluid.getAmount();
   }
 }

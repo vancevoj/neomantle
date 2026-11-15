@@ -13,8 +13,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.apache.commons.lang3.function.TriFunction;
 import org.jetbrains.annotations.Nullable;
 import slimeknights.mantle.Mantle;
@@ -27,7 +29,7 @@ import java.util.function.Consumer;
 
 /** Fluid transfer info that empties a fluid from an item */
 @RequiredArgsConstructor
-public class EmptyFluidContainerTransfer implements IFluidContainerTransfer.WithDirection {
+public class EmptyFluidContainerTransfer implements IFluidContainerTransfer {
   public static final Identifier ID = Mantle.getResource("empty_item");
 
   protected final Ingredient input;
@@ -42,9 +44,7 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer.With
 
   @Override
   public void addRepresentativeItems(Consumer<Item> consumer) {
-    for (ItemStack stack : input.getItems()) {
-      consumer.accept(stack.getItem());
-    }
+    input.items().forEach(item -> consumer.accept(item.value()));
   }
 
   @Override
@@ -59,19 +59,30 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer.With
 
   @Nullable
   @Override
-  public TransferResult transfer(ItemStack stack, FluidStack fluid, IFluidHandler handler, TransferDirection direction) {
+  public TransferResult transfer(ItemStack stack, FluidStack fluid, ResourceHandler<FluidResource> handler, TransferDirection direction, TransactionContext transaction) {
     if (!direction.canEmpty()) {
       return null;
     }
     FluidStack contained = getFluid(stack);
-    int simulated = handler.fill(contained.copy(), FluidAction.SIMULATE);
-    if (simulated == contained.getAmount()) {
-      int actual = handler.fill(contained.copy(), FluidAction.EXECUTE);
-      if (actual > 0) {
-        if (actual != this.fluid.getAmount()) {
-          Mantle.logger.error("Wrong amount filled from {}, expected {}, filled {}", BuiltInRegistries.ITEM.getKey(stack.getItem()), this.fluid.getAmount(), actual);
+    if (contained.isEmpty()) {
+      return null;
+    }
+    FluidResource resource = FluidResource.of(contained);
+    try (Transaction filling = Transaction.open(transaction)) {
+      // must be able to fill the whole contents
+      int simulated;
+      try (Transaction simulate = Transaction.open(filling)) {
+        simulated = handler.insert(resource, contained.getAmount(), simulate);
+      }
+      if (simulated == contained.getAmount()) {
+        int actual = handler.insert(resource, contained.getAmount(), filling);
+        if (actual > 0) {
+          if (actual != this.fluid.getAmount()) {
+            Mantle.logger.error("Wrong amount filled from {}, expected {}, filled {}", BuiltInRegistries.ITEM.getKey(stack.getItem()), this.fluid.getAmount(), actual);
+          }
+          filling.commit();
+          return new TransferResult(result.copy(), contained, false);
         }
-        return new TransferResult(result.copy(), contained, false);
       }
     }
     return null;
@@ -111,9 +122,9 @@ public class EmptyFluidContainerTransfer implements IFluidContainerTransfer.With
     @Override
     public T deserialize(JsonElement element, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
       JsonObject json = element.getAsJsonObject();
-      Ingredient input = IngredientLoadable.DISALLOW_EMPTY.getIfPresent(json, "input");
+      Ingredient input = IngredientLoadable.DISALLOW_EMPTY.getIfPresent(json, "input", FluidContainerTransferManager.getLoadContext());
       ItemOutput result = getResult(json);
-      FluidOutput fluid = FluidOutput.Loadable.REQUIRED.getIfPresent(json, "fluid");
+      FluidOutput fluid = FluidOutput.Loadable.REQUIRED.getIfPresent(json, "fluid", FluidContainerTransferManager.getLoadContext());
       return factory.apply(input, result, fluid);
     }
   }

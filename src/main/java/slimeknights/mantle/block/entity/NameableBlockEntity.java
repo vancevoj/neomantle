@@ -1,14 +1,21 @@
 package slimeknights.mantle.block.entity;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+import com.mojang.serialization.JsonOps;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+
+import javax.annotation.Nullable;
+import java.util.Optional;
 
 /**
  * Extension of tile entity to make it namable
@@ -28,19 +35,44 @@ public abstract class NameableBlockEntity extends MantleBlockEntity implements I
 		this.defaultName = defaultTitle;
 	}
 
+	/**
+	 * Reads the custom name from the given input. Worlds saved before 1.21.6 stored the name as a JSON string, which the component codec would read as literal text.
+	 * @return  Custom name, or null if not present
+	 */
+	@Nullable
+	private static Component readCustomName(ValueInput input) {
+		Optional<String> string = input.getString(TAG_CUSTOM_NAME);
+		if (string.isPresent()) {
+			String json = string.get();
+			if (json.startsWith("{") || json.startsWith("\"")) {
+				try {
+					JsonElement element = JsonParser.parseString(json);
+					Optional<Component> parsed = ComponentSerialization.CODEC.parse(input.lookup().createSerializationContext(JsonOps.INSTANCE), element).result();
+					if (parsed.isPresent()) {
+						return parsed.get();
+					}
+				} catch (JsonParseException e) {
+					// not legacy JSON, so it is a literal name from the component codec
+				}
+			}
+		}
+		return parseCustomNameSafe(input, TAG_CUSTOM_NAME);
+	}
+
 	@Override
-	public void loadAdditional(CompoundTag tags, HolderLookup.Provider registries) {
-		super.loadAdditional(tags, registries);
-		if (tags.contains(TAG_CUSTOM_NAME, Tag.TAG_STRING)) {
-			this.customName = Component.Serializer.fromJson(tags.getString(TAG_CUSTOM_NAME), registries);
+	protected void loadAdditional(ValueInput input) {
+		super.loadAdditional(input);
+		Component name = readCustomName(input);
+		if (name != null) {
+			this.customName = name;
 		}
 	}
 
 	@Override
-	public void saveSynced(CompoundTag tags, HolderLookup.Provider registries) {
-		super.saveSynced(tags, registries);
+	public void saveSynced(ValueOutput output) {
+		super.saveSynced(output);
 		if (this.hasCustomName()) {
-			tags.putString(TAG_CUSTOM_NAME, Component.Serializer.toJson(this.customName, registries));
+			output.storeNullable(TAG_CUSTOM_NAME, ComponentSerialization.CODEC, this.customName);
 		}
 	}
 }

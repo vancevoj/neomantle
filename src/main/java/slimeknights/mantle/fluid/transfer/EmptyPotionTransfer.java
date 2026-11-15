@@ -22,12 +22,12 @@ import slimeknights.mantle.recipe.helper.TagPreference;
 /** Fluid transfer info that empties a fluid from a potion item, but empties water if its the water potion */
 public class EmptyPotionTransfer extends EmptyFluidContainerTransfer {
   public static final Identifier ID = Mantle.getResource("empty_potion");
-  /** Unique loader instance */
-  public static final RecordLoadable<EmptyPotionTransfer> DESERIALIZER = RecordLoadable.create(
+  /** Unique loader instance, parses using {@link FluidContainerTransferManager#getLoadContext()} so item tags resolve */
+  public static final RecordLoadable<EmptyPotionTransfer> DESERIALIZER = FluidContainerTransferManager.withLoadContext(RecordLoadable.create(
     IngredientLoadable.DISALLOW_EMPTY.requiredField("input", t -> t.input),
     ItemOutput.Loadable.OPTIONAL_ITEM.emptyField("result", t -> t.result),
     IntLoadable.FROM_ONE.requiredField("amount", t -> t.fluid.getAmount()),
-    EmptyPotionTransfer::new);
+    EmptyPotionTransfer::new));
 
   public EmptyPotionTransfer(Ingredient input, ItemOutput filled, int amount) {
     super(input, filled, FluidOutput.fromFluid(Fluids.WATER, amount));
