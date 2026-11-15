@@ -70,7 +70,14 @@ public class EntityIngredientRenderer implements IIngredientRenderer<EntityIngre
           entity = Minecraft.getInstance().player;
         } else {
           // entity is created with the client world, but the entity map is thrown away when JEI restarts so they should be okay I think
-          entity = ENTITY_MAP.computeIfAbsent(type, t -> t.create(world, EntitySpawnReason.LOAD));
+          entity = ENTITY_MAP.computeIfAbsent(type, t -> {
+            Entity created = t.create(world, EntitySpawnReason.LOAD);
+            if (created != null) {
+              // never added to a level so it has no ID, and reading an unassigned ID throws (living renderers read it); same ID vanilla gives spawner display entities
+              created.setId(-1);
+            }
+            return created;
+          });
         }
         // only can draw living entities, plus non-living ones don't get recipes anyways
         if (entity instanceof LivingEntity livingEntity) {
