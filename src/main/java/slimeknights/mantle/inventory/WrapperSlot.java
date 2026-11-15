@@ -51,6 +51,11 @@ public class WrapperSlot extends Slot {
   }
 
   @Override
+  public void setByPlayer(ItemStack newStack, ItemStack oldStack) {
+    this.parent.setByPlayer(newStack, oldStack);
+  }
+
+  @Override
   public void set(ItemStack stack) {
     this.parent.set(stack);
   }
@@ -118,5 +123,10 @@ public class WrapperSlot extends Slot {
   @Override
   public boolean isHighlightable() {
     return this.parent.isHighlightable();
+  }
+
+  @Override
+  public boolean isFake() {
+    return this.parent.isFake();
   }
 }
