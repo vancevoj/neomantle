@@ -31,3 +31,10 @@ Shared code for Slime Knights mods and others. Neo Mantle is vancevoj's NeoForge
     versionRange="${minecraft_range}"
     ordering="NONE"
     side="BOTH"
+
+[[dependencies.mantle]]
+    modId="jei"
+    type="optional"
+    versionRange="${jei_range}"
+    ordering="NONE"
+    side="BOTH"

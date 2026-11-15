@@ -28,7 +28,7 @@ public class BlockEntityHelper {
    * @return  Optional of the tile entity, empty if missing or wrong class
    * @deprecated use pattern matching instanceof with {@link Level#getBlockEntity(BlockPos)}
    */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   public static <T> Optional<T> get(Class<T> clazz, @Nullable BlockGetter world, BlockPos pos) {
     return get(clazz, world, pos, false);
   }
@@ -43,7 +43,7 @@ public class BlockEntityHelper {
    * @return  Optional of the tile entity, empty if missing or wrong class
    * @deprecated use pattern matching instanceof with {@link Level#getBlockEntity(BlockPos)}
    */
-  @Deprecated
+  @Deprecated(forRemoval = true)
   public static <T> Optional<T> get(Class<T> clazz, @Nullable BlockGetter world, BlockPos pos, boolean logWrongType) {
     if (!isBlockLoaded(world, pos)) {
       return Optional.empty();
@@ -79,6 +79,19 @@ public class BlockEntityHelper {
       return ((LevelReader) world).hasChunkAt(pos);
     }
     return true;
+  }
+
+  /**
+   * Gets a block entity, checking its chunk is loaded first via {@link #isBlockLoaded(BlockGetter, BlockPos)}.
+   * @see slimeknights.mantle.network.packet.BlockEntityPacket#getBlockEntity(BlockGetter, BlockPos, Object)
+   */
+  @SuppressWarnings("unused")
+  @Nullable
+  public static BlockEntity getLoaded(@Nullable BlockGetter world, BlockPos pos) {
+    if (isBlockLoaded(world, pos)) {
+      return world.getBlockEntity(pos);
+    }
+    return null;
   }
 
   /** Handles the unchecked cast for a block entity ticker */

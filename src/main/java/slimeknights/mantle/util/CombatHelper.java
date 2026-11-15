@@ -293,14 +293,13 @@ public class CombatHelper {
               if (living != player && living != targetLiving && !player.isAlliedTo(living) && (!(living instanceof ArmorStand armorStand) || !armorStand.isMarker()) && player.distanceToSqr(living) < entityReachSq) {
                 living.knockback(0.4f, Mth.sin(player.getYRot() * TO_RADIAN), -Mth.cos(player.getYRot() * TO_RADIAN));
                 // apply enchantment damage to swept entities and run their post attack effects, matching vanilla Player#attack
-                DamageSource sweepSource = player.damageSources().playerAttack(player);
                 float sweepDamageFinal = sweepDamage;
                 if (player.level() instanceof ServerLevel sweepServer) {
-                  sweepDamageFinal = EnchantmentHelper.modifyDamage(sweepServer, stack, living, sweepSource, sweepDamage);
+                  sweepDamageFinal = EnchantmentHelper.modifyDamage(sweepServer, stack, living, damageSource, sweepDamage);
                 }
-                living.hurt(sweepSource, sweepDamageFinal);
+                living.hurt(damageSource, sweepDamageFinal);
                 if (player.level() instanceof ServerLevel sweepServer) {
-                  EnchantmentHelper.doPostAttackEffects(sweepServer, living, sweepSource);
+                  EnchantmentHelper.doPostAttackEffects(sweepServer, living, damageSource);
                 }
               }
             }
@@ -320,10 +319,8 @@ public class CombatHelper {
           if (critical) {
             player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_CRIT, player.getSoundSource(), 1.0F, 1.0F);
             player.crit(target);
-          } else if (fullyCharged) {
-            player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_STRONG, player.getSoundSource(), 1.0F, 1.0F);
-          } else {
-            player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_WEAK, player.getSoundSource(), 1.0F, 1.0F);
+          } else if (!canSweep) {
+            player.level().playSound(null, player.getX(), player.getY(), player.getZ(), fullyCharged ? SoundEvents.PLAYER_ATTACK_STRONG : SoundEvents.PLAYER_ATTACK_WEAK, player.getSoundSource(), 1, 1);
           }
           if (enchantmentDamage > 0.0F) {
             player.magicCrit(target);

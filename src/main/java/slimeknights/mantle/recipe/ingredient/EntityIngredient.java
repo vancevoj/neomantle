@@ -7,9 +7,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SpawnEggItem;
+import org.jetbrains.annotations.Nullable;
 import slimeknights.mantle.data.loadable.IAmLoadable;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.Loadables;
@@ -23,7 +25,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * Ingredient accepting an entity or an entity tag as an input
@@ -53,7 +54,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
   /** Loadable for a tag match */
   private static final RecordLoadable<TagMatch> TAG_MATCH = RecordLoadable.create(Loadables.ENTITY_TYPE_TAG.requiredField("tag", t -> t.tag), TagMatch::new);
   /** Loadable disallows nested lists, just handles nested tags and sets */
-  private static final Loadable<Compound> COMPOUND = EntityIngredient.loadableBuilder().build(SET_MATCH).list(2).flatXmap(Compound::new, c -> c.ingredients);
+  private static final Loadable<Compound> COMPOUND = EntityIngredient.loadableBuilder().build(SET_MATCH).list(2).map(Compound::new, c -> c.ingredients);
   /** Loadable for any fluid ingredient */
   public static final Loadable<EntityIngredient> LOADABLE = loadableBuilder().array(COMPOUND).build(SET_MATCH);
 
@@ -128,6 +129,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
 
   private List<EntityInput> display;
   private List<ItemStack> eggs;
+  private List<@Nullable ItemStack> displayEggs;
 
   /** Gets the list of eggs matching this ingredient, used for display in JEI as it cannot do entity type */
   public List<EntityInput> getDisplay() {
@@ -137,13 +139,32 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
     return display;
   }
 
-  /** Gets the list of eggs matching this ingredient, used for focus links in JEI */
+  /** @deprecated use {@link #getDisplayEggs()} as it better supports JEI focus links. */
+  @Deprecated(forRemoval = true)
   public List<ItemStack> getEggs() {
     if (eggs == null) {
       // use getDisplay to guarantee order is the same, just in case
       eggs = getDisplay().stream().map(type -> new ItemStack(Objects.requireNonNullElse(SpawnEggItem.byId(type.type), Items.AIR))).toList();
     }
     return eggs;
+  }
+
+  /**
+   * Gets the list of eggs matching this ingredient, used for focus links in JEI.
+   * Note the list may contain null for any entities whose egg does not exist.
+   */
+  public List<@Nullable ItemStack> getDisplayEggs() {
+    if (displayEggs == null) {
+      // use getDisplay to guarantee order is the same, just in case
+      displayEggs = getTypes().stream().map(type -> {
+        Item item = SpawnEggItem.byId(type);
+        if (item == null) {
+          return null;
+        }
+        return new ItemStack(item);
+      }).toList();
+    }
+    return displayEggs;
   }
 
 
@@ -191,7 +212,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
     @Override
     public Set<EntityType<?>> getTypes() {
       if (types == null) {
-        types = RegistryHelper.getTagValueStream(BuiltInRegistries.ENTITY_TYPE, tag).collect(Collectors.toUnmodifiableSet());
+        types = RegistryHelper.getTagValueStream(BuiltInRegistries.ENTITY_TYPE, tag).collect(ImmutableSet.toImmutableSet());
       }
       return types;
     }
@@ -223,7 +244,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
       if (allTypes == null) {
         allTypes = ingredients.stream()
                               .flatMap(ingredient -> ingredient.getTypes().stream())
-                              .collect(Collectors.toUnmodifiableSet());
+                              .collect(ImmutableSet.toImmutableSet());
       }
       return allTypes;
     }

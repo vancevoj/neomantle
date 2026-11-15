@@ -481,7 +481,7 @@ public class BookScreen extends Screen {
   }
 
   @Override
-  public boolean mouseScrolled(double unKnown1, double unKnown2, double scrollX, double scrollDelta) {
+  public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollDelta) {
     if (scrollDelta < 0.0D) {
       nextPage();
       return true;
@@ -490,7 +490,7 @@ public class BookScreen extends Screen {
       return true;
     }
 
-    return super.mouseScrolled(unKnown1, unKnown2, scrollX, scrollDelta);
+    return super.mouseScrolled(mouseX, mouseY, scrollX, scrollDelta);
   }
 
   @Override
@@ -776,30 +776,56 @@ public class BookScreen extends Screen {
 
     // create page if we have data on either side
     if (leftData != null || rightData != null) {
+      HtmlSerializable left = leftData != null ? leftData.content.toHTML(book) : null;
+      HtmlSerializable right = rightData != null ? rightData.content.toHTML(book) : null;
+
       builder.append("---\n")
         .append("layout: book-page\n")
         .append("title: ").append(title).append(" (").append(version).append(") - page ").append(this.page).append('\n')
         .append("breadcrumb: ").append(this.page).append('\n')
-        .append("description: Interactive ").append(title).append(" from ").append(mod).append(" in Minecraft ").append(version).append(".\n")
-        .append("book: ").append(bookName).append('\n')
-        .append("page_num: ").append(this.page).append('\n')
-        .append("---\n\n");
-    }
+        .append("description: Interactive ").append(title).append(" from ").append(mod).append(" in Minecraft ").append(version);
 
-    // add page data
-    if (leftData != null) {
-      HtmlSerializable left = leftData.content.toHTML(book);
+      // add page titles to description
+      // working off the assumption that any page with content to export has a name to export
+      String leftTitle = left != null ? leftData.getTitle() : "";
+      String rightTitle = right != null ? rightData.getTitle() : "";
+      // if we have either title, add the "showing" text
+      if (!leftTitle.isEmpty() || !rightTitle.isEmpty()) {
+        builder.append(" showing ");
+        builder.append(leftTitle);
+        // if we have both, separate them with "and"
+        if (!leftTitle.isEmpty() && !rightTitle.isEmpty()) {
+          builder.append(" and ");
+        }
+        builder.append(rightTitle);
+      }
+
+      builder.append(".\n")
+        .append("book: ").append(bookName).append('\n')
+        .append("page_num: ").append(this.page).append('\n');
+
+      // figure out what section we are in
+      // prioritize left as it may not be in the same section as right
+      SectionData section = Objects.requireNonNullElse(leftData, rightData).parent;
+      if (section != null) {
+        int sectionStart = section.parent.getFirstPageNumber(section, null) / 2;
+        // if it starts before the current page, store it as the section start
+        if (sectionStart < this.page) {
+          builder.append("section_start: ").append(sectionStart).append('\n');
+        }
+      }
+
+      builder.append("---\n\n");
+
+      // add page data
       if (left != null) {
         HtmlElement.div().classes("left").add(left).toHtml(builder, "");
+        builder.append('\n');
       }
-      builder.append('\n');
-    }
-    if (rightData != null) {
-      HtmlSerializable right = rightData.content.toHTML(book);
       if (right != null) {
         HtmlElement.div().classes("right").add(right).toHtml(builder, "");
+        builder.append('\n');
       }
-      builder.append('\n');
     }
     return builder.toString();
   }

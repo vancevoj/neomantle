@@ -74,8 +74,7 @@ public abstract class InventoryBlock extends Block implements EntityBlock {
 
     // set custom name from named stack
     if (stack.has(DataComponents.CUSTOM_NAME)) {
-      BlockEntity tileentity = worldIn.getBlockEntity(pos);
-      if (tileentity instanceof INameableMenuProvider provider) {
+      if (worldIn.getBlockEntity(pos) instanceof INameableMenuProvider provider) {
         provider.setCustomName(stack.getHoverName());
       }
     }
@@ -84,8 +83,7 @@ public abstract class InventoryBlock extends Block implements EntityBlock {
   @Override
   @Nullable
   protected MenuProvider getMenuProvider(BlockState state, Level worldIn, BlockPos pos) {
-    BlockEntity be = worldIn.getBlockEntity(pos);
-    return be instanceof MenuProvider ? (MenuProvider) be : null;
+    return worldIn.getBlockEntity(pos) instanceof MenuProvider menu ? menu : null;
   }
 
 
@@ -122,6 +120,7 @@ public abstract class InventoryBlock extends Block implements EntityBlock {
    * @param pos         Tile position
    * @param inventory   Item handler
    */
+  @SuppressWarnings("unused") // API
   protected void dropInventoryItems(BlockState state, Level worldIn, BlockPos pos, IItemHandler inventory) {
     dropInventoryItems(worldIn, pos, inventory);
   }

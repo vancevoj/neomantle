@@ -2,21 +2,31 @@ package slimeknights.mantle.recipe.cooking;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.mojang.datafixers.util.Function6;
-import net.minecraft.advancements.AdvancementHolder;
-import net.minecraft.core.registries.BuiltInRegistries;
+import lombok.RequiredArgsConstructor;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.BlastingRecipe;
+import net.minecraft.world.item.crafting.CampfireCookingRecipe;
 import net.minecraft.world.item.crafting.CookingBookCategory;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.SmeltingRecipe;
+import net.minecraft.world.item.crafting.SmokingRecipe;
 import net.minecraft.world.level.ItemLike;
+import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.recipe.data.AbstractRecipeBuilder;
 import slimeknights.mantle.recipe.helper.ItemOutput;
 
-/** Builder for {@link SmeltingResultRecipe}, {@link BlastingResultRecipe}, {@link SmokingResultRecipe}, and {@link CampfireResultRecipe} */
-@SuppressWarnings({"unchecked", "unused"})
+/**
+ * Builder for {@link SmeltingResultRecipe}, {@link BlastingResultRecipe}, {@link SmokingResultRecipe}, and {@link CampfireResultRecipe}.
+ * Can also be used as a single builder for {@link SmeltingRecipe}, {@link BlastingRecipe}, {@link SmokingRecipe}, and {@link CampfireCookingRecipe} to share fields.
+ */
+@SuppressWarnings("unused")
 @CanIgnoreReturnValue
 public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends AbstractRecipeBuilder<T> {
   protected final ItemOutput result;
@@ -25,9 +35,20 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
   protected Ingredient ingredient = Ingredient.EMPTY;
   protected CookingBookCategory category = CookingBookCategory.MISC;
   protected CookingType type = CookingType.SMELTING;
+  protected boolean forceItemOutput = false;
 
   protected CookingRecipeBuilder(ItemOutput result) {
     this.result = result;
+    // automatically set the category based on the result item, as long as it's not a tag
+    // based off how furnace recipes set categories
+    if (result.getTag() == null) {
+      Item item = result.get().getItem();
+      if (item.components().has(DataComponents.FOOD)) {
+        category = CookingBookCategory.FOOD;
+      } else if (item instanceof BlockItem) {
+        category = CookingBookCategory.BLOCKS;
+      }
+    }
   }
 
   /** Creates a new builder instance */
@@ -63,13 +84,19 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
    */
   public T type(CookingType type) {
     this.type = type;
-    return (T) this;
+    return self();
+  }
+
+  /** Sets the recipe book category for this recipe. */
+  public T category(CookingBookCategory category) {
+    this.category = category;
+    return self();
   }
 
   /** Sets the input ingredient */
   public T requires(Ingredient ingredient) {
     this.ingredient = ingredient;
-    return (T) this;
+    return self();
   }
 
   /** Sets the input ingredient */
@@ -85,62 +112,92 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
   /** Sets the XP gain from this recipe */
   public T experience(float experience) {
     this.experience = experience;
-    return (T) this;
+    return self();
   }
 
   /** Sets the cooking time for this recipe relative to smelting. Note its halved for {@link CookingType#BLASTING} and {@link CookingType#SMOKING} and tripled for {@link CookingType#CAMPFIRE} */
   public T cookingTime(int cookingTime) {
     this.cookingTime = cookingTime;
-    return (T) this;
+    return self();
+  }
+
+  /** Forces the recipe to serialize using the Mantle serializers with {@link ItemOutput} even if it could serialize as {@link ItemStack}. */
+  public T forceItemOutput() {
+    this.forceItemOutput = true;
+    return self();
   }
 
 
   /** Helper to save a recipe */
-  @SuppressWarnings("unchecked")
-  private <R extends Recipe<?>> T save(RecipeOutput output, ResourceLocation id, Function6<String,CookingBookCategory,Ingredient,ItemOutput,Float,Integer,R> constructor, int cookingTime) {
+  protected T save(RecipeOutput output, ResourceLocation id, CookingType cookingType) {
     if (ingredient == Ingredient.EMPTY) {
       throw new IllegalStateException("Ingredient must be set");
     }
-    AdvancementHolder advancement = buildOptionalAdvancement(id, "cooking");
-    output.accept(id, constructor.apply(group, category, ingredient, result, experience, cookingTime), advancement);
-    return (T) this;
+    output.accept(id, cookingType.create(group, category, ingredient, result, experience, cookingTime, forceItemOutput), buildOptionalAdvancement(id, "cooking"));
+    return self();
   }
 
   /** Saves the smelting recipe */
   public T saveSmelting(RecipeOutput output, ResourceLocation id) {
-    return save(output, id, SmeltingResultRecipe::new, cookingTime);
+    return save(output, id, CookingType.SMELTING);
   }
 
   /** Saves the blasting recipe */
   public T saveBlasting(RecipeOutput output, ResourceLocation id) {
-    return save(output, id, BlastingResultRecipe::new, cookingTime / 2);
+    return save(output, id, CookingType.BLASTING);
   }
 
   /** Saves the smoking recipe */
   public T saveSmoking(RecipeOutput output, ResourceLocation id) {
-    return save(output, id, SmokingResultRecipe::new, cookingTime / 2);
+    return save(output, id, CookingType.SMOKING);
   }
 
   /** Saves the campfire recipe */
   public T saveCampfire(RecipeOutput output, ResourceLocation id) {
-    return save(output, id, CampfireResultRecipe::new, cookingTime * 3);
+    return save(output, id, CookingType.CAMPFIRE);
   }
 
   @Override
   public void save(RecipeOutput output) {
-    save(output, BuiltInRegistries.ITEM.getKey(result.get().getItem()));
+    save(output, Loadables.ITEM.getKey(result.get().getItem()));
   }
 
   @Override
   public void save(RecipeOutput output, ResourceLocation id) {
-    switch (type) {
-      case SMELTING -> saveSmelting(output, id);
-      case BLASTING -> saveBlasting(output, id);
-      case SMOKING -> saveSmoking(output, id);
-      case CAMPFIRE -> saveCampfire(output, id);
-    }
+    save(output, id, type);
   }
 
   /** Helper to change the cooking type in {@link #save(RecipeOutput, ResourceLocation)} for the sake of {@link net.neoforged.neoforge.common.crafting.ConditionalRecipe} */
-  public enum CookingType { SMELTING, BLASTING, SMOKING, CAMPFIRE }
+  @RequiredArgsConstructor
+  public enum CookingType {
+    SMELTING(SmeltingRecipe::new, SmeltingResultRecipe::new),
+    BLASTING(BlastingRecipe::new, BlastingResultRecipe::new),
+    SMOKING(SmokingRecipe::new, SmokingResultRecipe::new),
+    CAMPFIRE(CampfireCookingRecipe::new, CampfireResultRecipe::new);
+
+    private final Function6<String,CookingBookCategory,Ingredient,ItemStack,Float,Integer,Recipe<?>> vanillaConstructor;
+    private final Function6<String,CookingBookCategory,Ingredient,ItemOutput,Float,Integer,Recipe<?>> mantleConstructor;
+
+    /** Gets the cook time for the given serializer */
+    public int getTime(int cookingTime) {
+      if (this == CAMPFIRE) {
+        return cookingTime * 3;
+      }
+      if (this == SMELTING) {
+        return cookingTime;
+      }
+      // smoking and blasting
+      return cookingTime / 2;
+    }
+
+    /** Creates a recipe of this type */
+    public Recipe<?> create(String group, CookingBookCategory category, Ingredient ingredient, ItemOutput result, float experience, int cookingTime, boolean forceItemOutput) {
+      // use vanilla constructor if possible, the 1.21 vanilla recipes serialize themselves through their own codec
+      if (!forceItemOutput && result.getTag() == null) {
+        return vanillaConstructor.apply(group, category, ingredient, result.get(), experience, getTime(cookingTime));
+      }
+      // use mantle if required
+      return mantleConstructor.apply(group, category, ingredient, result, experience, getTime(cookingTime));
+    }
+  }
 }

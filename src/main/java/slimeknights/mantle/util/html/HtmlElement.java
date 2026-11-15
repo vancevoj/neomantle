@@ -211,7 +211,7 @@ public class HtmlElement extends HtmlGroup {
       StringBuilder minetipBuilder = new StringBuilder();
       this.minetip.toHtml(minetipBuilder, indent + "  ");
       builder.append(" data-minetip-title='")
-        .append(minetipBuilder.toString().replaceAll("'", "&quot;"))
+        .append(minetipBuilder.toString().replaceAll("'", "&#39;"))
         .append('\'');
     }
 
@@ -254,6 +254,11 @@ public class HtmlElement extends HtmlGroup {
   /** Creates a div element */
   public static HtmlElement div() {
     return indent("div");
+  }
+
+  /** Creates an ordered list element */
+  public static HtmlElement ol() {
+    return indent("ol");
   }
 
   /** Creates an unordered list element */

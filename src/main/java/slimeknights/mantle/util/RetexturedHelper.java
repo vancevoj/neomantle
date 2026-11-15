@@ -94,7 +94,7 @@ public final class RetexturedHelper {
     if (!name.isEmpty()) {
       ResourceLocation location = ResourceLocation.tryParse(name);
       if (location != null) {
-        return BuiltInRegistries.BLOCK.get(ResourceLocation.parse(name));
+        return BuiltInRegistries.BLOCK.get(location);
       }
     }
     return Blocks.AIR;
