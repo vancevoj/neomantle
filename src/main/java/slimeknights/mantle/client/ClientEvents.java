@@ -161,11 +161,12 @@ public class ClientEvents {
 
   // registered with the game bus
   private static void renderOffhandAttackIndicator(RenderGuiLayerEvent.Post event) {
-    // must have a player, not be in spectator, and have the indicator enabled
+    // must have the HUD shown, have a player, not be in spectator, and have the indicator enabled
+    // the layer post event still fires when the HUD is hidden (F1), so check that ourselves
     Minecraft minecraft = Minecraft.getInstance();
     Options settings = minecraft.options;
     AttackIndicatorStatus indicator = settings.attackIndicator().get();
-    if (minecraft.player == null || minecraft.gameMode == null || minecraft.gameMode.getPlayerMode() == GameType.SPECTATOR || indicator == AttackIndicatorStatus.OFF) {
+    if (minecraft.gui.hud.isHidden() || minecraft.player == null || minecraft.gameMode == null || minecraft.gameMode.getPlayerMode() == GameType.SPECTATOR || indicator == AttackIndicatorStatus.OFF) {
       return;
     }
 
@@ -236,10 +237,10 @@ public class ClientEvents {
     if (!VanillaGuiLayers.CROSSHAIR.equals(event.getName())) {
       return;
     }
-    // must not be in a screen, though chat is fine
+    // must have the HUD shown and not be in a screen, though chat is fine
     Minecraft minecraft = Minecraft.getInstance();
     Screen screen = minecraft.gui.screen();
-    if (screen != null && screen.getClass() != ChatScreen.class) {
+    if (minecraft.gui.hud.isHidden() || screen != null && screen.getClass() != ChatScreen.class) {
       return;
     }
     // must have a hit result
