@@ -2,9 +2,7 @@ package slimeknights.mantle.client.model.builder;
 
 import com.google.gson.JsonObject;
 import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.client.model.generators.CustomLoaderBuilder;
-import net.neoforged.neoforge.client.model.generators.ModelBuilder;
-import net.neoforged.neoforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.client.model.generators.template.CustomLoaderBuilder;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.model.util.MantleItemLayerModel.LayerData;
 
@@ -13,30 +11,37 @@ import java.util.List;
 
 /** Builder for {@link slimeknights.mantle.client.model.util.MantleItemLayerModel} */
 @SuppressWarnings("unused")  // API
-public class MantleItemLayerBuilder<T extends ModelBuilder<T>> extends CustomLoaderBuilder<T> {
+public class MantleItemLayerBuilder extends CustomLoaderBuilder {
   private final List<LayerData> layers = new ArrayList<>();
-  protected MantleItemLayerBuilder(Identifier loaderId, T parent, ExistingFileHelper existingFileHelper) {
-    super(loaderId, parent, existingFileHelper, false);
+  protected MantleItemLayerBuilder(Identifier loaderId) {
+    super(loaderId, false);
   }
 
-  public MantleItemLayerBuilder(T parent, ExistingFileHelper existingFileHelper) {
-    this(Mantle.getResource("item_layer"), parent, existingFileHelper);
+  public MantleItemLayerBuilder() {
+    this(Mantle.getResource("item_layer"));
   }
 
   /** Adds data for the next element */
-  public MantleItemLayerBuilder<T> addLayer(LayerData data) {
+  public MantleItemLayerBuilder addLayer(LayerData data) {
     this.layers.add(data);
     return this;
   }
 
   /** Sets the color for the next element */
-  public MantleItemLayerBuilder<T> color(int color) {
+  public MantleItemLayerBuilder color(int color) {
     return addLayer(new LayerData(color, 0, false, null));
   }
 
   /** Sets the luminosity for the next element */
-  public MantleItemLayerBuilder<T> luminosity(int luminosity) {
+  public MantleItemLayerBuilder luminosity(int luminosity) {
     return addLayer(new LayerData(-1, luminosity, false, null));
+  }
+
+  @Override
+  protected CustomLoaderBuilder copyInternal() {
+    MantleItemLayerBuilder builder = new MantleItemLayerBuilder(this.loaderId);
+    builder.layers.addAll(this.layers);
+    return builder;
   }
 
   @Override

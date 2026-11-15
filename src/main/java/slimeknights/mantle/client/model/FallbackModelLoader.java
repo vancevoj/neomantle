@@ -2,35 +2,25 @@ package slimeknights.mantle.client.model;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.client.renderer.block.model.BlockModel;
-import net.minecraft.client.renderer.block.model.ItemOverrides;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.client.resources.model.Material;
-import net.minecraft.client.resources.model.ModelBaker;
-import net.minecraft.client.renderer.block.dispatch.ModelState;
 import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.GsonHelper;
-import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
-import net.neoforged.neoforge.client.model.geometry.IGeometryLoader;
-import net.neoforged.neoforge.client.model.geometry.IUnbakedGeometry;
 import net.neoforged.fml.ModList;
-
-import java.util.function.Function;
+import net.neoforged.neoforge.client.model.UnbakedModelLoader;
 
 /**
  * Loads the first model from a list of models that has a loaded mod ID, ideal for optional CTM model support
  */
 @RequiredArgsConstructor
-public enum FallbackModelLoader implements IGeometryLoader<FallbackModelLoader.BlockModelWrapper> {
+public enum FallbackModelLoader implements UnbakedModelLoader<UnbakedModel> {
   INSTANCE;
 
   @Override
-  public BlockModelWrapper read(JsonObject data, JsonDeserializationContext context) {
+  public UnbakedModel read(JsonObject data, JsonDeserializationContext context) {
     JsonArray models = GsonHelper.getAsJsonArray(data, "models");
     if (models.size() < 2) {
       throw new JsonSyntaxException("Fallback model must contain at least 2 models");
@@ -46,16 +36,18 @@ public enum FallbackModelLoader implements IGeometryLoader<FallbackModelLoader.B
       if (entry.has("fallback_mod_id")) {
         modId = GsonHelper.getAsString(entry, "fallback_mod_id");
       } else if (entry.has("loader")) {
-        Identifier loader = Identifier.parse(GsonHelper.getAsString(entry, "loader"));
-        modId = loader.getNamespace();
+        // loader may be a string or an object with an ID and optional flag
+        JsonElement loader = entry.get("loader");
+        String loaderId = loader.isJsonObject() ? GsonHelper.getAsString(loader.getAsJsonObject(), "id") : GsonHelper.convertToString(loader, "loader");
+        modId = Identifier.parse(loaderId).getNamespace();
       }
 
       // if the mod is loaded, try loading the given model
       if (modId == null || ModList.get().isLoaded(modId)) {
         try {
-          // use a model wrapper to ensure the child model gets the proper context
+          // the nested model is returned directly, so it keeps its own parent and loader
           // this means its not possible to extend the fallback model, but that is not normally possible with loaders
-          return new BlockModelWrapper(context.deserialize(entry, BlockModel.class));
+          return context.deserialize(entry, UnbakedModel.class);
         } catch (JsonSyntaxException e) {
           // wrap exceptions to make it more clear what failed
           throw new JsonSyntaxException("Failed to parse fallback model " + debugName, e);
@@ -65,21 +57,5 @@ public enum FallbackModelLoader implements IGeometryLoader<FallbackModelLoader.B
 
     // no model was successful, sadness
     throw new JsonSyntaxException("Failed to load fallback model, all " + models.size() + " variants had a failed condition");
-  }
-
-  /**
-   * Wrapper around a single block model, redirects all standard calls to vanilla logic
-   * Final baked model will still be the original instance, which is what is important
-   */
-  record BlockModelWrapper(BlockModel model) implements IUnbakedGeometry<BlockModelWrapper> {
-    @Override
-    public BakedModel bake(IGeometryBakingContext owner, ModelBaker baker, Function<Material,TextureAtlasSprite> spriteGetter, ModelState modelTransform, ItemOverrides overrides) {
-      return model.bake(baker, model, spriteGetter, modelTransform, true);
-    }
-
-    @Override
-    public void resolveParents(Function<Identifier,UnbakedModel> modelGetter, IGeometryBakingContext context) {
-      model.resolveParents(modelGetter);
-    }
   }
 }

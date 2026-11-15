@@ -16,6 +16,7 @@ import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Manager for texture map JSON, used in {@link NBTKeyModel}. JSON format:
@@ -35,8 +36,8 @@ public class TextureMapManager implements ISafeManagerReloadListener {
   /** Folder holding the texture maps. */
   public static final String FOLDER = "mantle/textures";
 
-  /** Texture map cache to avoid parsing the same map multiple times if reused. */
-  private final Map<Identifier, Map<String,Identifier>> cache = new HashMap<>();
+  /** Texture map cache to avoid parsing the same map multiple times if reused. Models bake in parallel, so must be thread safe. */
+  private final Map<Identifier, Map<String,Identifier>> cache = new ConcurrentHashMap<>();
 
   private TextureMapManager() {}
 
@@ -48,26 +49,25 @@ public class TextureMapManager implements ISafeManagerReloadListener {
 
   /** Gets a permutation list from the cache, loading it if missing */
   public Map<String,Identifier> getTextureMap(ResourceManager manager, Identifier location) {
-    Map<String,Identifier> map = cache.get(location);
-    if (map == null) {
-      // linked hash set ensures uniqueness while preserving order
-      Map<String,Identifier> values = new HashMap<>();
-      // read from each resource pack, this is loosely based on tag loading
-      for (Resource resource : manager.getResourceStack(location.withPath(FOLDER + '/' + location.getPath() +  ".json"))) {
-        try (Reader reader = resource.openAsReader()) {
-          // fetch root json
-          JsonObject json = GsonHelper.convertToJsonObject(JsonParser.parseReader(reader), location.toString());
-          // add all new entries
-          values.putAll(TEXTURE_MAP.getIfPresent(json, "textures"));
-        } catch (Exception ex) {
-          Mantle.logger.error("Couldn't parse texture list {} in resource pack {}", location, resource.sourcePackId(), ex);
-        }
+    return cache.computeIfAbsent(location, loc -> loadTextureMap(manager, loc));
+  }
+
+  /** Loads the given texture map from the resource manager */
+  private static Map<String,Identifier> loadTextureMap(ResourceManager manager, Identifier location) {
+    Map<String,Identifier> values = new HashMap<>();
+    // read from each resource pack, this is loosely based on tag loading
+    for (Resource resource : manager.getResourceStack(location.withPath(FOLDER + '/' + location.getPath() +  ".json"))) {
+      try (Reader reader = resource.openAsReader()) {
+        // fetch root json
+        JsonObject json = GsonHelper.convertToJsonObject(JsonParser.parseReader(reader), location.toString());
+        // add all new entries
+        values.putAll(TEXTURE_MAP.getIfPresent(json, "textures"));
+      } catch (Exception ex) {
+        Mantle.logger.error("Couldn't parse texture list {} in resource pack {}", location, resource.sourcePackId(), ex);
       }
-      // remove null entries, which can be used to clear out a lower level texture
-      values.values().removeIf(Objects::isNull);
-      map = Map.copyOf(values);
-      cache.put(location, map);
     }
-    return map;
+    // remove null entries, which can be used to clear out a lower level texture
+    values.values().removeIf(Objects::isNull);
+    return Map.copyOf(values);
   }
 }

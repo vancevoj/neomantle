@@ -1,25 +1,33 @@
 package slimeknights.mantle.client.model.util;
 
-import net.minecraft.client.resources.model.Material;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.inventory.InventoryMenu;
-import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
+import net.minecraft.client.resources.model.sprite.Material;
 
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Model configuration wrapper to add in an extra set of textures
  */
 public class ExtraTextureContext extends GeometryContextWrapper {
-  private final Map<String,Material> textures;
+  private final Map<String,Material.Baked> textures;
 
   /**
    * Creates a new wrapper using the given textures
    * @param base      Base configuration
    * @param textures  Textures map, any textures in this map will take precedence over those in the base configuration
    */
-  public ExtraTextureContext(IGeometryBakingContext base, Map<String,Material> textures) {
+  public ExtraTextureContext(GeometryContextWrapper base, Map<String,Material.Baked> textures) {
     super(base);
+    this.textures = textures;
+  }
+
+  /**
+   * Creates a new wrapper using the given textures
+   * @param base      Base material getter
+   * @param textures  Textures map, any textures in this map will take precedence over those in the base configuration
+   */
+  public ExtraTextureContext(Function<String,Material.Baked> base, Map<String,Material.Baked> textures) {
+    super(base, name -> true);
     this.textures = textures;
   }
 
@@ -27,16 +35,15 @@ public class ExtraTextureContext extends GeometryContextWrapper {
    * Creates a new wrapper for a single texture
    * @param base     Base configuration
    * @param name     Texture name, if it matches texture is returned
-   * @param texture  Texture path
+   * @param texture  Texture material
    */
-  public ExtraTextureContext(IGeometryBakingContext base, String name, Identifier texture) {
-    super(base);
-    this.textures = Map.of(name, new Material(InventoryMenu.BLOCK_ATLAS, texture));
+  public ExtraTextureContext(GeometryContextWrapper base, String name, Material.Baked texture) {
+    this(base, Map.of(name, texture));
   }
 
   @Override
-  public Material getMaterial(String name) {
-    Material connected = textures.get(name);
+  public Material.Baked getMaterial(String name) {
+    Material.Baked connected = textures.get(name);
     if (connected != null) {
       return connected;
     }

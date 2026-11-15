@@ -3,18 +3,24 @@ package slimeknights.mantle.client.model;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.block.BlockStateModelSet;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.SpriteContents;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.sprite.AtlasManager;
+import net.minecraft.client.resources.model.sprite.Material;
+import net.minecraft.data.AtlasIds;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
-import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
-import net.neoforged.neoforge.model.data.ModelData;
+import net.minecraft.world.level.block.state.BlockState;
 import org.apache.commons.lang3.math.NumberUtils;
 import slimeknights.mantle.Mantle;
 
@@ -46,11 +52,11 @@ public class TextureColorHelper {
       SpriteContents contents = sprite.contents();
       for (int x = 0; x < contents.width(); x++) {
         for (int y = 0; y < contents.height(); y++) {
-          int argb = sprite.getPixelRGBA(0, x, y);
-          // integer is in format of 0xAABBGGRR
-          int cr = argb & 0xFF;
+          // pixels are in 0xAARRGGBB format in 26.x
+          int argb = sprite.getPixelARGB(0, x, y);
+          int cr = argb >> 16 & 0xFF;
           int cg = argb >> 8 & 0xFF;
-          int cb = argb >> 16 & 0xFF;
+          int cb = argb & 0xFF;
           int ca = argb >> 24 & 0xFF;
           if (ca > 0x7F && NumberUtils.max(cr, cg, cb) > 0x1F) {
             Color.RGBtoHSB(ca, cr, cg, hsb);
@@ -76,15 +82,24 @@ public class TextureColorHelper {
     return 0xFF000000 | (int)r << 16 | (int)g << 8 | (int)b;
   }
 
-  /** Getter mapping a block sprite texture to a single average color */
+  /** Checks if the given sprite is the missing sprite */
+  private static boolean isMissing(TextureAtlasSprite sprite) {
+    return sprite.contents().name().equals(MissingTextureAtlasSprite.getLocation());
+  }
+
+  /** Getter mapping a sprite texture to a single average color. Checks the block atlas first, then the item atlas as item textures were split out in 1.21.11. */
   private static final ToIntFunction<Identifier> COMPUTE_SPRITE_COLOR = key -> {
-    Minecraft mc = Minecraft.getInstance();
-    TextureAtlasSprite sprite = mc.getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS).getSprite(key);
+    AtlasManager atlases = Minecraft.getInstance().getAtlasManager();
+    TextureAtlasSprite sprite = atlases.getAtlasOrThrow(AtlasIds.BLOCKS).getSprite(key);
     //noinspection ConstantValue  eh, its better to be safe
-    if (sprite == null || sprite.contents().name() == MissingTextureAtlasSprite.getLocation()) {
-      return -1;
+    if (sprite == null || isMissing(sprite)) {
+      sprite = atlases.getAtlasOrThrow(AtlasIds.ITEMS).getSprite(key);
+      //noinspection ConstantValue
+      if (sprite == null || isMissing(sprite)) {
+        return -1;
+      }
     }
-    return getAverageColor(sprite);
+    return computeAverageColor(sprite);
   };
 
   /** Gets the color for the given texture */
@@ -92,11 +107,11 @@ public class TextureColorHelper {
     return SPRITE_CACHE.computeIfAbsent(texture, COMPUTE_SPRITE_COLOR);
   }
 
-  /** Gets the color for the given sprite. Should be from {@link InventoryMenu#BLOCK_ATLAS} */
+  /** Gets the color for the given sprite. Should be from {@link TextureAtlas#LOCATION_BLOCKS} or {@link TextureAtlas#LOCATION_ITEMS} */
   public static int getAverageColor(TextureAtlasSprite sprite) {
     Identifier name = sprite.contents().name();
     if (SPRITE_CACHE.containsKey(name)) {
-      return SPRITE_CACHE.get(name);
+      return SPRITE_CACHE.getInt(name);
     }
     int color = computeAverageColor(sprite);
     SPRITE_CACHE.put(name, color);
@@ -109,11 +124,14 @@ public class TextureColorHelper {
   /** Computes the color for an item based on the particle icon */
   private static final ToIntFunction<Item> COMPUTE_ITEM_COLOR = item -> {
     Minecraft mc = Minecraft.getInstance();
-    BakedModel model = mc.getItemRenderer().getModel(new ItemStack(item), null, null, 0);
-    if (model == mc.getModelManager().getMissingModel()) {
+    ItemStackRenderState state = new ItemStackRenderState();
+    mc.getItemModelResolver().updateForTopItem(state, new ItemStack(item), ItemDisplayContext.GUI, null, null, 0);
+    // fixed seed so the result is consistent for multi layer models
+    Material.Baked particle = state.pickParticleMaterial(RandomSource.create(0));
+    if (particle == null || isMissing(particle.sprite())) {
       return -1;
     }
-    return getAverageColor(model.getParticleIcon(ModelData.EMPTY));
+    return getAverageColor(particle.sprite());
   };
 
   /** Gets the average color of an item's default particle icon */
@@ -122,13 +140,14 @@ public class TextureColorHelper {
   }
 
   /** Computes the color for an item based on the particle icon */
+  @SuppressWarnings("deprecation")
   private static final ToIntFunction<Block> COMPUTE_BLOCK_COLOR = block -> {
-    Minecraft mc = Minecraft.getInstance();
-    BakedModel model = mc.getBlockRenderer().getBlockModel(block.defaultBlockState());
-    if (model == mc.getModelManager().getMissingModel()) {
+    BlockStateModelSet models = Minecraft.getInstance().getModelManager().getBlockStateModelSet();
+    BlockState state = block.defaultBlockState();
+    if (models.get(state) == models.missingModel()) {
       return -1;
     }
-    return getAverageColor(model.getParticleIcon(ModelData.EMPTY));
+    return getAverageColor(models.getParticleMaterial(state).sprite());
   };
 
   /** Gets the average color of an blocks default particle icon */

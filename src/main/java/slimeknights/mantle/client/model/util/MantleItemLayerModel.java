@@ -4,28 +4,27 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Transformation;
-import lombok.RequiredArgsConstructor;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.resources.model.geometry.BakedQuad;
-import net.minecraft.client.renderer.block.model.ItemOverrides;
+import it.unimi.dsi.fastutil.ints.IntList;
+import lombok.Getter;
+import net.minecraft.client.renderer.block.dispatch.ModelState;
 import net.minecraft.client.renderer.texture.SpriteContents;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBaker;
-import net.minecraft.client.renderer.block.dispatch.ModelState;
-import net.minecraft.client.resources.model.UnbakedModel;
+import net.minecraft.client.resources.model.ModelDebugName;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.geometry.QuadCollection;
+import net.minecraft.client.resources.model.geometry.UnbakedGeometry;
+import net.minecraft.client.resources.model.sprite.Material;
+import net.minecraft.client.resources.model.sprite.TextureSlots;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.client.NeoForgeRenderTypes;
-import net.neoforged.neoforge.client.RenderTypeGroup;
-import net.neoforged.neoforge.client.model.CompositeModel;
-import net.neoforged.neoforge.client.model.ItemLayerModel;
-import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
-import net.neoforged.neoforge.client.model.geometry.IGeometryLoader;
-import net.neoforged.neoforge.client.model.geometry.IUnbakedGeometry;
-import net.neoforged.neoforge.client.model.geometry.UnbakedGeometryHelper;
+import net.minecraft.util.context.ContextMap;
+import net.neoforged.neoforge.client.model.AbstractUnbakedModel;
+import net.neoforged.neoforge.client.model.ExtendedUnbakedGeometry;
+import net.neoforged.neoforge.client.model.StandardModelParameters;
+import net.neoforged.neoforge.client.model.UnbakedElementsHelper;
+import net.neoforged.neoforge.client.model.UnbakedModelLoader;
 import net.neoforged.neoforge.client.model.pipeline.QuadBakingVertexConsumer;
 import net.neoforged.neoforge.client.model.pipeline.TransformingVertexPipeline;
 import slimeknights.mantle.data.loadable.Loadable;
@@ -43,28 +42,33 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.PrimitiveIterator;
-import java.util.function.Function;
 
 /**
- * Clone of {@link ItemLayerModel} to propagate a hardcoded color in, allows reducing rendering time by bypassing item colors for a static color.
- * Also supports luminosity, and when used as a model loader supports telling a layer to not use a tint index
+ * Clone of the vanilla item layer generator to propagate a hardcoded color in, allows reducing rendering time by bypassing item tints for a static color.
+ * Also supports luminosity, and when used as a model loader supports telling a layer to not use a tint index.
+ * Unlike the vanilla generator, it avoids z-fighting between layers by not drawing side faces where a higher layer already has a pixel.
  */
-@RequiredArgsConstructor
-public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerModel> {
+public class MantleItemLayerModel extends AbstractUnbakedModel {
   /** Model loader instance */
-  public static final IGeometryLoader<MantleItemLayerModel> LOADER = MantleItemLayerModel::deserialize;
+  public static final UnbakedModelLoader<MantleItemLayerModel> LOADER = MantleItemLayerModel::deserialize;
 
   private static final Direction[] HORIZONTALS = {Direction.UP, Direction.DOWN};
   private static final Direction[] VERTICALS = {Direction.WEST, Direction.EAST};
 
   /** Layers in the model */
+  @Getter
   private final List<LayerData> layers;
-  /** Textures fetched during baking */
-  private List<Material> textures = Collections.emptyList();
+  /** Texture data including a default particle */
+  private final TextureSlots.Data textures;
+
+  public MantleItemLayerModel(StandardModelParameters parameters, List<LayerData> layers) {
+    super(parameters);
+    this.layers = layers;
+    // if no particle is set, use layer0, matching old behavior
+    this.textures = ModelHelper.withDefaultReference(parameters.textures(), "particle", "layer0");
+  }
 
   /** Gets the layer at the given index */
   private LayerData getLayer(int index) {
@@ -72,22 +76,13 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
   }
 
   @Override
-  public void resolveParents(Function<Identifier,UnbakedModel> modelGetter, IGeometryBakingContext owner) {
-    List<Material> builder = new ArrayList<>();
-    for (int i = 0; owner.hasMaterial("layer" + i); i++) {
-      builder.add(owner.getMaterial("layer" + i));
-    }
-    textures = List.copyOf(builder);
+  public TextureSlots.Data textureSlots() {
+    return textures;
   }
 
-  /** Gets the default render type for an item layer */
-  public static RenderTypeGroup getDefaultRenderType(IGeometryBakingContext context) {
-    Identifier renderTypeHint = context.getRenderTypeHint();
-    if (renderTypeHint != null) {
-      return context.getRenderType(renderTypeHint);
-    } else {
-      return new RenderTypeGroup(RenderType.translucent(), NeoForgeRenderTypes.ITEM_UNSORTED_TRANSLUCENT.get());
-    }
+  @Override
+  public UnbakedGeometry geometry() {
+    return (ExtendedUnbakedGeometry) this::bake;
   }
 
   /**
@@ -97,47 +92,60 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
     if (transformation.isIdentity()) {
       return modelState;
     } else {
-      return UnbakedGeometryHelper.composeRootTransformIntoModelState(modelState, transformation);
+      return UnbakedElementsHelper.composeRootTransformIntoModelState(modelState, transformation);
     }
   }
 
-  @Override
-  public BakedModel bake(IGeometryBakingContext owner, ModelBaker baker, Function<Material,TextureAtlasSprite> spriteGetter, ModelState modelTransform, ItemOverrides overrides) {
-    if (textures.isEmpty()) {
-      throw new IllegalStateException("Empty textures list");
+  /**
+   * Gets the transformation to pass into {@link #getQuadsForSprite(int, int, TextureAtlasSprite, Transformation, int, ItemLayerPixels)} for the given model state.
+   * Model states in 26.x transform around the block center, while the quads for sprites are built with coordinates from 0 to 1.
+   * @param modelState  Model state, see {@link #applyTransform(ModelState, Transformation)} to include the root transform
+   * @return  Transformation for item layer quads
+   */
+  public static Transformation getItemTransform(ModelState modelState) {
+    return modelState.transformation().blockCenterToCorner();
+  }
+
+  /** Bakes the quads for this model */
+  private QuadCollection bake(TextureSlots textureSlots, ModelBaker baker, ModelState modelState, ModelDebugName name, ContextMap additionalProperties) {
+    List<Material> textures = new ArrayList<>();
+    for (int i = 0; ; i++) {
+      Material material = textureSlots.getMaterial("layer" + i);
+      if (material == null) {
+        break;
+      }
+      textures.add(material);
     }
-    // determine particle texture
-    TextureAtlasSprite particle = spriteGetter.apply(owner.hasMaterial("particle") ? owner.getMaterial("particle") : textures.get(0));
+    if (textures.isEmpty()) {
+      throw new IllegalStateException("Empty textures list in " + name.debugName());
+    }
 
     // setup quad building
-    record QuadGroup(RenderTypeGroup renderType, Collection<BakedQuad> quads) {}
-    ReversedListBuilder<QuadGroup> quadBuilder = new ReversedListBuilder<>();
-    ItemLayerPixels pixels = textures.size() == 1 ? null : new ItemLayerPixels();
-    modelTransform = applyTransform(modelTransform, owner.getRootTransform());
-
-    // setup render types
-    RenderTypeGroup normalRenderTypes = getDefaultRenderType(owner);
-
+    ReversedListBuilder<Collection<BakedQuad>> quadBuilder = new ReversedListBuilder<>();
     // skip the pixel tracking if using a single texture only
-    Transformation transform = modelTransform.getRotation();
+    ItemLayerPixels pixels = textures.size() == 1 ? null : new ItemLayerPixels();
+    Transformation transform = getItemTransform(ModelHelper.applyRootTransform(modelState, additionalProperties));
     for (int i = textures.size() - 1; i >= 0; i--) {
-      TextureAtlasSprite sprite = spriteGetter.apply(textures.get(i));
+      Material.Baked material = baker.materials().get(textures.get(i), name);
       LayerData data = getLayer(i);
-      quadBuilder.add(new QuadGroup(data.getRenderType(owner, normalRenderTypes), getQuadsForSprite(data.color(), data.noTint() ? -1 : i, sprite, transform, data.luminosity(), pixels)));
+      if (data.isTranslucent() && !material.forceTranslucent()) {
+        material = new Material.Baked(material.sprite(), true);
+      }
+      quadBuilder.add(getQuadsForSprite(data.color(), data.noTint() ? -1 : i, material, transform, data.luminosity(), pixels, baker.interner()));
     }
 
     // build final model
-    CompositeModel.Baked.Builder modelBuilder = CompositeModel.Baked.builder(owner, particle, overrides, owner.getTransforms());
-    quadBuilder.build(quadGroup -> modelBuilder.addQuads(quadGroup.renderType, quadGroup.quads));
-    return modelBuilder.build();
+    QuadCollection.Builder builder = new QuadCollection.Builder();
+    quadBuilder.build(quads -> quads.forEach(builder::addUnculledFace));
+    return builder.build();
   }
 
   /**
    * Gets all quads for an item layer for the given sprite
    * @param color       Color for the sprite in AARRGGBB format.
-   * @param tint        Tint index for {@link net.minecraft.client.color.block.BlockColors} and {@link net.minecraft.client.color.item.ItemColors}. Generally unused
+   * @param tint        Tint index for {@link net.minecraft.client.color.item.ItemTintSource}. Generally unused
    * @param sprite      Sprite to convert into quads
-   * @param transform   Transforms to apply
+   * @param transform   Transforms to apply, see {@link #getItemTransform(ModelState)}
    * @param luminosity  Extra light to add to the quad from 0-15, makes it appear to glow a bit
    * @return  List of baked quads
    */
@@ -148,34 +156,51 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
   /**
    * Gets all quads including side quads for an item layer for the given sprite.
    * @param color       Color for the sprite in AARRGGBB format.
-   * @param tint        Tint index for {@link net.minecraft.client.color.block.BlockColors} and {@link net.minecraft.client.color.item.ItemColors}. Generally unused
+   * @param tint        Tint index for {@link net.minecraft.client.color.item.ItemTintSource}. Generally unused
    * @param sprite      Sprite to convert into quads
-   * @param transform   Transforms to apply
+   * @param transform   Transforms to apply, see {@link #getItemTransform(ModelState)}
    * @param emissivity  Extra light to add to the quad from 0-15, makes it appear to glow a bit
    * @param pixels      Object to keep track of used pixels across multiple layers to help prevent z-fighting. To effective use, sprites must be built in reverse order. Use null to skip this logic
    * @return  List of baked quads
    * @see #getQuadForGui(int, int, TextureAtlasSprite, Transformation, int)
    */
   public static List<BakedQuad> getQuadsForSprite(int color, int tint, TextureAtlasSprite sprite, Transformation transform, int emissivity, @Nullable ItemLayerPixels pixels) {
+    return getQuadsForSprite(color, tint, new Material.Baked(sprite, false), transform, emissivity, pixels, null);
+  }
+
+  /**
+   * Gets all quads including side quads for an item layer for the given material.
+   * @param color       Color for the sprite in AARRGGBB format. If the alpha is less than 255, the quads are placed in the translucent layer.
+   * @param tint        Tint index for {@link net.minecraft.client.color.item.ItemTintSource}. Generally unused
+   * @param material    Material to convert into quads, determines the sprite and whether it is forced translucent
+   * @param transform   Transforms to apply, see {@link #getItemTransform(ModelState)}
+   * @param emissivity  Extra light to add to the quad from 0-15, makes it appear to glow a bit
+   * @param pixels      Object to keep track of used pixels across multiple layers to help prevent z-fighting. To effective use, sprites must be built in reverse order. Use null to skip this logic
+   * @param interner    Interner from the model baker to reduce memory usage, null to skip interning
+   * @return  List of baked quads
+   */
+  public static List<BakedQuad> getQuadsForSprite(int color, int tint, Material.Baked material, Transformation transform, int emissivity, @Nullable ItemLayerPixels pixels, @Nullable ModelBaker.Interner interner) {
     List<BakedQuad> builder = new ArrayList<>();
 
+    TextureAtlasSprite sprite = material.sprite();
     SpriteContents contents = sprite.contents();
     int uMax = contents.width();
     int vMax = contents.height();
     FaceData faceData = new FaceData(uMax, vMax);
     boolean translucent = false;
 
-    PrimitiveIterator.OfInt iterator = sprite.contents().getUniqueFrames().iterator();
-    boolean hasFrames = iterator.hasNext();
-    while (iterator.hasNext()) {
-      int f = iterator.nextInt();
+    IntList frames = contents.getUniqueFrames();
+    boolean hasFrames = !frames.isEmpty();
+    for (int frameIndex = 0; frameIndex < frames.size(); frameIndex++) {
+      int f = frames.getInt(frameIndex);
       boolean ptu;
       boolean[] ptv = new boolean[uMax];
       Arrays.fill(ptv, true);
       for(int v = 0; v < vMax; v++) {
         ptu = true;
         for(int u = 0; u < uMax; u++) {
-          int alpha = sprite.getPixelRGBA(f, u, vMax - v - 1) >> 24 & 0xFF;
+          // pixel is ARGB, alpha is the high byte in both ARGB and ABGR
+          int alpha = sprite.getPixelARGB(f, u, vMax - v - 1) >>> 24;
           boolean t = alpha / 255f <= 0.1f;
 
           if (!t && alpha < 255) {
@@ -212,17 +237,12 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
 
     // setup quad builder
     QuadBakingVertexConsumer quadBuilder = new QuadBakingVertexConsumer();
-    // common settings
-    quadBuilder.setSprite(sprite);
-    quadBuilder.setTintIndex(tint);
-    // TODO: should we customize these?
-    quadBuilder.setShade(false);
-    quadBuilder.setHasAmbientOcclusion(true);
     // only need to set up transforms once, isn't that nice?
     VertexConsumer quadConsumer = quadBuilder;
     if (!transform.isIdentity()) {
       quadConsumer = new TransformingVertexPipeline(quadBuilder, transform);
     }
+    QuadSettings settings = new QuadSettings(getMaterial(material, color), tint, emissivity, interner);
 
     // horizontal quads
     for (Direction facing : HORIZONTALS) {
@@ -246,7 +266,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
             // finish current quad if translucent (minimize overdraw) or we are forbidden from touching this pixel (previous layer drew here)
             if (!canDraw || translucent) {
               int off = facing == Direction.DOWN ? 1 : 0;
-              buildSideQuad(builder, quadBuilder, quadConsumer, facing, color, sprite, uStart, v + off, uEnd - uStart, emissivity);
+              buildSideQuad(builder, quadBuilder, quadConsumer, settings, facing, color, sprite, uStart, v + off, uEnd - uStart);
               building = false;
             }
           }
@@ -254,7 +274,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
         if (building) { // build remaining quad
           // make quad [uStart, uEnd]
           int off = facing == Direction.DOWN ? 1 : 0;
-          buildSideQuad(builder, quadBuilder, quadConsumer, facing, color, sprite, uStart, v+off, uEnd-uStart, emissivity);
+          buildSideQuad(builder, quadBuilder, quadConsumer, settings, facing, color, sprite, uStart, v+off, uEnd-uStart);
         }
       }
     }
@@ -281,7 +301,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
             // finish current quad if translucent (minimize overdraw) or we are forbidden from touching this pixel (future layer drew here)
             if (!canDraw || translucent) {
               int off = facing == Direction.EAST ? 1 : 0;
-              buildSideQuad(builder, quadBuilder, quadConsumer, facing, color, sprite, u + off, vStart, vEnd - vStart, emissivity);
+              buildSideQuad(builder, quadBuilder, quadConsumer, settings, facing, color, sprite, u + off, vStart, vEnd - vStart);
               building = false;
             }
           }
@@ -289,19 +309,19 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
         if (building) { // build remaining quad
           // make quad [vStart, vEnd]
           int off = facing == Direction.EAST ? 1 : 0;
-          buildSideQuad(builder, quadBuilder, quadConsumer, facing, color, sprite, u+off, vStart, vEnd-vStart, emissivity);
+          buildSideQuad(builder, quadBuilder, quadConsumer, settings, facing, color, sprite, u+off, vStart, vEnd-vStart);
         }
       }
     }
 
     // back
-    buildQuad(builder, quadBuilder, quadConsumer, Direction.NORTH, color, emissivity,
+    buildQuad(builder, quadBuilder, quadConsumer, settings, Direction.NORTH, color,
               0, 0, 7.5f / 16f, sprite.getU0(), sprite.getV1(),
               0, 1, 7.5f / 16f, sprite.getU0(), sprite.getV0(),
               1, 1, 7.5f / 16f, sprite.getU1(), sprite.getV0(),
               1, 0, 7.5f / 16f, sprite.getU1(), sprite.getV1());
     // front
-    buildQuad(builder, quadBuilder, quadConsumer, Direction.SOUTH, color, emissivity,
+    buildQuad(builder, quadBuilder, quadConsumer, settings, Direction.SOUTH, color,
               0, 0, 8.5f / 16f, sprite.getU0(), sprite.getV1(),
               1, 0, 8.5f / 16f, sprite.getU1(), sprite.getV1(),
               1, 1, 8.5f / 16f, sprite.getU1(), sprite.getV0(),
@@ -318,7 +338,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
       if (hasFrames) {
         for(int v = 0; v < vMax; v++) {
           for(int u = 0; u < uMax; u++) {
-            int alpha = sprite.getPixelRGBA(0, u, vMax - v - 1) >> 24 & 0xFF;
+            int alpha = sprite.getPixelARGB(0, u, vMax - v - 1) >>> 24;
             if (alpha / 255f > 0.1f) {
               pixels.set(u, v, uMax, vMax);
             }
@@ -334,7 +354,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
    * Gets the quad to display in GUIs for the given sprite. Unlike {@link #getQuadsForSprite(int, int, TextureAtlasSprite, Transformation, int, ItemLayerPixels)}, this method will not build side quads as GUIs don't see those.
    * This method is notably more efficient when you are only building a GUI model, if you want a full model its probably more efficient to call the other method then filter out {@link Direction#SOUTH} quads.
    * @param color       Color for the sprite in AARRGGBB format.
-   * @param tint        Tint index for {@link net.minecraft.client.color.block.BlockColors} and {@link net.minecraft.client.color.item.ItemColors}. Generally unused
+   * @param tint        Tint index for {@link net.minecraft.client.color.item.ItemTintSource}. Generally unused
    * @param sprite      Sprite to convert into quads
    * @param transform   Transforms to apply
    * @param emissivity  Extra light to add to the quad from 0-15, makes it appear to glow a bit
@@ -343,42 +363,63 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
    */
   @SuppressWarnings("unused")  // API
   public static BakedQuad getQuadForGui(int color, int tint, TextureAtlasSprite sprite, Transformation transform, int emissivity) {
+    return getQuadForGui(color, tint, new Material.Baked(sprite, false), transform, emissivity, null);
+  }
+
+  /**
+   * Gets the quad to display in GUIs for the given material.
+   * @param color       Color for the sprite in AARRGGBB format.
+   * @param tint        Tint index, generally unused
+   * @param material    Material to convert into quads
+   * @param transform   Transforms to apply
+   * @param emissivity  Extra light to add to the quad from 0-15, makes it appear to glow a bit
+   * @param interner    Interner from the model baker, null to skip interning
+   * @return  Baked quad
+   */
+  public static BakedQuad getQuadForGui(int color, int tint, Material.Baked material, Transformation transform, int emissivity, @Nullable ModelBaker.Interner interner) {
+    TextureAtlasSprite sprite = material.sprite();
     // setup quad builder
     QuadBakingVertexConsumer quadBuilder = new QuadBakingVertexConsumer();
-    // common settings
-    quadBuilder.setSprite(sprite);
-    quadBuilder.setTintIndex(tint);
-    // TODO: should we customize these?
-    quadBuilder.setShade(false);
-    quadBuilder.setHasAmbientOcclusion(true);
     // only need to set up transforms once, isn't that nice?
     VertexConsumer quadConsumer = quadBuilder;
     if (!transform.isIdentity()) {
       quadConsumer = new TransformingVertexPipeline(quadBuilder, transform);
     }
-    // only need south. 1.21: collect the single baked quad into a list, then return it
+    // only need south
     List<BakedQuad> output = new ArrayList<>(1);
-    buildQuad(output, quadBuilder, quadConsumer, Direction.SOUTH, color, emissivity,
+    buildQuad(output, quadBuilder, quadConsumer, new QuadSettings(getMaterial(material, color), tint, emissivity, interner), Direction.SOUTH, color,
               0, 0, 8.5f / 16f, sprite.getU0(), sprite.getV1(),
               1, 0, 8.5f / 16f, sprite.getU1(), sprite.getV1(),
               1, 1, 8.5f / 16f, sprite.getU1(), sprite.getV0(),
               0, 1, 8.5f / 16f, sprite.getU0(), sprite.getV0());
-    return output.get(0);
+    return output.getFirst();
   }
+
+  /** Gets the material to use for quads, forcing translucency if the color is translucent */
+  private static Material.Baked getMaterial(Material.Baked material, int color) {
+    if ((color >>> 24) < 0xFF && !material.forceTranslucent()) {
+      return new Material.Baked(material.sprite(), true);
+    }
+    return material;
+  }
+
+  /** Settings shared by all quads in a layer */
+  private record QuadSettings(Material.Baked material, int tint, int luminosity, @Nullable ModelBaker.Interner interner) {}
 
   /**
    * Builds a single quad on the side of the sprite
-   * @param builder      Quad builder instance, just used to set direction so we can avoid redundancy
-   * @param consumer     Quad consumer, where we place the actual quad
+   * @param output     List of quads to add the quad into
+   * @param builder    Quad builder instance, just used to set direction so we can avoid redundancy
+   * @param consumer   Quad consumer, where we place the actual quad
+   * @param settings   Common quad settings
    * @param side       Side to build
    * @param color      Color for the sprite
    * @param sprite     Sprite to render
    * @param u          Sprite U
    * @param v          Sprite V
    * @param size       Size of the quad in the correct direction (depth is always 1 pixel)
-   * @param luminosity Extra light to add to the quad between 0 and 15
    */
-  private static void buildSideQuad(List<BakedQuad> output, QuadBakingVertexConsumer builder, VertexConsumer consumer, Direction side, int color, TextureAtlasSprite sprite, int u, int v, int size, int luminosity) {
+  private static void buildSideQuad(List<BakedQuad> output, QuadBakingVertexConsumer builder, VertexConsumer consumer, QuadSettings settings, Direction side, int color, TextureAtlasSprite sprite, int u, int v, int size) {
     final float eps = 1e-2f;
     SpriteContents contents = sprite.contents();
     int width = contents.width();
@@ -409,43 +450,65 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
     // for the side, Y axis's use of getOpposite is related to the swapping of V direction
     float dx = side.getUnitVec3i().getX() * eps / width;
     float dy = side.getUnitVec3i().getY() * eps / height;
-    // 1.21: TextureAtlasSprite#getU/#getV now take a normalized 0..1 interpolant rather than 0..16 pixels, so drop the 16x scale
+    // TextureAtlasSprite#getU/#getV take a normalized 0..1 interpolant
     float u0 = (x0 - dx);
     float u1 = (x1 - dx);
     float v0 = (1f - y0 - dy);
     float v1 = (1f - y1 - dy);
-    buildQuad(output, builder, consumer, (side.getAxis() == Axis.Y ? side.getOpposite() : side),
-      color, luminosity,
+    buildQuad(output, builder, consumer, settings, (side.getAxis() == Axis.Y ? side.getOpposite() : side), color,
       x0, y0, z0, sprite.getU(u0), sprite.getV(v0),
       x1, y1, z0, sprite.getU(u1), sprite.getV(v1),
       x1, y1, z1, sprite.getU(u1), sprite.getV(v1),
       x0, y0, z1, sprite.getU(u0), sprite.getV(v0));
   }
 
+  /** Internal version of the public buildQuad method using the shared settings, as the quad builder clears its settings after each quad */
+  private static void buildQuad(List<BakedQuad> output, QuadBakingVertexConsumer builder, VertexConsumer consumer, QuadSettings settings, Direction side, int color,
+                                float x0, float y0, float z0, float u0, float v0,
+                                float x1, float y1, float z1, float u1, float v1,
+                                float x2, float y2, float z2, float u2, float v2,
+                                float x3, float y3, float z3, float u3, float v3) {
+    // the builder clears its settings after baking a quad, so set them each time
+    builder.setSprite(settings.material);
+    builder.setTintIndex(settings.tint);
+    // matches the old unshaded quads
+    builder.setShadeOverride(Direction.UP);
+    builder.setAmbientOcclusion(true);
+    builder.setLightEmission(settings.luminosity);
+    builder.setDirection(side);
+    putVertex(consumer, side, x0, y0, z0, u0, v0, color);
+    putVertex(consumer, side, x1, y1, z1, u1, v1, color);
+    putVertex(consumer, side, x2, y2, z2, u2, v2, color);
+    putVertex(consumer, side, x3, y3, z3, u3, v3, color);
+    output.add(builder.bakeQuad(settings.interner));
+  }
+
   /**
-   * Builds a single quad in the model, based on the method in {@link ItemLayerModel} but with color added
+   * Builds a single quad in the model, based on the vanilla item layer generator but with color added.
+   * The builder must already have the sprite set, as it is not part of the vertex data.
+   * @param output       List of quads to add the quad into
    * @param builder      Quad builder instance, just used to set direction so we can avoid redundancy
    * @param consumer     Quad consumer, where we place the actual quad
    * @param side         Quad side
    * @param color        Color for the sprite in AARRGGBB format
-   * @param luminosity Extra light to add to the quad between 0 and 15
+   * @param luminosity   Extra light to add to the quad between 0 and 15
    */
   public static void buildQuad(List<BakedQuad> output, QuadBakingVertexConsumer builder, VertexConsumer consumer, Direction side, int color, int luminosity,
                                      float x0, float y0, float z0, float u0, float v0,
                                      float x1, float y1, float z1, float u1, float v1,
                                      float x2, float y2, float z2, float u2, float v2,
                                      float x3, float y3, float z3, float u3, float v3) {
+    builder.setLightEmission(luminosity);
     builder.setDirection(side);
-    putVertex(consumer, side, x0, y0, z0, u0, v0, color, luminosity);
-    putVertex(consumer, side, x1, y1, z1, u1, v1, color, luminosity);
-    putVertex(consumer, side, x2, y2, z2, u2, v2, color, luminosity);
-    putVertex(consumer, side, x3, y3, z3, u3, v3, color, luminosity);
-    // 1.21: QuadBakingVertexConsumer no longer auto-emits; bake the quad after its four vertices and collect it
+    putVertex(consumer, side, x0, y0, z0, u0, v0, color);
+    putVertex(consumer, side, x1, y1, z1, u1, v1, color);
+    putVertex(consumer, side, x2, y2, z2, u2, v2, color);
+    putVertex(consumer, side, x3, y3, z3, u3, v3, color);
     output.add(builder.bakeQuad());
   }
 
   /**
-   * Clone of the method in {@link ItemLayerModel} with the color parameter added
+   * Clone of the vertex logic in the vanilla item layer generator with the color parameter added. Light is set on the quad material, not per vertex.
    * @param consumer   Vertex consumer
    * @param side       Side for the quad
    * @param x          Quad X position
@@ -454,19 +517,15 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
    * @param u          Quad texture U
    * @param v          Quad texture V
    * @param color      Quad color in AARRGGBB format
-   * @param luminosity Extra light to add to the quad between 0 and 15
    */
-  private static void putVertex(VertexConsumer consumer, Direction side, float x, float y, float z, float u, float v, int color, int luminosity) {
-    // format is always DefaultVertexFormat#BLOCK, though order does not matter too much
-    int light = (luminosity << 4);
+  private static void putVertex(VertexConsumer consumer, Direction side, float x, float y, float z, float u, float v, int color) {
     consumer.addVertex(x, y, z)
             .setColor(color)
             .setNormal(side.getStepX(), side.getStepY(), side.getStepZ())
-            .setUv(u, v)
-            .setUv2(light, light);
+            .setUv(u, v);
   }
 
-  /** Cloned from {@link ItemLayerModel}'s FaceData subclass */
+  /** Cloned from the old NeoForge item layer model's FaceData subclass */
   private static class FaceData {
     private final EnumMap<Direction,BitSet> data = new EnumMap<>(Direction.class);
     private final int vMax;
@@ -495,6 +554,7 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
 
   /**
    * Class holding details about a single layer in the model
+   * @param renderType  Legacy render type name. Render types are chosen per quad from the texture in 26.x, so the only effect is that a translucent render type forces the layer translucent.
    */
   public record LayerData(int color, int luminosity, boolean noTint, @Nullable Identifier renderType) {
     public static final LayerData DEFAULT = new LayerData(-1, 0, false, null);
@@ -507,12 +567,9 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
       LayerData::new);
     public static final Loadable<List<LayerData>> LIST_LOADABLE = LOADABLE.list(1);
 
-    /** Gets the render type for this layer from the context, falling back to the passed type if not requested */
-    public RenderTypeGroup getRenderType(IGeometryBakingContext context, RenderTypeGroup defaultType) {
-      if (renderType == null) {
-        return defaultType;
-      }
-      return context.getRenderType(renderType);
+    /** Checks if this layer requested a translucent render type, which forces the layer into the translucent layer */
+    public boolean isTranslucent() {
+      return renderType != null && renderType.getPath().contains("translucent");
     }
 
     /** @deprecated use {@link #LOADABLE} */
@@ -532,6 +589,6 @@ public class MantleItemLayerModel implements IUnbakedGeometry<MantleItemLayerMod
 
   /** Deserializes this model from JSON */
   public static MantleItemLayerModel deserialize(JsonObject json, JsonDeserializationContext context) {
-    return new MantleItemLayerModel(LayerData.LIST_LOADABLE.getOrDefault(json, "layers", List.of()));
+    return new MantleItemLayerModel(StandardModelParameters.parse(json, context), LayerData.LIST_LOADABLE.getOrDefault(json, "layers", List.of()));
   }
 }

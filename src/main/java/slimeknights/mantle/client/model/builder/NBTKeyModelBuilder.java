@@ -4,26 +4,32 @@ import com.google.gson.JsonObject;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.client.model.generators.CustomLoaderBuilder;
-import net.neoforged.neoforge.client.model.generators.ModelBuilder;
-import net.neoforged.neoforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.client.model.generators.template.CustomLoaderBuilder;
 import slimeknights.mantle.Mantle;
 
-/** Loader for {@link slimeknights.mantle.client.model.NBTKeyModel} */
+import javax.annotation.Nullable;
+
+/**
+ * Loader for {@link slimeknights.mantle.client.model.NBTKeyModel}.
+ * The client item must use {@link slimeknights.mantle.client.model.NBTKeyItemModel.Unbaked} for the variants to apply.
+ */
 @Setter
 @Accessors(fluent = true)
-public class NBTKeyModelBuilder<T extends ModelBuilder<T>> extends CustomLoaderBuilder<T> {
+public class NBTKeyModelBuilder extends CustomLoaderBuilder {
+  @Nullable
   private String key = null;
+  @Nullable
   private Identifier extraTexturesKey = null;
-  public NBTKeyModelBuilder(T parent, ExistingFileHelper existingFileHelper) {
-    super(Mantle.getResource("nbt_key"), parent, existingFileHelper, false);
+  public NBTKeyModelBuilder() {
+    super(Mantle.getResource("nbt_key"), false);
   }
 
-  /** @deprecated use {@link #NBTKeyModelBuilder(T, ExistingFileHelper)} */
-  @SuppressWarnings("unused")
-  @Deprecated(forRemoval = true)
-  public NBTKeyModelBuilder(Identifier loaderId, T parent, ExistingFileHelper existingFileHelper) {
-    this(parent, existingFileHelper);
+  @Override
+  protected CustomLoaderBuilder copyInternal() {
+    NBTKeyModelBuilder builder = new NBTKeyModelBuilder();
+    builder.key = this.key;
+    builder.extraTexturesKey = this.extraTexturesKey;
+    return builder;
   }
 
   @Override
