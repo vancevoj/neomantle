@@ -189,10 +189,10 @@ public class BookCommand {
     if (bookData != null) {
       // ensure outputs exist
       if (!screenshotDir.toFile().mkdirs() && !screenshotDir.toFile().exists()) {
-        throw new RuntimeException(Component.translatable(EXPORT_FAIL_IO, screenshotDir).getString());
+        throw new RuntimeException(Component.translatableEscape(EXPORT_FAIL_IO, screenshotDir).getString());
       }
       if (htmlDir != null && !htmlDir.toFile().mkdirs() && !htmlDir.toFile().exists()) {
-        throw new RuntimeException(Component.translatable(EXPORT_FAIL_IO, htmlDir).getString());
+        throw new RuntimeException(Component.translatableEscape(EXPORT_FAIL_IO, htmlDir).getString());
       }
 
       int width = BookScreen.PAGE_WIDTH_UNSCALED * 2 * scale;
@@ -360,7 +360,7 @@ public class BookCommand {
   public static void bookNotFound(ResourceLocation book) {
     Player player = Minecraft.getInstance().player;
     if (player != null) {
-      player.displayClientMessage(Component.translatable(BOOK_NOT_FOUND, book).withStyle(ChatFormatting.RED), false);
+      player.displayClientMessage(Component.translatableEscape(BOOK_NOT_FOUND, book).withStyle(ChatFormatting.RED), false);
     }
   }
 }

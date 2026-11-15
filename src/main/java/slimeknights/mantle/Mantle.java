@@ -277,6 +277,6 @@ public class Mantle {
    * @return  Translation key
    */
   public static MutableComponent makeComponent(String base, String name, Object... args) {
-    return Component.translatable(makeDescriptionId(base, name), args);
+    return Component.translatableEscape(makeDescriptionId(base, name), args);
   }
 }
