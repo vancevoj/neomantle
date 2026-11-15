@@ -200,7 +200,12 @@ public abstract class SingleItemHandler<T extends MantleBlockEntity> extends Sna
    * @param input  Input
    */
   public void readFromNBT(ValueInput input) {
-    stack = input.read(ItemStack.MAP_CODEC).orElse(ItemStack.EMPTY);
+    // empty slots store no item (or an empty compound), reading those would report a decode problem for each
+    if (input.getStringOr("id", "").isEmpty()) {
+      stack = ItemStack.EMPTY;
+    } else {
+      stack = input.read(ItemStack.MAP_CODEC).orElse(ItemStack.EMPTY);
+    }
   }
 
   /**
