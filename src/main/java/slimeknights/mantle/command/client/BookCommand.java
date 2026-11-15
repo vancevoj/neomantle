@@ -255,7 +255,8 @@ public class BookCommand {
           }
 
           gui.pose().pushPose();
-          screen.render(gui, 0, 0, 0);
+          // draw just the pages, the screen background blurs the main render target instead of the export target
+          screen.renderPages(gui, 0, 0, 0);
           gui.flush();
           gui.pose().popPose();
 

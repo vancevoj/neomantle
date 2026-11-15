@@ -168,8 +168,27 @@ public class BookScreen extends Screen {
     // renderBackground() -> renderBlurredBackground(), which post-processes the framebuffer.
     // The old code drew the book first and only called super.render() at the end, so the blur
     // pass smeared the whole book (and held item, and world). Render the backdrop first, then the
-    // book content, then the widgets manually (end of method) so the blur stays behind the book.
+    // book content, then the widgets manually so the blur stays behind the book.
     this.renderBackground(graphics, mouseX, mouseY, partialTicks);
+
+    renderPages(graphics, mouseX, mouseY, partialTicks);
+
+    // Render widgets (page arrows, index button) WITHOUT super.render(), which would re-run
+    // renderBackground()/renderBlurredBackground() and blur the already-drawn book. This mirrors
+    // Screen.render() minus the (already-done) background pass.
+    for (net.minecraft.client.gui.components.Renderable renderable : this.renderables) {
+      renderable.render(graphics, mouseX, mouseY, partialTicks);
+    }
+  }
+
+  /**
+   * Renders all the contents of the book pages. Separate from {@link #render(GuiGraphics, int, int, float)} so the book
+   * export command can draw the pages without the blurred background, which rebinds the main render target.
+   */
+  public void renderPages(GuiGraphics graphics, int mouseX ,int mouseY, float partialTicks) {
+    if (this.minecraft == null) {
+      return;
+    }
 
     Font fontRenderer = getFontRenderer();
 
@@ -258,13 +277,6 @@ public class BookScreen extends Screen {
           matrixStack.popPose();
         }
       }
-    }
-
-    // Render widgets (page arrows, index button) WITHOUT super.render(), which would re-run
-    // renderBackground()/renderBlurredBackground() and blur the already-drawn book. This mirrors
-    // Screen.render() minus the (already-done) background pass.
-    for (net.minecraft.client.gui.components.Renderable renderable : this.renderables) {
-      renderable.render(graphics, mouseX, mouseY, partialTicks);
     }
   }
 
