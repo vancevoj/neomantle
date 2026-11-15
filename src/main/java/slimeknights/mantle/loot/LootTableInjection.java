@@ -41,6 +41,11 @@ public record LootTableInjection(ResourceLocation name, List<LootPoolInjection> 
     /** Injects this into the given loot pool */
     public void inject(LootTable table) {
       LootPool pool = table.getPool(name);
+      // NeoForge names an unnamed pool "main" only in single pool tables, in larger tables the unnamed pools are "pool0", "pool1", ...
+      // keep "main" meaning the first pool there, as it did before
+      if (pool == null && "main".equals(name)) {
+        pool = table.getPool("pool0");
+      }
       //noinspection ConstantConditions method is annotated wrongly
       if (pool != null) {
         // LootPool.entries is now a List (often immutable); rebuild it as a mutable list with the injected entries appended.
