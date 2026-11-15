@@ -1,6 +1,5 @@
 package slimeknights.mantle.plugin.jei.entity;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.RequiredArgsConstructor;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.ingredients.IIngredientRenderer;
@@ -8,15 +7,18 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import org.joml.Vector2f;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.recipe.ingredient.EntityIngredient;
@@ -68,23 +70,31 @@ public class EntityIngredientRenderer implements IIngredientRenderer<EntityIngre
           entity = Minecraft.getInstance().player;
         } else {
           // entity is created with the client world, but the entity map is thrown away when JEI restarts so they should be okay I think
-          entity = ENTITY_MAP.computeIfAbsent(type, t -> t.create(world));
+          entity = ENTITY_MAP.computeIfAbsent(type, t -> t.create(world, EntitySpawnReason.LOAD));
         }
         // only can draw living entities, plus non-living ones don't get recipes anyways
         if (entity instanceof LivingEntity livingEntity) {
-          // scale down large mobs, but don't scale up small ones
-          int scale = size / 2;
-          float height = entity.getBbHeight();
-          float width = entity.getBbWidth();
-          if (height > 2 || width > 2) {
-            scale = (int)(size / Math.max(height, width));
-          }
           // catch exceptions drawing the entity to be safe, any caught exceptions blacklist the entity
           try {
-            // 1.21: renderEntityInInventoryFollowsMouse now takes a bounding box (x1,y1,x2,y2) instead of a centre
-            // point; the entity anchors at the bottom-centre of the box, so (0,0,size,size) keeps the old (size/2,
-            // size) anchor. mouseX/mouseY at the anchor give a forward-facing entity (no live mouse-follow needed here).
-            InventoryScreen.renderEntityInInventoryFollowsMouse(graphics, 0, 0, size, size, scale, 0.0F, size / 2f, size, livingEntity);
+            // entity rendering ignores the pose, so transform our box into absolute screen coordinates first
+            // JEI translates the pose to the slot position, and may scale it for bookmarks
+            Vector2f min = graphics.pose().transformPosition(0, 0, new Vector2f());
+            Vector2f max = graphics.pose().transformPosition(size, size, new Vector2f());
+            int x0 = Math.round(min.x);
+            int y0 = Math.round(min.y);
+            int x1 = Math.round(max.x);
+            int y1 = Math.round(max.y);
+            float poseScale = (max.x - min.x) / size;
+
+            // scale down large mobs, but don't scale up small ones
+            float scale = size / 2f;
+            float height = entity.getBbHeight();
+            float width = entity.getBbWidth();
+            if (height > 2 || width > 2) {
+              scale = size / Math.max(height, width);
+            }
+            // the entity anchors at the bottom center of the box. mouseX/mouseY at the bottom center give a forward-facing entity
+            InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, x0, y0, x1, y1, Math.max(1, (int)(scale * poseScale)), 0.0F, (x0 + x1) / 2f, y1, livingEntity);
             return;
           } catch (Exception e) {
             Mantle.logger.error("Error drawing entity " + BuiltInRegistries.ENTITY_TYPE.getKey(type), e);
@@ -99,10 +109,8 @@ public class EntityIngredientRenderer implements IIngredientRenderer<EntityIngre
       }
 
       // fallback, draw a pink and black "spawn egg"
-      RenderSystem.setShader(GameRenderer::getPositionTexShader);
-      RenderSystem.setShaderColor(1, 1, 1, 1);
       int offset = (size - 16) / 2;
-      graphics.blit(MISSING, offset, offset, 0, 0, 16, 16, 16, 16);
+      graphics.blit(RenderPipelines.GUI_TEXTURED, MISSING, offset, offset, 0, 0, 16, 16, 16, 16);
     }
   }
 

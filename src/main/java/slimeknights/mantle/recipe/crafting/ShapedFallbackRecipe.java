@@ -1,33 +1,76 @@
 package slimeknights.mantle.recipe.crafting;
 
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeMap;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.item.crafting.ShapedRecipePattern;
 import net.minecraft.world.item.crafting.ShapelessRecipe;
 import net.minecraft.world.level.Level;
 import slimeknights.mantle.recipe.MantleRecipes;
+import slimeknights.mantle.recipe.helper.LoggingRecipeSerializer;
+import slimeknights.mantle.recipe.helper.RecipeHelper;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("WeakerAccess")
 public class ShapedFallbackRecipe extends ShapedRecipe {
+  /** Map codec for the recipe, JSON matches vanilla shaped recipes with the added alternatives list */
+  public static final MapCodec<ShapedFallbackRecipe> MAP_CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
+    Recipe.CommonInfo.MAP_CODEC.forGetter(r -> r.commonInfo),
+    CraftingRecipe.CraftingBookInfo.MAP_CODEC.forGetter(r -> r.bookInfo),
+    ShapedRecipePattern.MAP_CODEC.forGetter(r -> r.pattern),
+    ItemStackTemplate.CODEC.fieldOf("result").forGetter(r -> r.result),
+    Identifier.CODEC.listOf().optionalFieldOf("alternatives", List.of()).forGetter(r -> r.alternatives)
+  ).apply(inst, ShapedFallbackRecipe::new));
+  /** Stream codec for the recipe */
+  public static final StreamCodec<RegistryFriendlyByteBuf,ShapedFallbackRecipe> STREAM_CODEC = StreamCodec.composite(
+    Recipe.CommonInfo.STREAM_CODEC, r -> r.commonInfo,
+    CraftingRecipe.CraftingBookInfo.STREAM_CODEC, r -> r.bookInfo,
+    ShapedRecipePattern.STREAM_CODEC, r -> r.pattern,
+    ItemStackTemplate.STREAM_CODEC, r -> r.result,
+    Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()), r -> r.alternatives,
+    ShapedFallbackRecipe::new);
 
+  /** Copy of the result, as the vanilla field is private */
+  private final ItemStackTemplate result;
   /** Recipes to skip if they match */
   private final List<Identifier> alternatives;
+  /** Recipe map used to compute {@link #alternativeCache}, recomputed if the recipes change */
+  @Nullable
+  private RecipeMap alternativeSource;
   private List<CraftingRecipe> alternativeCache;
 
   /**
    * Main constructor, creates a recipe from all parameters
+   * @param commonInfo    Shared recipe info, contains the notification toggle
+   * @param bookInfo      Recipe book info, contains the group and category
+   * @param pattern       Recipe pattern (width, height, ingredients)
+   * @param result        Recipe output
+   * @param alternatives  List of recipe names to fail this match if they match
+   */
+  public ShapedFallbackRecipe(Recipe.CommonInfo commonInfo, CraftingRecipe.CraftingBookInfo bookInfo, ShapedRecipePattern pattern, ItemStackTemplate result, List<Identifier> alternatives) {
+    super(commonInfo, bookInfo, pattern, result);
+    this.result = result;
+    this.alternatives = List.copyOf(alternatives);
+  }
+
+  /**
+   * Creates a recipe from all parameters, adapter for the pre 26.1 parameter list
    * @param group             Recipe group
    * @param category          Recipe book category
    * @param pattern           Recipe pattern (width, height, ingredients)
@@ -36,8 +79,26 @@ public class ShapedFallbackRecipe extends ShapedRecipe {
    * @param alternatives      List of recipe names to fail this match if they match
    */
   public ShapedFallbackRecipe(String group, CraftingBookCategory category, ShapedRecipePattern pattern, ItemStack result, boolean showNotification, List<Identifier> alternatives) {
-    super(group, category, pattern, result, showNotification);
-    this.alternatives = alternatives;
+    this(new Recipe.CommonInfo(showNotification), new CraftingRecipe.CraftingBookInfo(category, group), pattern, ItemStackTemplate.fromNonEmptyStack(result), alternatives);
+  }
+
+  /**
+   * Creates a recipe copying the given shaped recipe
+   * @param shaped        Shaped recipe to copy
+   * @param alternatives  List of recipe names to fail this match if they match
+   */
+  public ShapedFallbackRecipe(ShapedRecipe shaped, List<Identifier> alternatives) {
+    this(new Recipe.CommonInfo(shaped.showNotification()), new CraftingRecipe.CraftingBookInfo(shaped.category(), shaped.group()), shaped.pattern, ShapedRetexturedRecipe.resultTemplate(shaped), alternatives);
+  }
+
+  /** Gets the result template */
+  ItemStackTemplate getResult() {
+    return result;
+  }
+
+  /** Gets the list of alternative recipe IDs */
+  public List<Identifier> getAlternatives() {
+    return alternatives;
   }
 
   @Override
@@ -48,77 +109,49 @@ public class ShapedFallbackRecipe extends ShapedRecipe {
     }
 
     // fetch all alternatives, fail if any match
-    // cache to save effort down the line
-    if (alternativeCache == null) {
-      var manager = world.getRecipeManager();
-      alternativeCache = alternatives.stream()
-                                     .map(manager::byKey)
-                                     .filter(java.util.Optional::isPresent)
-                                     .map(java.util.Optional::get)
-                                     .map(holder -> holder.value())
-                                     .filter(recipe -> {
-                                       // only allow exact shaped or shapeless match, prevent infinite recursion due to complex recipes
-                                       Class<?> clazz = recipe.getClass();
-                                       return clazz == ShapedRecipe.class || clazz == ShapelessRecipe.class;
-                                     })
-                                     .map(recipe -> (CraftingRecipe) recipe)
-                                     .toList();
+    // cache to save effort down the line, recompute if the recipe map changed (client sync or reload)
+    RecipeMap recipes = RecipeHelper.recipes(world);
+    if (alternativeCache == null || alternativeSource != recipes) {
+      List<CraftingRecipe> cache = new ArrayList<>();
+      for (Identifier alternative : alternatives) {
+        RecipeHolder<?> holder = recipes.byKey(RecipeHelper.key(alternative));
+        if (holder != null) {
+          // only allow exact shaped or shapeless match, prevent infinite recursion due to complex recipes
+          Recipe<?> recipe = holder.value();
+          Class<?> clazz = recipe.getClass();
+          if (clazz == ShapedRecipe.class || clazz == ShapelessRecipe.class) {
+            cache.add((CraftingRecipe) recipe);
+          }
+        }
+      }
+      alternativeCache = List.copyOf(cache);
+      alternativeSource = recipes;
     }
     // fail if any alternative matches
     return this.alternativeCache.stream().noneMatch(recipe -> recipe.matches(inv, world));
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})  // vanilla types the serializer as the parent class
   @Override
-  public RecipeSerializer<?> getSerializer() {
-    return MantleRecipes.CRAFTING_SHAPED_FALLBACK.get();
+  public RecipeSerializer<ShapedRecipe> getSerializer() {
+    return (RecipeSerializer) MantleRecipes.CRAFTING_SHAPED_FALLBACK.get();
   }
 
-  public static class Serializer implements RecipeSerializer<ShapedFallbackRecipe> {
-    private static final MapCodec<ShapedFallbackRecipe> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
-      Codec.STRING.optionalFieldOf("group", "").forGetter(ShapedRecipe::getGroup),
-      CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(ShapedRecipe::category),
-      ShapedRecipePattern.MAP_CODEC.forGetter(r -> r.pattern),
-      ItemStack.STRICT_CODEC.fieldOf("result").forGetter(r -> r.getResultItem(null)),
-      Codec.BOOL.optionalFieldOf("show_notification", true).forGetter(ShapedRecipe::showNotification),
-      Identifier.CODEC.listOf().optionalFieldOf("alternatives", List.of()).forGetter(r -> r.alternatives)
-    ).apply(inst, ShapedFallbackRecipe::new));
-
-    private static final StreamCodec<RegistryFriendlyByteBuf, ShapedFallbackRecipe> STREAM_CODEC = StreamCodec.of(Serializer::toNetwork, Serializer::fromNetwork);
-
+  /** Serializer logic, register {@link #toSerializer()} */
+  public static class Serializer implements LoggingRecipeSerializer<ShapedFallbackRecipe> {
     @Override
     public MapCodec<ShapedFallbackRecipe> codec() {
-      return CODEC;
+      return MAP_CODEC;
     }
 
     @Override
-    public StreamCodec<RegistryFriendlyByteBuf, ShapedFallbackRecipe> streamCodec() {
-      return STREAM_CODEC;
+    public ShapedFallbackRecipe fromNetworkSafe(RegistryFriendlyByteBuf buffer) {
+      return STREAM_CODEC.decode(buffer);
     }
 
-    private static ShapedFallbackRecipe fromNetwork(RegistryFriendlyByteBuf buffer) {
-      String group = buffer.readUtf();
-      CraftingBookCategory category = buffer.readEnum(CraftingBookCategory.class);
-      ShapedRecipePattern pattern = ShapedRecipePattern.STREAM_CODEC.decode(buffer);
-      ItemStack result = ItemStack.STREAM_CODEC.decode(buffer);
-      boolean showNotification = buffer.readBoolean();
-      int size = buffer.readVarInt();
-      List<Identifier> alternatives = new java.util.ArrayList<>(size);
-      for (int i = 0; i < size; i++) {
-        alternatives.add(buffer.readIdentifier());
-      }
-      return new ShapedFallbackRecipe(group, category, pattern, result, showNotification, List.copyOf(alternatives));
-    }
-
-    private static void toNetwork(RegistryFriendlyByteBuf buffer, ShapedFallbackRecipe recipe) {
-      buffer.writeUtf(recipe.group());
-      buffer.writeEnum(recipe.category());
-      ShapedRecipePattern.STREAM_CODEC.encode(buffer, recipe.pattern);
-      ItemStack.STREAM_CODEC.encode(buffer, recipe.getResultItem(null));
-      buffer.writeBoolean(recipe.showNotification());
-      buffer.writeVarInt(recipe.alternatives.size());
-      for (Identifier alternative : recipe.alternatives) {
-        buffer.writeIdentifier(alternative);
-      }
+    @Override
+    public void toNetworkSafe(RegistryFriendlyByteBuf buffer, ShapedFallbackRecipe recipe) {
+      STREAM_CODEC.encode(buffer, recipe);
     }
   }
 }

@@ -2,6 +2,7 @@ package slimeknights.mantle.recipe.data;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
@@ -19,8 +20,8 @@ import java.util.stream.Stream;
  * <p>
  * Behavior change for the NeoForge 1.21 port: instead of producing raw JSON via {@code toJson()}, this is now a
  * {@link ICustomIngredient} and serializes via {@link #TYPE}'s {@link MapCodec}. It is written at datagen while the
- * referenced items may not be loaded, but the generated recipe is guarded by a {@code neoforge:item_exists} condition,
- * so it only ever loads at runtime once the item is present. It therefore must support {@link #test} and {@link #getItems}
+ * referenced items may not be loaded, but the generated recipe is guarded by a {@code neoforge:registered} condition,
+ * so it only ever loads at runtime once the item is present. It therefore must support {@link #test} and {@link #items()}
  * for that live recipe, which it does by resolving the names against the item registry.
  */
 public class ItemNameIngredient implements ICustomIngredient {
@@ -50,7 +51,7 @@ public class ItemNameIngredient implements ICustomIngredient {
     if (stack.isEmpty()) {
       return false;
     }
-    // resolve each name against the registry; a live recipe reaches here only because item_exists passed, but a name
+    // resolve each name against the registry; a live recipe reaches here only because the registered condition passed, but a name
     // may still be absent if several are listed and only some are loaded, so skip the ones that resolve to air
     for (Identifier name : names) {
       Item item = BuiltInRegistries.ITEM.getValue(name);
@@ -62,12 +63,12 @@ public class ItemNameIngredient implements ICustomIngredient {
   }
 
   @Override
-  public Stream<ItemStack> getItems() {
+  public Stream<Holder<Item>> items() {
     // datagen-only; return the items that happen to resolve so the ingredient is not considered empty
     return names.stream()
-                .map(BuiltInRegistries.ITEM::get)
-                .filter(item -> item != Items.AIR)
-                .map(ItemStack::new);
+                .flatMap(name -> BuiltInRegistries.ITEM.get(name).stream())
+                .filter(holder -> holder.value() != Items.AIR)
+                .<Holder<Item>>map(holder -> holder);
   }
 
   @Override

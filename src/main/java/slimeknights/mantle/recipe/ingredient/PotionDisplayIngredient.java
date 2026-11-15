@@ -41,15 +41,19 @@ public class PotionDisplayIngredient extends ItemIngredient {
     return new PotionDisplayIngredient(List.of(), tag);
   }
 
+  /**
+   * Matching only checks the item, but this is not simple as since 1.21.2 simple ingredients sync just their items,
+   * which would lose the potion variants for display on the client.
+   */
   @Override
   public boolean isSimple() {
-    return true;
+    return false;
   }
 
   @Override
-  public Stream<ItemStack> getItems() {
+  public Stream<ItemStack> getStacks() {
     // show every registered potion on each matched item (1.21 has no empty potion to skip)
-    List<ItemStack> parentStacks = super.getItems().toList();
+    List<ItemStack> parentStacks = super.getStacks().toList();
     return BuiltInRegistries.POTION.listElements()
       .flatMap(potion -> parentStacks.stream().map(item -> {
         ItemStack copy = item.copy();

@@ -6,14 +6,21 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.item.crafting.ShapedRecipePattern;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import slimeknights.mantle.recipe.MantleRecipes;
@@ -24,16 +31,86 @@ import slimeknights.mantle.util.RetexturedHelper;
 // TODO 1.21: rework to be more like the ShapedMaterialsRecipe from Tinkers for more efficient network syncing
 @SuppressWarnings("WeakerAccess")
 public class ShapedRetexturedRecipe extends ShapedRecipe {
+  /** Map codec for the recipe, JSON matches vanilla shaped recipes with the added texture fields */
+  public static final MapCodec<ShapedRetexturedRecipe> MAP_CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
+    Recipe.CommonInfo.MAP_CODEC.forGetter(r -> r.commonInfo),
+    CraftingRecipe.CraftingBookInfo.MAP_CODEC.forGetter(r -> r.bookInfo),
+    ShapedRecipePattern.MAP_CODEC.forGetter(r -> r.pattern),
+    ItemStackTemplate.CODEC.fieldOf("result").forGetter(r -> r.result),
+    Ingredient.CODEC.fieldOf("texture").forGetter(r -> r.texture),
+    Codec.BOOL.optionalFieldOf("match_all", false).forGetter(r -> r.matchAll)
+  ).apply(inst, ShapedRetexturedRecipe::new));
+  /** Stream codec for the recipe */
+  public static final StreamCodec<RegistryFriendlyByteBuf,ShapedRetexturedRecipe> STREAM_CODEC = StreamCodec.composite(
+    Recipe.CommonInfo.STREAM_CODEC, r -> r.commonInfo,
+    CraftingRecipe.CraftingBookInfo.STREAM_CODEC, r -> r.bookInfo,
+    ShapedRecipePattern.STREAM_CODEC, r -> r.pattern,
+    ItemStackTemplate.STREAM_CODEC, r -> r.result,
+    Ingredient.CONTENTS_STREAM_CODEC, r -> r.texture,
+    ByteBufCodecs.BOOL, r -> r.matchAll,
+    ShapedRetexturedRecipe::new);
+
   /** Ingredient used to determine the texture on the output */
   @Getter
   private final Ingredient texture;
   private final boolean matchAll;
+  /** Copy of the result, as the vanilla field is private */
+  private final ItemStackTemplate result;
 
   /** Creates a new recipe using the passed parameters */
-  protected ShapedRetexturedRecipe(String group, CraftingBookCategory category, ShapedRecipePattern pattern, ItemStack result, boolean showNotification, Ingredient texture, boolean matchAll) {
-    super(group, category, pattern, result, showNotification);
+  protected ShapedRetexturedRecipe(Recipe.CommonInfo commonInfo, CraftingRecipe.CraftingBookInfo bookInfo, ShapedRecipePattern pattern, ItemStackTemplate result, Ingredient texture, boolean matchAll) {
+    super(commonInfo, bookInfo, pattern, result);
+    this.result = result;
     this.texture = texture;
     this.matchAll = matchAll;
+  }
+
+  /** Creates a new recipe using the passed parameters, adapter for the pre 26.1 parameter list */
+  protected ShapedRetexturedRecipe(String group, CraftingBookCategory category, ShapedRecipePattern pattern, ItemStack result, boolean showNotification, Ingredient texture, boolean matchAll) {
+    this(new Recipe.CommonInfo(showNotification), new CraftingRecipe.CraftingBookInfo(category, group), pattern, ItemStackTemplate.fromNonEmptyStack(result), texture, matchAll);
+  }
+
+  /**
+   * Creates a new recipe copying the given shaped recipe
+   * @param shaped    Shaped recipe to copy
+   * @param texture   Ingredient to use for the texture
+   * @param matchAll  If true, all texture inputs must match
+   */
+  protected ShapedRetexturedRecipe(ShapedRecipe shaped, Ingredient texture, boolean matchAll) {
+    this(new Recipe.CommonInfo(shaped.showNotification()), new CraftingRecipe.CraftingBookInfo(shaped.category(), shaped.group()), shaped.pattern, resultTemplate(shaped), texture, matchAll);
+  }
+
+  /**
+   * Gets the result template of a shaped recipe, as the vanilla field is private.
+   * @param recipe  Shaped recipe
+   * @return  Result template
+   */
+  static ItemStackTemplate resultTemplate(ShapedRecipe recipe) {
+    if (recipe instanceof ShapedRetexturedRecipe retextured) {
+      return retextured.result;
+    }
+    if (recipe instanceof ShapedFallbackRecipe fallback) {
+      return fallback.getResult();
+    }
+    // vanilla shaped recipes display their exact result template
+    for (RecipeDisplay display : recipe.display()) {
+      if (display.result() instanceof SlotDisplay.ItemStackSlotDisplay(ItemStackTemplate stack)) {
+        return stack;
+      }
+    }
+    // shaped recipes ignore the input to assemble
+    return ItemStackTemplate.fromNonEmptyStack(recipe.assemble(CraftingInput.EMPTY));
+  }
+
+  /** Gets the untextured result of this recipe */
+  public ItemStack getResultItem() {
+    return result.create();
+  }
+
+  /** @deprecated use {@link #getResultItem()}, registries are no longer needed */
+  @Deprecated
+  public ItemStack getResultItem(HolderLookup.Provider registries) {
+    return getResultItem();
   }
 
   /**
@@ -41,13 +118,19 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
    * @param texture  Texture to use
    * @return  Output with texture. Will be blank if the input is not a block
    */
+  public ItemStack getResultItem(Item texture) {
+    return RetexturedHelper.setTexture(getResultItem(), Block.byItem(texture));
+  }
+
+  /** @deprecated use {@link #getResultItem(Item)}, registries are no longer needed */
+  @Deprecated
   public ItemStack getResultItem(Item texture, HolderLookup.Provider registries) {
-    return RetexturedHelper.setTexture(getResultItem(registries).copy(), Block.byItem(texture));
+    return getResultItem(texture);
   }
 
   @Override
-  public ItemStack assemble(CraftingInput input, HolderLookup.Provider registries) {
-    ItemStack result = super.assemble(input, registries);
+  public ItemStack assemble(CraftingInput input) {
+    ItemStack result = super.assemble(input);
     Block currentTexture = null;
     for (int i = 0; i < input.size(); i++) {
       ItemStack stack = input.getItem(i);
@@ -86,48 +169,27 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
     return result;
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})  // vanilla types the serializer as the parent class
   @Override
-  public RecipeSerializer<?> getSerializer() {
-    return MantleRecipes.CRAFTING_SHAPED_RETEXTURED.get();
+  public RecipeSerializer<ShapedRecipe> getSerializer() {
+    return (RecipeSerializer) MantleRecipes.CRAFTING_SHAPED_RETEXTURED.get();
   }
 
+  /** Serializer logic, register {@link #toSerializer()} */
   public static class Serializer implements LoggingRecipeSerializer<ShapedRetexturedRecipe> {
-    private static final MapCodec<ShapedRetexturedRecipe> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
-      Codec.STRING.optionalFieldOf("group", "").forGetter(ShapedRecipe::getGroup),
-      CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(ShapedRecipe::category),
-      ShapedRecipePattern.MAP_CODEC.forGetter(r -> r.pattern),
-      ItemStack.STRICT_CODEC.fieldOf("result").forGetter(r -> r.getResultItem(null)),
-      Codec.BOOL.optionalFieldOf("show_notification", true).forGetter(ShapedRecipe::showNotification),
-      Ingredient.CODEC.fieldOf("texture").forGetter(r -> r.texture),
-      Codec.BOOL.optionalFieldOf("match_all", false).forGetter(r -> r.matchAll)
-    ).apply(inst, ShapedRetexturedRecipe::new));
-
     @Override
     public MapCodec<ShapedRetexturedRecipe> codec() {
-      return CODEC;
+      return MAP_CODEC;
     }
 
     @Override
     public ShapedRetexturedRecipe fromNetworkSafe(RegistryFriendlyByteBuf buffer) {
-      String group = buffer.readUtf();
-      CraftingBookCategory category = buffer.readEnum(CraftingBookCategory.class);
-      ShapedRecipePattern pattern = ShapedRecipePattern.STREAM_CODEC.decode(buffer);
-      ItemStack result = ItemStack.STREAM_CODEC.decode(buffer);
-      boolean showNotification = buffer.readBoolean();
-      Ingredient texture = Ingredient.CONTENTS_STREAM_CODEC.decode(buffer);
-      boolean matchAll = buffer.readBoolean();
-      return new ShapedRetexturedRecipe(group, category, pattern, result, showNotification, texture, matchAll);
+      return STREAM_CODEC.decode(buffer);
     }
 
     @Override
     public void toNetworkSafe(RegistryFriendlyByteBuf buffer, ShapedRetexturedRecipe recipe) {
-      buffer.writeUtf(recipe.group());
-      buffer.writeEnum(recipe.category());
-      ShapedRecipePattern.STREAM_CODEC.encode(buffer, recipe.pattern);
-      ItemStack.STREAM_CODEC.encode(buffer, recipe.getResultItem(null));
-      buffer.writeBoolean(recipe.showNotification());
-      Ingredient.CONTENTS_STREAM_CODEC.encode(buffer, recipe.texture);
-      buffer.writeBoolean(recipe.matchAll);
+      STREAM_CODEC.encode(buffer, recipe);
     }
   }
 }

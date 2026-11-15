@@ -2,9 +2,11 @@ package slimeknights.mantle.recipe.data;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.common.crafting.ICustomIngredient;
@@ -64,11 +66,11 @@ public class NBTNameIngredient implements ICustomIngredient {
   }
 
   @Override
-  public Stream<ItemStack> getItems() {
+  public Stream<Holder<Item>> items() {
     // datagen-only; return the item if it happens to resolve so the ingredient is not considered empty
-    return Stream.of(BuiltInRegistries.ITEM.getValue(name))
-                 .filter(item -> item != Items.AIR)
-                 .map(ItemStack::new);
+    return BuiltInRegistries.ITEM.get(name).stream()
+                 .filter(holder -> holder.value() != Items.AIR)
+                 .<Holder<Item>>map(holder -> holder);
   }
 
   @Override

@@ -2,14 +2,13 @@ package slimeknights.mantle.recipe.ingredient;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonElement;
+import com.mojang.serialization.Codec;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SpawnEggItem;
 import org.jetbrains.annotations.Nullable;
 import slimeknights.mantle.data.loadable.IAmLoadable;
@@ -22,7 +21,6 @@ import slimeknights.mantle.util.RegistryHelper;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -144,7 +142,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
   public List<ItemStack> getEggs() {
     if (eggs == null) {
       // use getDisplay to guarantee order is the same, just in case
-      eggs = getDisplay().stream().map(type -> new ItemStack(Objects.requireNonNullElse(SpawnEggItem.byId(type.type), Items.AIR))).toList();
+      eggs = getDisplay().stream().map(type -> SpawnEggItem.byId(type.type).map(ItemStack::new).orElse(ItemStack.EMPTY)).toList();
     }
     return eggs;
   }
@@ -156,13 +154,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
   public List<@Nullable ItemStack> getDisplayEggs() {
     if (displayEggs == null) {
       // use getDisplay to guarantee order is the same, just in case
-      displayEggs = getTypes().stream().map(type -> {
-        Item item = SpawnEggItem.byId(type);
-        if (item == null) {
-          return null;
-        }
-        return new ItemStack(item);
-      }).toList();
+      displayEggs = getTypes().stream().map(type -> SpawnEggItem.byId(type).map(ItemStack::new).orElse(null)).toList();
     }
     return displayEggs;
   }
@@ -205,7 +197,7 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
 
     @Override
     public boolean test(EntityType<?> type) {
-      return type.is(tag);
+      return type.builtInRegistryHolder().is(tag);
     }
 
     @SuppressWarnings("deprecation")
@@ -252,6 +244,9 @@ public abstract class EntityIngredient implements Predicate<EntityType<?>>, IAmL
 
   /** Simple wrapper around entity type for usage in JEI */
   public record EntityInput(EntityType<?> type) {
+    /** Codec for this input, used by JEI for bookmarks */
+    public static final Codec<EntityInput> CODEC = BuiltInRegistries.ENTITY_TYPE.byNameCodec().xmap(EntityInput::new, EntityInput::type);
+
     /** Wraps the given list into a list of entity inputs */
     public static List<EntityInput> wrap(Collection<EntityType<?>> types) {
       return types.stream().map(EntityInput::new).toList();

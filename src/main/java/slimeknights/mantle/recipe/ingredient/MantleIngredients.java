@@ -17,6 +17,7 @@ public class MantleIngredients {
   private static final DeferredRegister<IngredientType<?>> INGREDIENT_TYPES = DeferredRegister.create(NeoForgeRegistries.Keys.INGREDIENT_TYPES, Mantle.modId);
 
   static {
+    INGREDIENT_TYPES.register("empty", () -> EmptyIngredient.TYPE);
     INGREDIENT_TYPES.register("potion", () -> PotionIngredient.TYPE);
     INGREDIENT_TYPES.register("potion_display", () -> PotionDisplayIngredient.TYPE);
     INGREDIENT_TYPES.register("fluid_container", () -> FluidContainerIngredient.TYPE);

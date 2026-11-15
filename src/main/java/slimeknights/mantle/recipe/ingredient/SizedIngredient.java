@@ -3,6 +3,8 @@ package slimeknights.mantle.recipe.ingredient;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
@@ -12,9 +14,8 @@ import net.minecraft.world.level.ItemLike;
 import slimeknights.mantle.data.loadable.common.IngredientLoadable;
 import slimeknights.mantle.data.loadable.primitive.IntLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
+import slimeknights.mantle.recipe.helper.IngredientHelper;
 
-import java.lang.ref.WeakReference;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor(staticName = "of")
 public class SizedIngredient implements Predicate<ItemStack> {
   /** Empty sized ingredient wrapper. Matches only the empty stack of size 0 */
-  public static final SizedIngredient EMPTY = of(Ingredient.EMPTY, 0);
+  public static final SizedIngredient EMPTY = of(EmptyIngredient.VANILLA, 0);
 
   public static final RecordLoadable<SizedIngredient> LOADABLE = RecordLoadable.create(
     IngredientLoadable.DISALLOW_EMPTY.tryDirectField("ingredient", SizedIngredient::getIngredient, "amount_needed"),
@@ -39,8 +40,8 @@ public class SizedIngredient implements Predicate<ItemStack> {
   @Getter
   private final int amountNeeded;
 
-  /** Last list of matching stacks from the ingredient */
-  private WeakReference<ItemStack[]> lastIngredientMatch;
+  /** Items matched by the ingredient last time the stacks were computed, used to detect tag reloads */
+  private List<Holder<Item>> lastIngredientMatch;
   /** Cached matching stacks from last time it was requested */
   private List<ItemStack> matchingStacks;
 
@@ -79,7 +80,28 @@ public class SizedIngredient implements Predicate<ItemStack> {
    * @return  Sized ingredient matching any size
    */
   public static SizedIngredient fromTag(TagKey<Item> tag, int amountNeeded) {
-    return of(Ingredient.of(tag), amountNeeded);
+    return of(IngredientHelper.tag(tag), amountNeeded);
+  }
+
+  /**
+   * Gets a new sized ingredient for a tag using the given item lookup, preferred in datagen
+   * @param items         Item lookup, such as from the recipe output
+   * @param tag           Tag to match
+   * @param amountNeeded  Number that must match of this ingredient
+   * @return  Sized ingredient matching any size
+   */
+  public static SizedIngredient fromTag(HolderGetter<Item> items, TagKey<Item> tag, int amountNeeded) {
+    return of(IngredientHelper.tag(items, tag), amountNeeded);
+  }
+
+  /**
+   * Gets a new sized ingredient for a tag with a size of 1 using the given item lookup, preferred in datagen
+   * @param items  Item lookup, such as from the recipe output
+   * @param tag    Tag to match
+   * @return  Sized ingredient matching any size
+   */
+  public static SizedIngredient fromTag(HolderGetter<Item> items, TagKey<Item> tag) {
+    return fromTag(items, tag, 1);
   }
 
   /**
@@ -109,17 +131,23 @@ public class SizedIngredient implements Predicate<ItemStack> {
    * @return  List of matching stacks
    */
   public List<ItemStack> getMatchingStacks() {
-    ItemStack[] ingredientMatch = ingredient.getItems();
-    // if we never cached, or the array instance changed since we last cached, recache
-    if (matchingStacks == null || lastIngredientMatch.get() != ingredientMatch) {
-      matchingStacks = Arrays.stream(ingredientMatch).map(stack -> {
+    List<Holder<Item>> ingredientMatch;
+    try {
+      ingredientMatch = ingredient.items().toList();
+    } catch (RuntimeException e) {
+      // tags not yet bound
+      ingredientMatch = List.of();
+    }
+    // if we never cached, or the matched items changed since we last cached (tag reload), recache
+    if (matchingStacks == null || !ingredientMatch.equals(lastIngredientMatch)) {
+      matchingStacks = IngredientHelper.getStacks(ingredient).stream().map(stack -> {
         if (stack.getCount() != amountNeeded) {
           stack = stack.copy();
           stack.setCount(amountNeeded);
         }
         return stack;
       }).collect(Collectors.toList());
-      lastIngredientMatch = new WeakReference<>(ingredientMatch);
+      lastIngredientMatch = ingredientMatch;
     }
     return matchingStacks;
   }

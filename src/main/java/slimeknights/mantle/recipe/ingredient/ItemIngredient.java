@@ -7,6 +7,8 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.level.ItemLike;
 import net.neoforged.neoforge.common.crafting.ICustomIngredient;
 import slimeknights.mantle.data.loadable.Loadable;
@@ -19,6 +21,7 @@ import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -55,14 +58,37 @@ public abstract class ItemIngredient implements ICustomIngredient {
   }
 
   @Override
-  public Stream<ItemStack> getItems() {
-    Stream<ItemStack> itemStacks = items.stream().map(ItemStack::new);
+  public Stream<Holder<Item>> items() {
+    Stream<Holder<Item>> itemHolders = items.stream().map(Item::builtInRegistryHolder);
     if (tag != null) {
-      Stream<ItemStack> tagStacks = StreamSupport.stream(BuiltInRegistries.ITEM.getTagOrEmpty(tag).spliterator(), false)
-        .map(Holder::value).map(ItemStack::new);
-      return Stream.concat(itemStacks, tagStacks);
+      Stream<Holder<Item>> tagHolders = StreamSupport.stream(BuiltInRegistries.ITEM.getTagOrEmpty(tag).spliterator(), false);
+      return Stream.concat(itemHolders, tagHolders);
     }
-    return itemStacks;
+    return itemHolders;
+  }
+
+  /** Gets the list of display stacks for this ingredient, replacing {@code getItems()} from before 1.21.2. Subclasses may add components. */
+  public Stream<ItemStack> getStacks() {
+    return items().map(ItemStack::new);
+  }
+
+  /** Display showing each stack from {@link #getStacks()}, so subclasses adding components are displayed properly */
+  @Override
+  public SlotDisplay display() {
+    return new SlotDisplay.Composite(getStacks().filter(stack -> !stack.isEmpty()).<SlotDisplay>map(stack -> new SlotDisplay.ItemStackSlotDisplay(ItemStackTemplate.fromNonEmptyStack(stack))).toList());
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    return obj != null && obj.getClass() == this.getClass() && obj instanceof ItemIngredient other && items.equals(other.items) && Objects.equals(tag, other.tag);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getClass(), items, tag);
   }
 
   /** Custom field that syncs the item tag as items to the client */
@@ -91,7 +117,7 @@ public abstract class ItemIngredient implements ICustomIngredient {
     @Override
     public void encode(FriendlyByteBuf buffer, ItemIngredient parent) {
       // sync both tag and item values to client
-      ITEM_LIST.encode(buffer, parent.getItems().map(ItemStack::getItem).toList());
+      ITEM_LIST.encode(buffer, parent.items().map(Holder::value).toList());
     }
   }
 }

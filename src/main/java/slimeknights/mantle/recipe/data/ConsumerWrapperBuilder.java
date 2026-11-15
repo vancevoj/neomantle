@@ -3,14 +3,20 @@ package slimeknights.mantle.recipe.data;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
 import net.minecraft.data.recipes.RecipeOutput;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.crafting.Recipe;
 import net.neoforged.neoforge.common.conditions.ICondition;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Builds a {@link RecipeOutput} wrapper, which adds conditions to all recipes passed through it.
@@ -61,7 +67,24 @@ public class ConsumerWrapperBuilder {
     }
 
     @Override
-    public void accept(Identifier id, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
+    public <S> HolderGetter<S> lookup(ResourceKey<? extends Registry<? extends S>> key) {
+      return base.lookup(key);
+    }
+
+    @SuppressWarnings("deprecation")
+    @Deprecated
+    @Override
+    public <S> Stream<Holder.Reference<S>> listContextElements(ResourceKey<? extends Registry<? extends S>> key) {
+      return base.listContextElements(key);
+    }
+
+    @Override
+    public <S> Optional<HolderLookup<S>> holderLookup(ResourceKey<? extends Registry<? extends S>> registry) {
+      return base.holderLookup(registry);
+    }
+
+    @Override
+    public void accept(ResourceKey<Recipe<?>> id, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
       ICondition[] combined;
       if (this.conditions.isEmpty()) {
         combined = conditions;

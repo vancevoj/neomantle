@@ -64,12 +64,22 @@ public class PotionIngredient extends ItemIngredient {
   }
 
   @Override
-  public Stream<ItemStack> getItems() {
+  public Stream<ItemStack> getStacks() {
     // set the potion on each matched item
-    return super.getItems().map(stack -> {
+    return super.getStacks().map(stack -> {
       stack.set(DataComponents.POTION_CONTENTS, new PotionContents(potion));
       return stack;
     });
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return super.equals(obj) && obj instanceof PotionIngredient other && potion.equals(other.potion);
+  }
+
+  @Override
+  public int hashCode() {
+    return 31 * super.hashCode() + potion.hashCode();
   }
 
   @Override

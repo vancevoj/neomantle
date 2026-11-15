@@ -1,16 +1,15 @@
 package slimeknights.mantle.plugin.jei.entity;
 
-import com.mojang.datafixers.util.Pair;
 import mezz.jei.api.constants.Tags;
 import mezz.jei.api.ingredients.IIngredientHelper;
 import mezz.jei.api.ingredients.IIngredientType;
 import mezz.jei.api.ingredients.subtypes.UidContext;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import slimeknights.mantle.data.loadable.Loadables;
@@ -48,17 +47,12 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityInput> {
   /* IDs */
 
   @Override
-  public String getUniqueId(EntityInput type, UidContext context) {
-    return getResourceLocation(type).toString();
-  }
-
-  @Override
   public Object getUid(EntityInput ingredient, UidContext context) {
     return ingredient.type();
   }
 
   @Override
-  public Identifier getResourceLocation(EntityInput type) {
+  public Identifier getIdentifier(EntityInput type) {
     return Loadables.ENTITY_TYPE.getKey(type.type());
   }
 
@@ -67,7 +61,7 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityInput> {
     if (type == null) {
       return "null";
     }
-    return getResourceLocation(type).toString();
+    return getIdentifier(type).toString();
   }
 
 
@@ -75,11 +69,7 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityInput> {
 
   @Override
   public ItemStack getCheatItemStack(EntityInput ingredient) {
-    Item egg = SpawnEggItem.byId(ingredient.type());
-    if (egg != null) {
-      return new ItemStack(egg);
-    }
-    return ItemStack.EMPTY;
+    return SpawnEggItem.byId(ingredient.type()).map(ItemStack::new).orElse(ItemStack.EMPTY);
   }
 
   @Override
@@ -98,14 +88,14 @@ public class EntityIngredientHelper implements IIngredientHelper<EntityInput> {
 
   @Override
   public boolean isHiddenFromRecipeViewersByTags(EntityInput ingredient) {
-    return ingredient.type().is(hiddenFromRecipeViewers);
+    return ingredient.type().builtInRegistryHolder().is(hiddenFromRecipeViewers);
   }
 
   @Override
   public Optional<TagKey<?>> getTagKeyEquivalent(Collection<EntityInput> ingredients) {
     List<EntityType<?>> types = ingredients.stream().map(EntityInput::type).collect(Collectors.toList());
     return BuiltInRegistries.ENTITY_TYPE.getTags()
-      .filter(entry -> RegistryHelper.isTagEquivalent(entry.getSecond(), types))
-      .<TagKey<?>>map(Pair::getFirst).findFirst();
+      .filter(tag -> RegistryHelper.isTagEquivalent(tag, types))
+      .<TagKey<?>>map(HolderSet.Named::key).findFirst();
   }
 }

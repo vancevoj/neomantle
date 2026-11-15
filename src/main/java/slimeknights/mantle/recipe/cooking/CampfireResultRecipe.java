@@ -9,6 +9,7 @@ import net.minecraft.world.item.crafting.CookingBookCategory;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.SingleRecipeInput;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
 import slimeknights.mantle.data.loadable.common.IngredientLoadable;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.IntLoadable;
@@ -17,34 +18,42 @@ import slimeknights.mantle.recipe.MantleRecipes;
 import slimeknights.mantle.recipe.helper.ItemOutput;
 import slimeknights.mantle.recipe.helper.LoadableRecipeSerializer;
 
+import java.util.List;
+
 /** Extension of {@link CampfireCookingRecipe} to support {@link ItemOutput} */
 @Getter
 public class CampfireResultRecipe extends CampfireCookingRecipe implements CookingResultRecipe {
-  public static LoadableField<Integer, AbstractCookingRecipe> COOKING_TIME_FIELD = IntLoadable.FROM_ONE.defaultField("cooking_time", 600, true, AbstractCookingRecipe::getCookingTime);
+  public static LoadableField<Integer, AbstractCookingRecipe> COOKING_TIME_FIELD = IntLoadable.FROM_ONE.defaultField("cooking_time", 600, true, AbstractCookingRecipe::cookingTime);
   public static final RecordLoadable<CampfireResultRecipe> LOADABLE = RecordLoadable.create(
     LoadableRecipeSerializer.RECIPE_GROUP, CookingResultRecipe.CATEGORY_FIELD,
-    IngredientLoadable.DISALLOW_EMPTY.requiredField("ingredient", r -> r.ingredient),
+    IngredientLoadable.DISALLOW_EMPTY.requiredField("ingredient", r -> r.input()),
     RESULT_FIELD, EXPERIENCE_FIELD, COOKING_TIME_FIELD,
     CampfireResultRecipe::new);
 
   private final ItemOutput result;
   public CampfireResultRecipe(String group, CookingBookCategory category, Ingredient ingredient, ItemOutput result, float experience, int cookingTime) {
-    super(group, category, ingredient, ItemStack.EMPTY, experience, cookingTime);
+    super(CookingResultRecipe.commonInfo(), new AbstractCookingRecipe.CookingBookInfo(category, group), ingredient, CookingResultRecipe.vanillaResult(result), experience, cookingTime);
     this.result = result;
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})  // vanilla types the serializer as the parent class
   @Override
-  public RecipeSerializer<?> getSerializer() {
-    return MantleRecipes.CAMPFIRE.get();
+  public RecipeSerializer<CampfireCookingRecipe> getSerializer() {
+    return (RecipeSerializer) MantleRecipes.CAMPFIRE.get();
   }
 
-  @Override
+  /** Gets the result of this recipe for display, Mantle API as {@link net.minecraft.world.item.crafting.Recipe} no longer has it */
   public ItemStack getResultItem(HolderLookup.Provider registries) {
     return result.get();
   }
 
   @Override
-  public ItemStack assemble(SingleRecipeInput input, HolderLookup.Provider registries) {
+  public ItemStack assemble(SingleRecipeInput input) {
     return result.copy();
+  }
+
+  @Override
+  public List<RecipeDisplay> display() {
+    return CookingResultRecipe.display(this, result, furnaceIcon());
   }
 }

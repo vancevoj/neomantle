@@ -4,12 +4,15 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.mojang.datafixers.util.Function6;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.crafting.AbstractCookingRecipe;
 import net.minecraft.world.item.crafting.BlastingRecipe;
 import net.minecraft.world.item.crafting.CampfireCookingRecipe;
 import net.minecraft.world.item.crafting.CookingBookCategory;
@@ -22,6 +25,8 @@ import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.recipe.data.AbstractRecipeBuilder;
 import slimeknights.mantle.recipe.helper.ItemOutput;
 
+import javax.annotation.Nullable;
+
 /**
  * Builder for {@link SmeltingResultRecipe}, {@link BlastingResultRecipe}, {@link SmokingResultRecipe}, and {@link CampfireResultRecipe}.
  * Can also be used as a single builder for {@link SmeltingRecipe}, {@link BlastingRecipe}, {@link SmokingRecipe}, and {@link CampfireCookingRecipe} to share fields.
@@ -32,7 +37,12 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
   protected final ItemOutput result;
   protected float experience = 1.0f;
   protected int cookingTime = 200;
-  protected Ingredient ingredient = Ingredient.EMPTY;
+  /** Input ingredient, null if unset or if set using {@link #ingredientTag} */
+  @Nullable
+  protected Ingredient ingredient = null;
+  /** Input tag, resolved on save as since 1.21.2 tag ingredients need the item lookup from the recipe output */
+  @Nullable
+  protected TagKey<Item> ingredientTag = null;
   protected CookingBookCategory category = CookingBookCategory.MISC;
   protected CookingType type = CookingType.SMELTING;
   protected boolean forceItemOutput = false;
@@ -78,7 +88,7 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
 
 
   /**
-   * Sets the type of {@link #save(RecipeOutput, Identifier)} for the sake of {@link net.neoforged.neoforge.common.crafting.ConditionalRecipe}.
+   * Sets the type of {@link #save(RecipeOutput, Identifier)} for the sake of conditional recipes.
    * Note you can also just directly use {@link #saveSmelting(RecipeOutput, Identifier)}, {@link #saveBlasting(RecipeOutput, Identifier)},
    * {@link #saveSmoking(RecipeOutput, Identifier)}, and {@link #saveCampfire(RecipeOutput, Identifier)} directly.
    */
@@ -96,6 +106,7 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
   /** Sets the input ingredient */
   public T requires(Ingredient ingredient) {
     this.ingredient = ingredient;
+    this.ingredientTag = null;
     return self();
   }
 
@@ -104,9 +115,11 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
     return requires(Ingredient.of(item));
   }
 
-  /** Sets the input ingredient */
+  /** Sets the input ingredient. The tag is resolved using the item lookup of the recipe output on save. */
   public T requires(TagKey<Item> tag) {
-    return requires(Ingredient.of(tag));
+    this.ingredient = null;
+    this.ingredientTag = tag;
+    return self();
   }
 
   /** Sets the XP gain from this recipe */
@@ -128,12 +141,21 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
   }
 
 
+  /** Gets the ingredient for this recipe, resolving the tag if needed */
+  protected Ingredient getIngredient(RecipeOutput output) {
+    if (ingredient != null) {
+      return ingredient;
+    }
+    if (ingredientTag != null) {
+      return Ingredient.of(output.lookup(Registries.ITEM).getOrThrow(ingredientTag));
+    }
+    throw new IllegalStateException("Ingredient must be set");
+  }
+
   /** Helper to save a recipe */
   protected T save(RecipeOutput output, Identifier id, CookingType cookingType) {
-    if (ingredient == Ingredient.EMPTY) {
-      throw new IllegalStateException("Ingredient must be set");
-    }
-    output.accept(id, cookingType.create(group, category, ingredient, result, experience, cookingTime, forceItemOutput), buildOptionalAdvancement(id, "cooking"));
+    Ingredient ingredient = getIngredient(output);
+    output.accept(recipeKey(id), cookingType.create(group, category, ingredient, result, experience, cookingTime, forceItemOutput), buildOptionalAdvancement(output, id, "cooking"));
     return self();
   }
 
@@ -167,7 +189,7 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
     save(output, id, type);
   }
 
-  /** Helper to change the cooking type in {@link #save(RecipeOutput, Identifier)} for the sake of {@link net.neoforged.neoforge.common.crafting.ConditionalRecipe} */
+  /** Helper to change the cooking type in {@link #save(RecipeOutput, Identifier)} for the sake of conditional recipes */
   @RequiredArgsConstructor
   public enum CookingType {
     SMELTING(SmeltingRecipe::new, SmeltingResultRecipe::new),
@@ -175,7 +197,7 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
     SMOKING(SmokingRecipe::new, SmokingResultRecipe::new),
     CAMPFIRE(CampfireCookingRecipe::new, CampfireResultRecipe::new);
 
-    private final Function6<String,CookingBookCategory,Ingredient,ItemStack,Float,Integer,Recipe<?>> vanillaConstructor;
+    private final AbstractCookingRecipe.Factory<?> vanillaConstructor;
     private final Function6<String,CookingBookCategory,Ingredient,ItemOutput,Float,Integer,Recipe<?>> mantleConstructor;
 
     /** Gets the cook time for the given serializer */
@@ -192,9 +214,12 @@ public class CookingRecipeBuilder<T extends CookingRecipeBuilder<T>> extends Abs
 
     /** Creates a recipe of this type */
     public Recipe<?> create(String group, CookingBookCategory category, Ingredient ingredient, ItemOutput result, float experience, int cookingTime, boolean forceItemOutput) {
-      // use vanilla constructor if possible, the 1.21 vanilla recipes serialize themselves through their own codec
+      // use vanilla constructor if possible, the vanilla recipes serialize themselves through their own codec
       if (!forceItemOutput && result.getTag() == null) {
-        return vanillaConstructor.apply(group, category, ingredient, result.get(), experience, getTime(cookingTime));
+        ItemStack stack = result.get();
+        if (!stack.isEmpty()) {
+          return vanillaConstructor.create(CookingResultRecipe.commonInfo(), new AbstractCookingRecipe.CookingBookInfo(category, group), ingredient, ItemStackTemplate.fromNonEmptyStack(stack), experience, getTime(cookingTime));
+        }
       }
       // use mantle if required
       return mantleConstructor.apply(group, category, ingredient, result, experience, getTime(cookingTime));
