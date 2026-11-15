@@ -42,7 +42,7 @@ public class StateVariantStringBuilder {
     return this;
   }
 
-  /** Builds the final string. Based on {@link net.neoforged.neoforge.client.model.generators.VariantBlockStateBuilder#toString()}*/
+  /** Builds the final string. Based on the former NeoForge {@code VariantBlockStateBuilder#toString()}*/
   @Override
   @SuppressWarnings({"unchecked", "rawtypes"})  // not another good way to handle it
   public String toString() {
@@ -63,7 +63,7 @@ public class StateVariantStringBuilder {
   private static final Splitter COMMA_SPLITTER = Splitter.on(',');
   private static final Splitter EQUAL_SPLITTER = Splitter.on('=').limit(2);
 
-  /** Clone of {@link net.minecraft.client.resources.model.ModelBakery#predicate(StateDefinition, String)} as I wish to use it in possibly non-client contexts */
+  /** Clone of the former vanilla {@code ModelBakery#predicate(StateDefinition, String)} as I wish to use it in possibly non-client contexts */
   public static Predicate<BlockState> predicate(StateDefinition<Block, BlockState> container, String pVariant) {
     Map<Property<?>, Comparable<?>> map = Maps.newHashMap();
 

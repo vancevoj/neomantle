@@ -7,6 +7,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.LecternBlock;
@@ -60,7 +61,11 @@ public class DropLecternBookPacket implements IThreadsafePacket {
         ItemStack book = lecternTe.getBook().copy();
         if(!book.isEmpty()) {
           if(!player.addItem(book)) {
-            player.drop(book, false, false);
+            // Player#drop swings the main hand since 26.3, so create the item entity directly like the old drop
+            ItemEntity entity = player.createItemStackToDrop(book, false, false);
+            if (entity != null) {
+              world.addFreshEntity(entity);
+            }
           }
 
           lecternTe.clearContent();

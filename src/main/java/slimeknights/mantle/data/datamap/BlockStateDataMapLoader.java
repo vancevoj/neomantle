@@ -4,19 +4,27 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import lombok.Getter;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.neoforged.neoforge.common.conditions.ICondition;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.field.ContextKey;
 import slimeknights.mantle.util.JsonHelper;
+import slimeknights.mantle.util.typed.TypedMap;
+import slimeknights.mantle.util.typed.TypedMapBuilder;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -28,7 +36,7 @@ import java.util.Map.Entry;
  * Generic JSON serializer which reads data from a block state style file for a mapping from block state to data.
  * @param <T>  Type of data
  */
-public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener {
+public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener<JsonElement> {
   private final String name;
   @Getter
   private final String folder;
@@ -38,7 +46,7 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
   private Map<BlockState,T> dataMap = Map.of();
 
   public BlockStateDataMapLoader(String name, String folder, Loadable<T> dataLoader) {
-    super(JsonHelper.DEFAULT_GSON, folder);
+    super(ExtraCodecs.JSON, FileToIdConverter.json(folder));
     this.name = name;
     this.folder = folder;
     this.dataLoader = dataLoader;
@@ -50,7 +58,20 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
   }
 
 
-  @SuppressWarnings("deprecation")  // no its not
+  /** Creates the loadable context for parsing data, including the registry lookup and condition context from the reload */
+  protected TypedMap createContext(String debug) {
+    TypedMapBuilder builder = TypedMapBuilder.builder().put(ContextKey.DEBUG, debug);
+    HolderLookup.Provider registries = getRegistryLookup();
+    if (registries != RegistryAccess.EMPTY) {
+      builder.put(ContextKey.REGISTRIES, registries);
+    }
+    ICondition.IContext conditions = getContext();
+    if (conditions != ICondition.IContext.EMPTY) {
+      builder.put(ContextKey.CONDITION_CONTEXT, conditions);
+    }
+    return builder.build();
+  }
+
   @Override
   protected void apply(Map<Identifier,JsonElement> jsons, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
     long time = System.nanoTime();
@@ -65,7 +86,7 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
 
     // parse through block registry, don't care about non-block entries
     for (Entry<ResourceKey<Block>,Block> entry : BuiltInRegistries.BLOCK.entrySet()) {
-      Identifier location = entry.getKey().location();
+      Identifier location = entry.getKey().identifier();
       JsonElement element = jsons.get(location);
       if (element != null) {
         try {
@@ -75,6 +96,7 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
             continue;
           }
           JsonObject variants = GsonHelper.getAsJsonObject(json, "variants");
+          TypedMap context = createContext(name + ' ' + location);
           StateDefinition<Block,BlockState> container = entry.getValue().getStateDefinition();
           List<BlockState> validStates = container.getPossibleStates();
 
@@ -92,12 +114,12 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
                 if (parentElement == null) {
                   throw new JsonSyntaxException("Missing parent at " + parent + " for " + name + ", used in " + location);
                 }
-                data = dataLoader.convert(parentElement, parent.toString());
+                data = dataLoader.convert(parentElement, parent.toString(), context);
                 locationMap.put(parent, data);
               }
             } else {
               // otherwise parse the object directly
-              data = dataLoader.convert(variantElement, key);
+              data = dataLoader.convert(variantElement, key, context);
             }
             // upload the value into the map
             T effectivelyFinal = data;

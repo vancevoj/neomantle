@@ -47,7 +47,7 @@ public class TranslationHelper {
    * @param tooltip  List of tooltips
    */
   public static void addOptionalTooltip(ItemStack stack, List<Component> tooltip) {
-    addOptionalTooltip(stack.getDescriptionId() + ".tooltip", tooltip);
+    addOptionalTooltip(stack.getItem().getDescriptionId() + ".tooltip", tooltip);
   }
 
   /**

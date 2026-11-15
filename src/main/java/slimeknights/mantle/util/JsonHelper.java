@@ -1,5 +1,6 @@
 package slimeknights.mantle.util;
 
+import com.google.common.base.Suppliers;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -10,6 +11,9 @@ import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.IdentifierException;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
@@ -21,6 +25,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import org.jetbrains.annotations.Contract;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.gson.ResourceLocationSerializer;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.common.BlockStateLoadable;
 import slimeknights.mantle.network.NetworkWrapper;
@@ -35,6 +40,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Utilities to help in parsing JSON
@@ -45,7 +51,8 @@ public class JsonHelper {
 
   /** Default GSON instance, use instead of creating a new instance unless you need additional type adapaters */
   public static final Gson DEFAULT_GSON = (new GsonBuilder())
-    .registerTypeAdapter(Identifier.class, new Identifier.Serializer())
+    // vanilla removed the Identifier GSON adapter, the default namespace "minecraft" matches Identifier#parse
+    .registerTypeAdapter(Identifier.class, ResourceLocationSerializer.resourceLocation("minecraft"))
     .setPrettyPrinting()
     .disableHtmlEscaping()
     .create();
@@ -222,7 +229,7 @@ public class JsonHelper {
   public static <T> T convertToEntry(Registry<T> registry, JsonElement element, String key) {
     Identifier name = JsonHelper.convertToResourceLocation(element, key);
     if (registry.containsKey(name)) {
-      T value = registry.get(name);
+      T value = registry.getValue(name);
       if (value != null) {
         return value;
       }
@@ -360,6 +367,18 @@ public class JsonHelper {
 
 
   /* Codecs */
+
+  /** Lazily created registry ops for built-in registries, see {@link #registryOps()} */
+  private static final Supplier<RegistryOps<JsonElement>> BUILTIN_REGISTRY_OPS = Suppliers.memoize(
+    () -> RegistryOps.create(JsonOps.INSTANCE, RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY)));
+
+  /**
+   * Gets JSON ops with access to the built-in registries. Since 1.21.2, tags in codecs (such as ingredients) can only be resolved through {@link RegistryOps}.
+   * Note that tags in built-in registries are only bound once data packs finished loading, so during data pack loading prefer {@link slimeknights.mantle.data.loadable.field.ContextKey#jsonOps(slimeknights.mantle.util.typed.TypedMap)}.
+   */
+  public static RegistryOps<JsonElement> registryOps() {
+    return BUILTIN_REGISTRY_OPS.get();
+  }
 
   /** Parses the given JSON element using the passed codec */
   public static <T> T parse(Codec<T> codec, Reader reader) throws JsonParseException {

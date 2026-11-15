@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.stream.JsonWriter;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.util.Util;
@@ -84,7 +85,19 @@ public abstract class GenericDataProvider implements DataProvider {
    * @param object     Object to save, will be converted using the passed codec
    */
   protected <T> CompletableFuture<?> saveJson(CachedOutput output, Identifier location, Codec<T> codec, T object) {
-    return saveJson(output, location, codec.encodeStart(JsonOps.INSTANCE, object).getOrThrow(msg -> {
+    return saveJson(output, location, JsonOps.INSTANCE, codec, object);
+  }
+
+  /**
+   * Saves the given object to JSON using a codec
+   * @param output     Output for writing
+   * @param location   Location relative to this data provider's root
+   * @param ops        JSON ops for encoding. Pass registry ops (e.g. {@code registries.createSerializationContext(JsonOps.INSTANCE)}) if the codec contains holders or tags.
+   * @param codec      Codec to save the object
+   * @param object     Object to save, will be converted using the passed codec
+   */
+  protected <T> CompletableFuture<?> saveJson(CachedOutput output, Identifier location, DynamicOps<JsonElement> ops, Codec<T> codec, T object) {
+    return saveJson(output, location, codec.encodeStart(ops, object).getOrThrow(msg -> {
       Mantle.logger.error(msg);
       return new IllegalStateException(msg);
     }));

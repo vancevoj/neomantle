@@ -10,8 +10,6 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import slimeknights.mantle.Mantle;
-import slimeknights.mantle.network.MantleNetwork;
-import slimeknights.mantle.network.packet.SwingArmPacket;
 
 import javax.annotation.Nullable;
 
@@ -160,20 +158,15 @@ public class OffhandCooldownTracker {
     applyCooldown(player, Math.round(cooldownTime / attackSpeed));
   }
 
-  /** Swings the entities hand without resetting cooldown */
+  /**
+   * Swings the entities hand without resetting cooldown.
+   * Since 26.3 the swing state is private, but {@link LivingEntity#swing(InteractionHand, net.minecraft.world.item.component.SwingAnimation, boolean)} no longer resets the attack cooldown
+   * and syncs the swing to tracking players on its own, so we just call it with the attack animation of the held item.
+   * @param entity      Entity swinging their hand
+   * @param hand        Hand to swing
+   * @param updateSelf  If true, the swing is also sent to the swinging player
+   */
   public static void swingHand(LivingEntity entity, InteractionHand hand, boolean updateSelf) {
-    if (!entity.swinging || entity.swingTime >= entity.getCurrentSwingDuration() / 2 || entity.swingTime < 0) {
-      entity.swingTime = -1;
-      entity.swinging = true;
-      entity.swingingArm = hand;
-      if (!entity.level().isClientSide()) {
-        SwingArmPacket packet = new SwingArmPacket(entity, hand);
-        if (updateSelf) {
-          MantleNetwork.INSTANCE.sendToTrackingAndSelf(packet, entity);
-        } else {
-          MantleNetwork.INSTANCE.sendToTracking(packet, entity);
-        }
-      }
-    }
+    entity.swing(hand, entity.getItemInHand(hand).getAttackAnimation(), updateSelf);
   }
 }

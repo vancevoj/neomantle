@@ -54,7 +54,7 @@ public final class RetexturedHelper {
     if (nbt == null) {
       return "";
     }
-    return nbt.getString(TAG_TEXTURE);
+    return nbt.getStringOr(TAG_TEXTURE, "");
   }
 
   /**

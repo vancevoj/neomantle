@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -105,7 +106,7 @@ public class NetworkWrapper {
    * @param payload  Packet to send
    */
   public void sendToServer(CustomPacketPayload payload) {
-    ClientPacketDistributor.sendToServer(payload);
+    ClientOnly.sendToServer(payload);
   }
 
   /**
@@ -148,7 +149,7 @@ public class NetworkWrapper {
    * @param position     Position within range
    */
   public void sendToClientsAround(CustomPacketPayload payload, ServerLevel serverWorld, BlockPos position) {
-    PacketDistributor.sendToPlayersTrackingChunk(serverWorld, new ChunkPos(position), payload);
+    PacketDistributor.sendToPlayersTrackingChunk(serverWorld, ChunkPos.containing(position), payload);
   }
 
   /**
@@ -167,5 +168,13 @@ public class NetworkWrapper {
    */
   public void sendToTracking(CustomPacketPayload payload, Entity entity) {
     PacketDistributor.sendToPlayersTrackingEntity(entity, payload);
+  }
+
+  /** Holder for client only logic, only loaded when a client method is called */
+  private static class ClientOnly {
+    /** Sends the payload to the server. {@link ClientPacketDistributor} only exists on the client. */
+    private static void sendToServer(CustomPacketPayload payload) {
+      ClientPacketDistributor.sendToServer(payload);
+    }
   }
 }

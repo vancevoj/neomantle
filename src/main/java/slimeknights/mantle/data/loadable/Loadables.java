@@ -4,7 +4,7 @@ import com.google.gson.JsonSyntaxException;
 import io.netty.handler.codec.DecoderException;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderGetter;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -44,6 +44,7 @@ import slimeknights.mantle.data.loadable.primitive.IntLoadable.IntNetwork;
 import slimeknights.mantle.data.loadable.primitive.ResourceLocationLoadable;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
 
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 /** Various loadable instances provided by this mod */
@@ -66,15 +67,16 @@ public class Loadables {
   public static final ResourceLocationLoadable<Holder<Enchantment>> ENCHANTMENT = new ResourceLocationLoadable<>() {
     @Override
     public Identifier getKey(Holder<Enchantment> object) {
-      return object.unwrapKey().orElseThrow(() -> new RuntimeException("Cannot serialize unregistered enchantment holder " + object)).location();
+      return object.unwrapKey().orElseThrow(() -> new RuntimeException("Cannot serialize unregistered enchantment holder " + object)).identifier();
     }
 
     @Override
     public Holder<Enchantment> fromKey(Identifier name, String key, slimeknights.mantle.util.typed.TypedMap context) {
       ResourceKey<Enchantment> enchantmentKey = ResourceKey.create(Registries.ENCHANTMENT, name);
-      HolderLookup.Provider registries = context.get(slimeknights.mantle.data.loadable.field.ContextKey.REGISTRIES);
-      if (registries != null) {
-        return registries.lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(enchantmentKey);
+      // registry access comes from ContextKey.REGISTRIES, ContextKey.REGISTRY_OPS, or the condition context registries
+      Optional<HolderGetter<Enchantment>> registry = slimeknights.mantle.data.loadable.field.ContextKey.getter(context, Registries.ENCHANTMENT);
+      if (registry.isPresent()) {
+        return registry.get().get(enchantmentKey).orElseThrow(() -> new JsonSyntaxException("Unknown enchantment '" + name + "' for " + key));
       }
       throw new JsonSyntaxException("Unable to resolve enchantment '" + name + "' for " + key + ": no registry access (ContextKey.REGISTRIES) in the parse context");
     }
@@ -145,7 +147,7 @@ public class Loadables {
 
   /** Creates a resource key loadable */
   public static <T> StringLoadable<ResourceKey<T>> resourceKey(ResourceKey<? extends Registry<T>> registry) {
-    return RESOURCE_LOCATION.map(key -> ResourceKey.create(registry, key), ResourceKey::location);
+    return RESOURCE_LOCATION.map(key -> ResourceKey.create(registry, key), ResourceKey::identifier);
   }
 
   /** Maps a loadable to a variant that disallows a particular value */

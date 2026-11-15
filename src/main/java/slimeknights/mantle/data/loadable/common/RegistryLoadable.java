@@ -15,7 +15,7 @@ import java.util.Objects;
 @SuppressWarnings("unused")  // API
 public record RegistryLoadable<T>(Registry<T> registry, Identifier registryId) implements BaseRegistryLoadable<T> {
   public RegistryLoadable(ResourceKey<? extends Registry<T>> registryId) {
-    this(Objects.requireNonNull(RegistryHelper.getRegistry(registryId), "Unknown registry " + registryId.location()), registryId.location());
+    this(Objects.requireNonNull(RegistryHelper.getRegistry(registryId), "Unknown registry " + registryId.identifier()), registryId.identifier());
   }
 
   @SuppressWarnings("unchecked")

@@ -1,41 +1,56 @@
 package slimeknights.mantle.util;
 
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.Identifier;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.TagKey;
 import net.neoforged.neoforge.common.conditions.ICondition;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
+import slimeknights.mantle.client.SafeClientAccess;
 
 import java.util.Collection;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /** Condition context to use when data has already been loaded, used in books for processing their conditions for instance. */
 public enum DataLoadedConditionContext implements ICondition.IContext {
   INSTANCE;
 
-  @Override
-  public <T> Collection<Holder<T>> getTag(TagKey<T> key) {
+  /** Gets the named tag from the built-in registry, if present */
+  private static <T> Optional<HolderSet.Named<T>> tag(TagKey<T> key) {
     Registry<T> registry = RegistryHelper.getRegistry(key.registry());
     if (registry != null) {
-      Optional<HolderSet.Named<T>> tag = registry.getTag(key);
-      if (tag.isPresent()) {
-        return tag.get().stream().toList();
+      // tags are only bound once data packs finished loading, before that treat all tags as unloaded
+      try {
+        return registry.get(key);
+      } catch (IllegalStateException e) {
+        return Optional.empty();
       }
     }
-    return Set.of();
+    return Optional.empty();
   }
 
   @Override
-  public <T> Map<Identifier,Collection<Holder<T>>> getAllTags(ResourceKey<? extends Registry<T>> key) {
-    Registry<T> registry = RegistryHelper.getRegistry(key);
-    if (registry != null) {
-      return registry.getTags().collect(Collectors.toMap(entry -> entry.getFirst().location(), entry -> entry.getSecond().stream().toList()));
+  public <T> boolean isTagLoaded(TagKey<T> key) {
+    return tag(key).isPresent();
+  }
+
+  @Override
+  public <T> Collection<Holder<T>> getTag(TagKey<T> key) {
+    return tag(key).<Collection<Holder<T>>>map(set -> set.stream().toList()).orElse(List.of());
+  }
+
+  @Override
+  public HolderGetter.Provider registries() {
+    // data is loaded, so use the current server's registries if present, otherwise the client's
+    MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+    if (server != null) {
+      return server.registryAccess();
     }
-    return Map.of();
+    RegistryAccess client = SafeClientAccess.getRegistryAccess();
+    return client != null ? client : RegistryAccess.EMPTY;
   }
 }

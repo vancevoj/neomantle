@@ -2,7 +2,6 @@ package slimeknights.mantle.data.listener;
 
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -13,10 +12,10 @@ import java.util.concurrent.Executor;
  */
 public interface IEarlyReloadListener extends PreparableReloadListener {
   @Override
-  default CompletableFuture<Void> reload(PreparationBarrier stage, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
+  default CompletableFuture<Void> reload(SharedState state, Executor backgroundExecutor, PreparationBarrier barrier, Executor gameExecutor) {
     return CompletableFuture.runAsync(() -> {
-      this.onResourceManagerReload(resourceManager);
-    }, backgroundExecutor).thenCompose(stage::wait);
+      this.onResourceManagerReload(state.resourceManager());
+    }, backgroundExecutor).thenCompose(barrier::wait);
   }
 
   /** @param resourceManager the resource manager being reloaded */

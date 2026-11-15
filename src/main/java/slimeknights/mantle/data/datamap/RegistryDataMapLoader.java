@@ -4,13 +4,18 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import lombok.Getter;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.neoforged.neoforge.common.conditions.ICondition;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.field.ContextKey;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
@@ -27,7 +32,7 @@ import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 
 /** Simple loader mapping from a registry object to a piece of data parsed from JSON. Supports parenting to reuse data from another file */
-public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener {
+public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener<JsonElement> {
   /** Merges data from the parent JSON into the passed JSOn */
   public static final BiConsumer<JsonObject,JsonObject> COPY_PARENT_DATA = (json, parentJson) -> {
     for (Entry<String,JsonElement> entry : parentJson.entrySet()) {
@@ -68,7 +73,7 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
    * @param merger      Logic to copy data from the parent into the target element
    */
   public RegistryDataMapLoader(String name, String folder, Registry<R> registry, RecordLoadable<D> dataLoader, BiConsumer<JsonObject,JsonObject> merger) {
-    super(JsonHelper.DEFAULT_GSON, folder);
+    super(ExtraCodecs.JSON, FileToIdConverter.json(folder));
     this.name = name;
     this.registry = registry;
     this.dataLoader = dataLoader;
@@ -87,7 +92,7 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
     // we only care about registry entry JSONs, so load by iterating the registry and seeing which ones have a JSON in the list
     // any in the list that are not in the registry may be used in parenting but won't be used directly.
     for (Entry<ResourceKey<R>,R> entry : registry.entrySet()) {
-      Identifier location = entry.getKey().location();
+      Identifier location = entry.getKey().identifier();
       JsonElement element = jsons.get(location);
       if (element != null) {
         try {
@@ -97,7 +102,7 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
             continue;
           }
           // parse the data
-          TypedMap context = TypedMapBuilder.builder().put(ContextKey.DEBUG, name + ' ' + location).build();
+          TypedMap context = createContext(name + ' ' + location);
           dataMap.put(entry.getValue(), parseData(name, jsons, location, json, locationMap, dataLoader, context, merger));
         } catch (Exception e) {
           Mantle.logger.error("Failed to parse {} data for {}", name, location, e);
@@ -107,6 +112,20 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
     // update the datamap
     this.dataMap = dataMap;
     Mantle.logger.info("Finished loading {} {} in {} ms", dataMap.size(), name, (System.nanoTime() - time) / 1000000f);
+  }
+
+  /** Creates the loadable context for parsing data, including the registry lookup and condition context from the reload */
+  protected TypedMap createContext(String debug) {
+    TypedMapBuilder builder = TypedMapBuilder.builder().put(ContextKey.DEBUG, debug);
+    HolderLookup.Provider registries = getRegistryLookup();
+    if (registries != RegistryAccess.EMPTY) {
+      builder.put(ContextKey.REGISTRIES, registries);
+    }
+    ICondition.IContext conditions = getContext();
+    if (conditions != ICondition.IContext.EMPTY) {
+      builder.put(ContextKey.CONDITION_CONTEXT, conditions);
+    }
+    return builder.build();
   }
 
   /** Record paring a location to a return JSON object */

@@ -4,9 +4,9 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 /**
  * Helpers to aid in reading and writing of NBT
@@ -16,7 +16,7 @@ import javax.annotation.Nullable;
 public class TagHelper {
   /* BlockPos */
 
-  /** @deprecated use {@link net.minecraft.nbt.NbtUtils#writeBlockPos(BlockPos)} */
+  /** @deprecated use {@link CompoundTag#store(String, com.mojang.serialization.Codec, Object)} with {@link BlockPos#CODEC} */
   @Deprecated(forRemoval = true)
   public static CompoundTag writePos(BlockPos pos) {
     CompoundTag tag = new CompoundTag();
@@ -26,12 +26,16 @@ public class TagHelper {
     return tag;
   }
 
-  /** @deprecated use {@link net.minecraft.nbt.NbtUtils#readBlockPos(CompoundTag)} */
+  /** @deprecated use {@link CompoundTag#read(String, com.mojang.serialization.Codec)} with {@link BlockPos#CODEC} */
   @Nullable
   @Deprecated(forRemoval = true)
   public static BlockPos readPos(CompoundTag tag) {
-    if (tag.contains("X", Tag.TAG_ANY_NUMERIC) &&tag.contains("Y", Tag.TAG_ANY_NUMERIC) && tag.contains("Z", Tag.TAG_ANY_NUMERIC)) {
-      return new BlockPos(tag.getInt("X"), tag.getInt("Y"), tag.getInt("Z"));
+    // numeric getters return empty if the tag is missing or not a number
+    Optional<Integer> x = tag.getInt("X");
+    Optional<Integer> y = tag.getInt("Y");
+    Optional<Integer> z = tag.getInt("Z");
+    if (x.isPresent() && y.isPresent() && z.isPresent()) {
+      return new BlockPos(x.get(), y.get(), z.get());
     }
     return null;
   }

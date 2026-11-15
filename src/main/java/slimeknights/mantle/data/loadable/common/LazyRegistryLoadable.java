@@ -36,6 +36,6 @@ public class LazyRegistryLoadable<T> implements BaseRegistryLoadable<T> {
 
   @Override
   public Identifier registryId() {
-    return registryKey.location();
+    return registryKey.identifier();
   }
 }

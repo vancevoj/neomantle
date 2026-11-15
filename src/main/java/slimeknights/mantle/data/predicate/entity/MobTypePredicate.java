@@ -24,7 +24,7 @@ public record MobTypePredicate(TagKey<EntityType<?>> tag) implements LivingEntit
 
   @Override
   public boolean matches(LivingEntity input) {
-    return input.getType().is(tag);
+    return input.is(tag);
   }
 
   @Override

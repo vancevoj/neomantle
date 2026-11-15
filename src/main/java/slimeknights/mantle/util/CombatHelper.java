@@ -241,7 +241,10 @@ public class CombatHelper {
         damage += enchantmentDamage;
 
         // check if we can do a sweep attack
-        boolean canSweep = fullyCharged && !critical && !sprinting && player.onGround() && (player.walkDist - player.walkDistO) < player.getSpeed() && stack.canPerformAction(ItemAbilities.SWORD_SWEEP);
+        // walk distance tracking was removed, use the known movement like vanilla Player#isSweepAttack
+        boolean canSweep = fullyCharged && !critical && !sprinting && player.onGround()
+          && player.getKnownMovement().horizontalDistanceSqr() < Mth.square(player.getSpeed() * 2.5)
+          && stack.canPerformAction(ItemAbilities.SWORD_SWEEP);
 
         // fetch health for stat tracking
         // TODO(neoport): fire aspect no longer has a queryable enchantment level (EnchantmentHelper#getFireAspect is gone);
@@ -261,13 +264,13 @@ public class CombatHelper {
           AttributeInstance knockbackAttribute = targetLiving.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
           if (knockbackAttribute != null && !knockbackAttribute.hasModifier(ANTI_KNOCKBACK_ID)) {
             knockbackAttribute.addTransientModifier(ANTI_KNOCKBACK_MODIFIER);
-            hit = target.hurt(damageSource, damage);
+            hit = target.hurtOrSimulate(damageSource, damage);
             knockbackAttribute.removeModifier(ANTI_KNOCKBACK_ID);
           } else {
-            hit = target.hurt(damageSource, damage);
+            hit = target.hurtOrSimulate(damageSource, damage);
           }
         } else {
-          hit = target.hurt(damageSource, damage);
+          hit = target.hurtOrSimulate(damageSource, damage);
         }
 
         // apply hit effects
@@ -275,7 +278,7 @@ public class CombatHelper {
           // apply knockback
           if (knockback > 0) {
             if (targetLiving != null) {
-              targetLiving.knockback(knockback * 0.5f, Mth.sin(player.getYRot() * TO_RADIAN), -Mth.cos(player.getYRot() * TO_RADIAN));
+              targetLiving.knockback(knockback * 0.5f, Mth.sin(player.getYRot() * TO_RADIAN), -Mth.cos(player.getYRot() * TO_RADIAN), damageSource, damage, true);
             } else {
               target.push(-Mth.sin(player.getYRot() * TO_RADIAN) * knockback * 0.5F, 0.1D, Mth.cos(player.getYRot() * TO_RADIAN) * knockback * 0.5f);
             }
@@ -291,12 +294,12 @@ public class CombatHelper {
             for (LivingEntity living : player.level().getEntitiesOfClass(LivingEntity.class, stack.getSweepHitBox(player, target))) {
               double entityReachSq = Mth.square(player.entityInteractionRange());
               if (living != player && living != targetLiving && !player.isAlliedTo(living) && (!(living instanceof ArmorStand armorStand) || !armorStand.isMarker()) && player.distanceToSqr(living) < entityReachSq) {
-                living.knockback(0.4f, Mth.sin(player.getYRot() * TO_RADIAN), -Mth.cos(player.getYRot() * TO_RADIAN));
                 // apply enchantment damage to swept entities and run their post attack effects, matching vanilla Player#attack
                 float sweepDamageFinal = sweepDamage;
                 if (player.level() instanceof ServerLevel sweepServer) {
                   sweepDamageFinal = EnchantmentHelper.modifyDamage(sweepServer, stack, living, damageSource, sweepDamage);
                 }
+                living.knockback(0.4f, Mth.sin(player.getYRot() * TO_RADIAN), -Mth.cos(player.getYRot() * TO_RADIAN), damageSource, sweepDamageFinal);
                 living.hurt(damageSource, sweepDamageFinal);
                 if (player.level() instanceof ServerLevel sweepServer) {
                   EnchantmentHelper.doPostAttackEffects(sweepServer, living, damageSource);
@@ -305,7 +308,7 @@ public class CombatHelper {
             }
 
             player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, player.getSoundSource(), 1.0F, 1.0F);
-            player.sweepAttack();
+            sweepParticles(player);
           }
 
           // sync player motion
@@ -375,6 +378,19 @@ public class CombatHelper {
       return true;
     }
     return false;
+  }
+
+
+  /**
+   * Spawns the sweep attack particles in front of the player. Replacement for the removed {@code Player#sweepAttack()}.
+   * @param player  Player performing the sweep attack
+   */
+  public static void sweepParticles(Player player) {
+    if (player.level() instanceof ServerLevel server) {
+      double x = -Mth.sin(player.getYRot() * TO_RADIAN);
+      double z = Mth.cos(player.getYRot() * TO_RADIAN);
+      server.sendParticles(ParticleTypes.SWEEP_ATTACK, player.getX() + x, player.getY(0.5D), player.getZ() + z, 0, x, 0.0D, z, 0.0D);
+    }
   }
 
 
