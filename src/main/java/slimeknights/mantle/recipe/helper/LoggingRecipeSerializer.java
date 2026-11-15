@@ -71,7 +71,7 @@ public interface LoggingRecipeSerializer<T extends Recipe<?>> {
   /** Shared logic to decode a recipe from the network, logging and wrapping any exception */
   private static <T extends Recipe<?>> T decode(String name, RegistryFriendlyByteBuf buffer, StreamDecoder<? super RegistryFriendlyByteBuf,T> decoder) {
     try {
-      return decoder.decode(buffer);
+      return RecipeHelper.decodeFromNetwork(() -> decoder.decode(buffer));
     } catch (RuntimeException e) {
       // wrap in a decoder exception so the client disconnect screen names the serializer instead of a bare error
       String error = name + ": Error reading recipe from packet";

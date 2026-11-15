@@ -72,13 +72,16 @@ public class SafeClientAccess {
     /** Gets the client player instance */
     @Nullable
     public static Player getClientPlayer() {
-      return Minecraft.getInstance().player;
+      // null during data generation, which runs on the client dist without a client
+      Minecraft minecraft = Minecraft.getInstance();
+      return minecraft != null ? minecraft.player : null;
     }
 
     /** Gets the client level instance */
     @Nullable
     public static Level getClientLevel() {
-      return Minecraft.getInstance().level;
+      Minecraft minecraft = Minecraft.getInstance();
+      return minecraft != null ? minecraft.level : null;
     }
 
     /** Checks if its advanced tooltips */

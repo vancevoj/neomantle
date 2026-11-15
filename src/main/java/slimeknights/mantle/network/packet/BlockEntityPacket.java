@@ -33,11 +33,11 @@ public interface BlockEntityPacket<T> extends IThreadsafePacket {
       if (type.isInstance(be)) {
         handleBlockEntity(context, type.cast(be));
       } else {
-        Mantle.logger.error("Failed to handle packet {}: Block entity type mismatch at {}, expected {}, found {}", this, pos, type, be.getClass());
+        // the block changed before the packet arrived (such as a client predicted break), nothing left to update
+        Mantle.logger.debug("Failed to handle packet {}: Block entity type mismatch at {}, expected {}, found {}", this, pos, type, be.getClass());
       }
-    } else {
-      Mantle.logger.error("Failed to handle packet {}: No block entity at {}", this, pos);
     }
+    // a missing block entity was already logged by getBlockEntity
   }
 
   /** Handles the block entity, assuming it's not null and the correct type */
@@ -56,10 +56,15 @@ public interface BlockEntityPacket<T> extends IThreadsafePacket {
    */
   @Nullable
   static BlockEntity getBlockEntity(@Nullable BlockGetter world, BlockPos pos, Object packet) {
+    // both cases are normal races (block broken, chunk unloaded or dimension changed before the packet arrived), so only log for debugging
     if (BlockEntityHelper.isBlockLoaded(world, pos)) {
-      return world.getBlockEntity(pos);
+      BlockEntity be = world.getBlockEntity(pos);
+      if (be == null) {
+        Mantle.logger.debug("Failed to handle packet {}: No block entity at {}", packet, pos);
+      }
+      return be;
     }
-    Mantle.logger.error("Failed to handle packet {}: World is not loaded at {}", packet, pos);
+    Mantle.logger.debug("Failed to handle packet {}: World is not loaded at {}", packet, pos);
     return null;
   }
 

@@ -13,6 +13,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -26,6 +27,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import slimeknights.mantle.block.entity.MantleHangingSignBlockEntity;
 import slimeknights.mantle.block.entity.MantleSignBlockEntity;
+import slimeknights.mantle.block.fluid.MobEffectLiquidBlock;
 import slimeknights.mantle.client.ClientEvents;
 import slimeknights.mantle.client.model.MantleModelEvents;
 import slimeknights.mantle.command.MantleCommand;
@@ -115,6 +117,7 @@ public class Mantle {
     NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, PlayerInteractEvent.RightClickBlock.class, LecternBookItem::interactWithBlock);
     // recipes are no longer synced by default since 26.3, send the types Mantle and its dependents need
     NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, OnDatapackSyncEvent.class, RecipeHelper::sendRecipesToClient);
+    NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, MobEffectEvent.Remove.class, MobEffectLiquidBlock::preventRemovingWhileInside);
 
     if (FMLEnvironment.getDist() == Dist.CLIENT) {
       ClientEvents.onConstruct();
