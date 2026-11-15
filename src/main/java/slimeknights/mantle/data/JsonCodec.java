@@ -9,6 +9,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.loadable.field.ContextKey;
 
 /**
  * Simple implementation of a codec mapping to a JSON serializer.
@@ -33,7 +34,9 @@ public interface JsonCodec<T> extends Codec<T> {
   @Override
   default <O> DataResult<Pair<T,O>> decode(DynamicOps<O> ops, O input) {
     try {
-      return DataResult.success(Pair.of(deserialize(ops.convertTo(JsonOps.INSTANCE, input), ops), input));
+      // legacy deserializers (such as Gson) cannot receive the ops, so expose registry ops to loadables called without a context
+      T value = ContextKey.withDecodeOps(ops, () -> deserialize(ops.convertTo(JsonOps.INSTANCE, input), ops));
+      return DataResult.success(Pair.of(value, input));
     } catch (JsonParseException e) {
       Mantle.logger.warn("Unable to decode {}", codecError(), e);
       return DataResult.error(e::getMessage);

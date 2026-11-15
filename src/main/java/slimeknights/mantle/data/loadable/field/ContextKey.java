@@ -24,6 +24,7 @@ import slimeknights.mantle.util.typed.TypedMapBuilder;
 import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * Key for fetching properties from a loadable context. This key doubles as a record field for a required context key.
@@ -44,6 +45,9 @@ public class ContextKey<T> implements Key<T> {
    * Since 1.21.2 tags in codecs (such as ingredients) can only be resolved through registry ops. Prefer {@link #jsonOps(TypedMap)} or {@link #getter(TypedMap, ResourceKey)} over reading this directly.
    */
   public static final ContextKey<RegistryOps<JsonElement>> REGISTRY_OPS = new ContextKey<>("registry ops");
+
+  /** Registry ops of the codec currently decoding on this thread, see {@link #withDecodeOps(DynamicOps, Supplier)} */
+  private static final ThreadLocal<RegistryOps<JsonElement>> DECODE_OPS = new ThreadLocal<>();
 
   /** Name of the field, used primarily for debug */
   @Getter
@@ -78,6 +82,32 @@ public class ContextKey<T> implements Key<T> {
     return TypedMap.EMPTY;
   }
 
+  /**
+   * Runs the given JSON parsing with the passed ops as the fallback registry ops of {@link #jsonOps(TypedMap)} and {@link #getter(TypedMap, ResourceKey)}.
+   * Used for legacy JSON parsing that cannot pass a context, such as Gson deserializers called from a codec ({@link slimeknights.mantle.data.JsonCodec}),
+   * so tags still resolve through the registries of the data being loaded (tags of built-in registries are unbound during a reload).
+   * @param ops     Ops of the running decode, ignored unless they are {@link RegistryOps}
+   * @param action  Parsing logic
+   * @param <R>  Result type
+   * @return  Result of the action
+   */
+  public static <R> R withDecodeOps(DynamicOps<?> ops, Supplier<R> action) {
+    if (!(ops instanceof RegistryOps<?> registryOps)) {
+      return action.get();
+    }
+    RegistryOps<JsonElement> previous = DECODE_OPS.get();
+    DECODE_OPS.set(registryOps.withParent(JsonOps.INSTANCE));
+    try {
+      return action.get();
+    } finally {
+      if (previous == null) {
+        DECODE_OPS.remove();
+      } else {
+        DECODE_OPS.set(previous);
+      }
+    }
+  }
+
   /** Gets the registry getters from the condition context, if it is present and has registries */
   @Nullable
   private static HolderGetter.Provider conditionRegistries(TypedMap context) {
@@ -93,7 +123,7 @@ public class ContextKey<T> implements Key<T> {
 
   /**
    * Gets registry aware JSON ops for the given context. Checks {@link #REGISTRY_OPS}, {@link #REGISTRIES}, then the registries of {@link #CONDITION_CONTEXT}.
-   * If none are present, falls back to ops for the built-in registries.
+   * If none are present, falls back to the ops of the running decode ({@link #withDecodeOps(DynamicOps, Supplier)}), then to ops for the built-in registries.
    */
   public static DynamicOps<JsonElement> jsonOps(TypedMap context) {
     RegistryOps<JsonElement> ops = context.get(REGISTRY_OPS);
@@ -112,6 +142,10 @@ public class ContextKey<T> implements Key<T> {
           return getters.<E>lookup(registryKey).map(getter -> getter);
         }
       });
+    }
+    RegistryOps<JsonElement> decodeOps = DECODE_OPS.get();
+    if (decodeOps != null) {
+      return decodeOps;
     }
     return JsonHelper.registryOps();
   }
@@ -139,6 +173,10 @@ public class ContextKey<T> implements Key<T> {
     HolderGetter.Provider getters = conditionRegistries(context);
     if (getters != null) {
       return getters.<E>lookup(registryKey).map(lookup -> lookup);
+    }
+    RegistryOps<JsonElement> decodeOps = DECODE_OPS.get();
+    if (decodeOps != null) {
+      return decodeOps.getter(registryKey);
     }
     return Optional.empty();
   }
