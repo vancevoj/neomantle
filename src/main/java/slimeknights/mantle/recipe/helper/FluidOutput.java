@@ -1,16 +1,25 @@
 package slimeknights.mantle.recipe.helper;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStackTemplate;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.common.FluidStackLoadable;
+import slimeknights.mantle.data.loadable.common.ItemStackLoadable;
 import slimeknights.mantle.data.loadable.common.NBTLoadable;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.IntLoadable;
@@ -103,6 +112,16 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
   }
 
   /**
+   * Creates a new output for the given stack template. The stack is created on first use, so unlike {@link #fromStack(FluidStack)}
+   * this is safe in datagen and while data loads (fluid components are not bound there).
+   * @param template  Stack template
+   * @return  Output
+   */
+  public static FluidOutput fromTemplate(FluidStackTemplate template) {
+    return new OfTemplate(template);
+  }
+
+  /**
    * Creates a new output for the given tag
    * @param tag   Tag
    * @param amount Stack amount
@@ -186,6 +205,42 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
     }
   }
 
+  /** Class for an output from a stack template, the stack is created lazily as components cannot be used during datagen or data loading */
+  @RequiredArgsConstructor
+  private static class OfTemplate extends FluidOutput {
+    private final FluidStackTemplate template;
+    private FluidStack cachedStack;
+
+    @Override
+    public FluidStack get() {
+      if (cachedStack == null) {
+        cachedStack = template.create();
+      }
+      return cachedStack;
+    }
+
+    @Override
+    public int getAmount() {
+      return template.amount();
+    }
+
+    @Override
+    public void serialize(JsonObject json) {
+      // same format as the NBT stack loadables
+      json.add("fluid", Loadables.FLUID.serialize(template.fluid().value()));
+      json.addProperty("amount", template.amount());
+      DataComponentPatch patch = template.components();
+      CustomData nbt = patch.keySet().contains(DataComponents.CUSTOM_DATA) ? patch.getPatch(DataComponents.CUSTOM_DATA) : null;
+      if (nbt != null && !nbt.isEmpty()) {
+        json.add("nbt", NBTLoadable.ALLOW_STRING.serialize(nbt.copyTag()));
+      }
+      DataComponentPatch components = patch.forget(type -> type == DataComponents.CUSTOM_DATA);
+      if (!components.isEmpty()) {
+        json.add("components", ItemStackLoadable.serializeComponents(components));
+      }
+    }
+  }
+
   /** Class for an output from a tag preference */
   @RequiredArgsConstructor
   private static class OfTagPreference extends FluidOutput {
@@ -255,7 +310,25 @@ public abstract class FluidOutput implements Supplier<FluidStack> {
           IntLoadable.FROM_ONE.getIfPresent(json, "amount", context),
           NBTLoadable.ALLOW_STRING.getOrDefault(json, "nbt", null));
       }
-      return fromStack(stack.deserialize(json, context));
+      // since 26.1 fluid components are only bound after data pack loading finishes, so stacks cannot be created while
+      // parsing recipes or other data; read the stack as a template and create it on first use instead
+      Fluid fluid = Loadables.FLUID.getOrDefault(json, "fluid", Fluids.EMPTY, context);
+      int amount = IntLoadable.FROM_ZERO.getIfPresent(json, "amount", context);
+      if (fluid == Fluids.EMPTY || amount <= 0) {
+        if (nonEmpty) {
+          throw new JsonSyntaxException("FluidStack cannot be empty");
+        }
+        return EMPTY;
+      }
+      PatchedDataComponentMap components = new PatchedDataComponentMap(DataComponentMap.EMPTY);
+      if (json.has("components")) {
+        components.applyPatch(ItemStackLoadable.parseComponents(json.get("components"), context));
+      }
+      CompoundTag nbt = NBTLoadable.ALLOW_STRING.getOrDefault(json, "nbt", null);
+      if (nbt != null && !nbt.isEmpty()) {
+        components.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
+      }
+      return fromTemplate(new FluidStackTemplate(fluid, amount, components.asPatch()));
     }
 
     @Override
