@@ -11,6 +11,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.util.context.ContextMap;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackLinkedSet;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.item.crafting.display.SlotDisplayContext;
@@ -19,6 +20,7 @@ import slimeknights.mantle.client.SafeClientAccess;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Helpers for working with {@link Ingredient}, which since 1.21.2 is backed by a {@link HolderSet} and no longer exposes item stacks.
@@ -71,13 +73,17 @@ public final class IngredientHelper {
    * Uses the ingredient display so custom ingredients can show components (such as potions).
    * Item tags are looked up by key in the current registries, so tag ingredients created before tags were bound
    * (such as static defaults from {@link #tag(TagKey)}) still list the current tag contents.
+   * Like {@code Ingredient#getItems()} did, the list holds each item and component combination once, as composite displays
+   * (such as the NeoForge intersection and compound ingredients) list an item once for every child containing it.
    * @param ingredient  Ingredient to display
    * @return  List of display stacks, empty if the ingredient cannot be resolved (for instance, unbound tags)
    */
   public static List<ItemStack> getStacks(Ingredient ingredient) {
     ContextMap context = displayContext();
     try {
-      return bindTags(ingredient.display(), context).resolveForStacks(context);
+      Set<ItemStack> stacks = ItemStackLinkedSet.createTypeAndComponentsSet();
+      stacks.addAll(bindTags(ingredient.display(), context).resolveForStacks(context));
+      return List.copyOf(stacks);
     } catch (RuntimeException e) {
       // unbound tags throw when dereferenced, treat them as empty for display
       return List.of();
