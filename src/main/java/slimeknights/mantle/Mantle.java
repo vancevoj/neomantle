@@ -47,12 +47,13 @@ import slimeknights.mantle.data.predicate.entity.MobTypePredicate;
 import slimeknights.mantle.data.predicate.fluid.FluidPredicate;
 import slimeknights.mantle.data.predicate.fluid.FluidTypePredicate;
 import slimeknights.mantle.data.predicate.item.ItemPredicate;
-import slimeknights.mantle.datagen.MantleBlockTagProvider;
-import slimeknights.mantle.datagen.MantleFluidTagProvider;
-import slimeknights.mantle.datagen.MantleFluidTooltipProvider;
 import slimeknights.mantle.datagen.MantleFluidTransferProvider;
-import slimeknights.mantle.datagen.MantleMenuTagProvider;
 import slimeknights.mantle.datagen.MantleTags;
+import slimeknights.mantle.datagen.client.MantleFluidTooltipProvider;
+import slimeknights.mantle.datagen.client.MantleSpriteSourceProvider;
+import slimeknights.mantle.datagen.tag.MantleBlockTagProvider;
+import slimeknights.mantle.datagen.tag.MantleFluidTagProvider;
+import slimeknights.mantle.datagen.tag.MantleMenuTagProvider;
 import slimeknights.mantle.fluid.transfer.EmptyFluidContainerTransfer;
 import slimeknights.mantle.fluid.transfer.EmptyFluidWithNBTTransfer;
 import slimeknights.mantle.fluid.transfer.EmptyPotionTransfer;
@@ -168,8 +169,6 @@ public class Mantle {
         LivingEntityPredicate.LOADER.register(getResource("sprinting"), LivingEntityPredicate.SPRINTING.getLoader());
         LivingEntityPredicate.LOADER.register(getResource("blocking"), LivingEntityPredicate.BLOCKING.getLoader());
         LivingEntityPredicate.LOADER.register(getResource("elytra_flying"), LivingEntityPredicate.ELYTRA_FLYING.getLoader());
-        LivingEntityPredicate.LOADER.register(getResource("has_effect"), HasMobEffectPredicate.LOADER);
-        LivingEntityPredicate.LOADER.register(getResource("block_at_entity"), BlockAtEntityPredicate.LOADER);
         LivingEntityPredicate.LOADER.register(getResource("eyes_in_water"), LivingEntityPredicate.EYES_IN_WATER.getLoader());
         LivingEntityPredicate.LOADER.register(getResource("feet_in_water"), LivingEntityPredicate.FEET_IN_WATER.getLoader());
         LivingEntityPredicate.LOADER.register(getResource("underwater"), LivingEntityPredicate.UNDERWATER.getLoader());
@@ -177,6 +176,8 @@ public class Mantle {
         // property
         LivingEntityPredicate.LOADER.register(getResource("mob_type"), MobTypePredicate.LOADER);
         LivingEntityPredicate.LOADER.register(getResource("has_enchantment"), HasEnchantmentEntityPredicate.LOADER);
+        LivingEntityPredicate.LOADER.register(getResource("has_effect"), HasMobEffectPredicate.LOADER);
+        LivingEntityPredicate.LOADER.register(getResource("block_at_entity"), BlockAtEntityPredicate.LOADER);
         // register mob types (former MobType values are now entity type tags)
         MobTypePredicate.MOB_TYPES.register(ResourceLocation.parse("undead"), EntityTypeTags.UNDEAD);
         MobTypePredicate.MOB_TYPES.register(ResourceLocation.parse("arthropod"), EntityTypeTags.ARTHROPOD);
@@ -227,6 +228,7 @@ public class Mantle {
     generator.addProvider(server, new MantleMenuTagProvider(packOutput, lookupProvider, existingFileHelper));
     generator.addProvider(server, new MantleFluidTransferProvider(packOutput));
     generator.addProvider(client, new MantleFluidTooltipProvider(packOutput));
+    generator.addProvider(client, new MantleSpriteSourceProvider(packOutput, lookupProvider, existingFileHelper));
   }
 
   /**
@@ -275,6 +277,6 @@ public class Mantle {
    * @return  Translation key
    */
   public static MutableComponent makeComponent(String base, String name, Object... args) {
-    return Component.translatable(makeDescriptionId(base, name), args);
+    return Component.translatableEscape(makeDescriptionId(base, name), args);
   }
 }

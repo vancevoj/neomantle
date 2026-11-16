@@ -26,7 +26,6 @@ import net.neoforged.neoforge.client.model.SimpleModelState;
 import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
 import net.neoforged.neoforge.client.model.geometry.IGeometryLoader;
 import org.joml.Vector3f;
-import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.common.ColorLoadable;
 import slimeknights.mantle.data.loadable.primitive.BooleanLoadable;
@@ -124,9 +123,6 @@ public class ColoredBlockModel extends SimpleBlockModel {
     for (int i = 0; i < size; i++) {
       BlockElement part = elements.get(i);
       ColorData colors = LogicHelper.getOrDefault(colorData, i, ColorData.DEFAULT);
-      if (colors.luminosity != -1 && !location.equals(BAKE_LOCATION)) {
-        Mantle.logger.warn("Using deprecated 'luminosity' field on ColoredBlockModel color data for {}, this will be removed in 1.20 in favor of Forge's 'emissivity'.", location);
-      }
       IQuadTransformer partTransformer = colors.color == -1 ? quadTransformer : quadTransformer.andThen(applyColorQuadTransformer(colors.color));
       bakePart(builder, owner, part, colors.luminosity, spriteGetter, transformation, partTransformer, colors.isUvLock(uvlock), location);
     }
@@ -146,7 +142,7 @@ public class ColoredBlockModel extends SimpleBlockModel {
   /**
    * Data class for setting properties when baking colored elements
    */
-  public record ColorData(int color, @Deprecated int luminosity, @Nullable Boolean uvlock) {
+  public record ColorData(int color, int luminosity, @Nullable Boolean uvlock) {
     public static final ColorData DEFAULT = new ColorData(-1, -1, null);
     public static final RecordLoadable<ColorData> LOADABLE = RecordLoadable.create(
       ColorLoadable.ALPHA.defaultField("color", false, ColorData::color),

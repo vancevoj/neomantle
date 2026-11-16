@@ -11,6 +11,7 @@ import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import net.neoforged.neoforge.common.conditions.NotCondition;
+import net.neoforged.neoforge.fluids.FluidType;
 import org.jetbrains.annotations.ApiStatus.Internal;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.fluid.transfer.AbstractFluidContainerTransferProvider;
@@ -37,7 +38,8 @@ public class MantleFluidTransferProvider extends AbstractFluidContainerTransferP
 
   @Override
   protected void addTransfers() {
-    addTransfer("wet_sponge", new FillFluidContainerTransfer(Ingredient.of(Items.SPONGE), ItemOutput.fromItem(Items.WET_SPONGE), FluidIngredient.of(MantleTags.Fluids.WATER, MantleValues.BOTTLE)));
+    // a wet sponge dries into a full bucket of water in a furnace, so filling it must cost a bucket to avoid a water dupe
+    addTransfer("wet_sponge", new FillFluidContainerTransfer(Ingredient.of(Items.SPONGE), ItemOutput.fromItem(Items.WET_SPONGE), FluidIngredient.of(MantleTags.Fluids.WATER, FluidType.BUCKET_VOLUME)));
 
     // potions
     addPotion("potion/",           Items.POTION,  null);

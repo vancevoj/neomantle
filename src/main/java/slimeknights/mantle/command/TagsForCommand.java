@@ -6,6 +6,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
@@ -42,6 +43,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import slimeknights.mantle.command.argument.RegistryTagSource;
 import slimeknights.mantle.command.argument.TagSource;
@@ -59,7 +61,7 @@ import java.util.Set;
 @SuppressWarnings("deprecation")
 public class TagsForCommand {
   /** Tag type cannot be found */
-  protected static final Dynamic2CommandExceptionType VALUE_NOT_FOUND = new Dynamic2CommandExceptionType((type, name) -> Component.translatable("command.mantle.tags_for.not_found", type, name));
+  protected static final Dynamic2CommandExceptionType VALUE_NOT_FOUND = new Dynamic2CommandExceptionType((type, name) -> Component.translatableEscape("command.mantle.tags_for.not_found", type, name));
 
   /* Missing target errors */
   private static final Component NO_HELD_BLOCK = Component.translatable("command.mantle.tags_for.no_held_block");
@@ -120,7 +122,7 @@ public class TagsForCommand {
    * @return  Number of tags printed
    */
   private static <T> int printOwningTags(CommandContext<CommandSourceStack> context, TagSource<T> registry, T value, @Nullable ResourceLocation key) {
-    MutableComponent output = Component.translatable("command.mantle.tags_for.success", registry.key().location(), key);
+    MutableComponent output = Component.translatableEscape("command.mantle.tags_for.success", registry.key().location(), key);
     List<ResourceLocation> tags = registry.tagsFor(value).map(TagKey::location).toList();
     if (tags.isEmpty()) {
       output.append("\n* ").append(NO_TAGS);
@@ -265,13 +267,26 @@ public class TagsForCommand {
     CommandSourceStack source = context.getSource();
     Player player = source.getPlayerOrException();
     Level level = source.getLevel();
+    // first try fluid block
     BlockHitResult blockTrace = Item.getPlayerPOVHitResult(level, player, ClipContext.Fluid.ANY);
     if (blockTrace.getType() == HitResult.Type.BLOCK) {
-      FluidState fluid = level.getFluidState(blockTrace.getBlockPos());
+      BlockPos pos = blockTrace.getBlockPos();
+      FluidState fluid = level.getFluidState(pos);
       if (fluid.getType() != Fluids.EMPTY) {
         return printOwningTags(context, BuiltInRegistries.FLUID, fluid.getType());
       }
+      // next try fluid capability
+      IFluidHandler fluidHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, pos, blockTrace.getDirection());
+      if (fluidHandler != null) {
+        if (fluidHandler.getTanks() > 0) {
+          FluidStack fluidStack = fluidHandler.getFluidInTank(0);
+          if (!fluidStack.isEmpty()) {
+            return printOwningTags(context, BuiltInRegistries.FLUID, fluidStack.getFluid());
+          }
+        }
+      }
     }
+
     // failed
     source.sendSuccess(() -> NO_TARGETED_FLUID, true);
     return 0;

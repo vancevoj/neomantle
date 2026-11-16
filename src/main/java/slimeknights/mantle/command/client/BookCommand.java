@@ -87,9 +87,9 @@ public class BookCommand {
           .executes(context -> exportDomainHtml(context, DEFAULT_BOOK_VERSION)))
         // mantle book export_html <id> [version]
         .then(Commands.argument("id", ResourceLocationArgument.id()).suggests(MantleClientCommand.REGISTERED_BOOKS)
-          .then(Commands.argument("version", StringArgumentType.word())
-            .executes(context -> exportHTML(context, StringArgumentType.getString(context, "version"))))
-          .executes(context -> exportHTML(context, DEFAULT_BOOK_VERSION))));
+          .then(Commands.argument("book_key", StringArgumentType.word())
+            .executes(context -> exportHTML(context, StringArgumentType.getString(context, "book_key"))))
+          .executes(context -> exportHTML(context, ""))));
   }
 
   /**
@@ -145,9 +145,13 @@ public class BookCommand {
    * @param context Command context
    * @return Integer return
    */
-  private static int exportHTML(CommandContext<CommandSourceStack> context, String version) {
+  private static int exportHTML(CommandContext<CommandSourceStack> context, String bookKey) {
     ResourceLocation book = ResourceLocationArgument.getId(context, "id");
-    return doExport(book, 2, true, version);
+    // if not specified, use book ID as the book key
+    if (bookKey.isEmpty()) {
+      bookKey = book.getPath() + '_' + DEFAULT_BOOK_VERSION;
+    }
+    return doExport(book, 2, true, bookKey);
   }
 
   /**
@@ -159,7 +163,7 @@ public class BookCommand {
     String domain = StringArgumentType.getString(context, "domain");
     for (ResourceLocation book : BookLoader.getAllBooks()) {
       if (domain.equals(book.getNamespace())) {
-        int code = doExport(book, 2, true, version);
+        int code = doExport(book, 2, true, book.getPath() + '_' + version);
         if (code != 0) return code;
       }
     }
@@ -171,10 +175,10 @@ public class BookCommand {
    * @param book  Book to export
    * @param scale  Scale to export at
    * @param html  Include HTML
-   * @param version  version in each files header
+   * @param bookKey  Key of the book to use when exporting it in the header.
    * @return  Integer return
    */
-  private static int doExport(ResourceLocation book, int scale, boolean html, String version) {
+  private static int doExport(ResourceLocation book, int scale, boolean html, String bookKey) {
     BookData bookData = BookLoader.getBook(book);
 
     Path gameDirectory = Minecraft.getInstance().gameDirectory.toPath();
@@ -185,10 +189,10 @@ public class BookCommand {
     if (bookData != null) {
       // ensure outputs exist
       if (!screenshotDir.toFile().mkdirs() && !screenshotDir.toFile().exists()) {
-        throw new RuntimeException(Component.translatable(EXPORT_FAIL_IO, screenshotDir).getString());
+        throw new RuntimeException(Component.translatableEscape(EXPORT_FAIL_IO, screenshotDir).getString());
       }
       if (htmlDir != null && !htmlDir.toFile().mkdirs() && !htmlDir.toFile().exists()) {
-        throw new RuntimeException(Component.translatable(EXPORT_FAIL_IO, htmlDir).getString());
+        throw new RuntimeException(Component.translatableEscape(EXPORT_FAIL_IO, htmlDir).getString());
       }
 
       int width = BookScreen.PAGE_WIDTH_UNSCALED * 2 * scale;
@@ -223,7 +227,6 @@ public class BookCommand {
 
         GuiGraphics gui = new GuiGraphics(Minecraft.getInstance(), buffer);
 
-        String bookKey = book.getPath() + "_" + version;
         // title goes export title -> regular title -> path
         String exportTitle = bookData.appearance.exportTitle;
         if (exportTitle.isEmpty()) {
@@ -252,7 +255,8 @@ public class BookCommand {
           }
 
           gui.pose().pushPose();
-          screen.render(gui, 0, 0, 0);
+          // draw just the pages, the screen background blurs the main render target instead of the export target
+          screen.renderPages(gui, 0, 0, 0);
           gui.flush();
           gui.pose().popPose();
 
@@ -357,7 +361,7 @@ public class BookCommand {
   public static void bookNotFound(ResourceLocation book) {
     Player player = Minecraft.getInstance().player;
     if (player != null) {
-      player.displayClientMessage(Component.translatable(BOOK_NOT_FOUND, book).withStyle(ChatFormatting.RED), false);
+      player.displayClientMessage(Component.translatableEscape(BOOK_NOT_FOUND, book).withStyle(ChatFormatting.RED), false);
     }
   }
 }

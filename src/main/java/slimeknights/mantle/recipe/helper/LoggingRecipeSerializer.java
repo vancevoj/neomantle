@@ -35,7 +35,7 @@ public interface LoggingRecipeSerializer<T extends Recipe<?>> extends RecipeSeri
   /** Reads the recipe from the network, logging any errors before rethrowing them */
   default T fromNetwork(RegistryFriendlyByteBuf buffer) {
     try {
-      return fromNetworkSafe(buffer);
+      return RecipeHelper.decodeFromNetwork(() -> fromNetworkSafe(buffer));
     } catch (RuntimeException e) {
       // wrap in a decoder exception so the client disconnect screen names the serializer instead of a bare error
       String error = this.getClass().getSimpleName() + ": Error reading recipe from packet";

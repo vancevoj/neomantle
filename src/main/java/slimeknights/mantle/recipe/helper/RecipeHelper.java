@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,6 +26,39 @@ import java.util.stream.Stream;
 @SuppressWarnings({"WeakerAccess", "unused"})
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class RecipeHelper {
+
+  /* Network decode tracking */
+
+  /** Set while the current thread reads recipes from a packet, see {@link #isNetworkDecode()} */
+  private static final ThreadLocal<Boolean> NETWORK_DECODE = ThreadLocal.withInitial(() -> false);
+
+  /**
+   * Checks if the current thread is reading a recipe from a packet.
+   * Since 1.20.5 the in memory connection used by singleplayer (and the LAN host) encodes every packet, so the integrated client
+   * decodes its own copy of each recipe the server already parsed. Recipes that register themselves into static caches from
+   * their constructor can check this (along with a running integrated server) to avoid registering the client copy a second time.
+   * @return  True if a recipe is being decoded from the network on this thread
+   */
+  public static boolean isNetworkDecode() {
+    return NETWORK_DECODE.get();
+  }
+
+  /**
+   * Runs the given recipe decode with {@link #isNetworkDecode()} returning true
+   * @param decoder  Logic reading the recipe from the packet
+   * @param <T>  Recipe type
+   * @return  Decoded recipe
+   */
+  public static <T> T decodeFromNetwork(Supplier<T> decoder) {
+    boolean previous = NETWORK_DECODE.get();
+    NETWORK_DECODE.set(true);
+    try {
+      return decoder.get();
+    } finally {
+      NETWORK_DECODE.set(previous);
+    }
+  }
+
 
   /* Recipe manager utils */
 

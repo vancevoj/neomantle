@@ -48,11 +48,12 @@ import slimeknights.mantle.client.model.FallbackModelLoader;
 import slimeknights.mantle.client.model.NBTKeyModel;
 import slimeknights.mantle.client.model.RetexturedModel;
 import slimeknights.mantle.client.model.TextureColorHelper;
+import slimeknights.mantle.client.model.TextureMapManager;
 import slimeknights.mantle.client.model.connected.ConnectedModel;
 import slimeknights.mantle.client.model.util.ColoredBlockModel;
 import slimeknights.mantle.client.model.util.MantleItemLayerModel;
 import slimeknights.mantle.client.model.util.ModelHelper;
-import slimeknights.mantle.client.render.FluidCuboid;
+import slimeknights.mantle.client.render.FluidModel;
 import slimeknights.mantle.client.render.RenderItem;
 import slimeknights.mantle.command.client.MantleClientCommand;
 import slimeknights.mantle.datagen.MantleTags;
@@ -91,10 +92,11 @@ public class ClientEvents {
     ResourceColorManager.init(event);
     FluidTooltipHandler.init(event);
     FluidTextureManager.init(event);
-    event.registerReloadListener(FluidCuboid.REGISTRY);
+    event.registerReloadListener(FluidModel.REGISTRY);
     event.registerReloadListener(RenderItem.REGISTRY);
     event.registerReloadListener(RenderItem.STATE_REGISTRY);
     event.registerReloadListener(TextureColorHelper.RELOAD_LISTENER);
+    event.registerReloadListener(TextureMapManager.INSTANCE);
   }
 
   @SubscribeEvent
@@ -125,13 +127,14 @@ public class ClientEvents {
   }
 
   /**
-   * Registers the custom heart renderer as a replacement for the vanilla player health GUI layer.
+   * Registers the custom heart renderer as a wrapper around the vanilla player health GUI layer.
    * Mirrors the 1.20 behavior of {@code MinecraftForge.EVENT_BUS.register(new ExtraHeartRenderHandler())},
    * which took over heart rendering by cancelling and redrawing the vanilla hearts.
+   * The vanilla layer is wrapped rather than discarded so it still draws when the config disables our renderer.
    */
   @SubscribeEvent
   static void registerGuiLayers(RegisterGuiLayersEvent event) {
-    event.replaceLayer(VanillaGuiLayers.PLAYER_HEALTH, new ExtraHeartRenderHandler());
+    event.wrapLayer(VanillaGuiLayers.PLAYER_HEALTH, ExtraHeartRenderHandler::new);
   }
 
   /** Vanilla attack indicator sprites, split out of the old GUI_ICONS atlas in 1.21 */
@@ -142,11 +145,12 @@ public class ClientEvents {
 
   // registered with the game bus
   private static void renderOffhandAttackIndicator(RenderGuiLayerEvent.Post event) {
-    // must have a player, not be in spectator, and have the indicator enabled
+    // must have the GUI shown, have a player, not be in spectator, and have the indicator enabled
+    // the layer post event still fires when the GUI is hidden (F1), so check that ourselves
     Minecraft minecraft = Minecraft.getInstance();
     Options settings = minecraft.options;
     AttackIndicatorStatus indicator = settings.attackIndicator().get();
-    if (minecraft.player == null || minecraft.gameMode == null || minecraft.gameMode.getPlayerMode() == GameType.SPECTATOR || indicator == AttackIndicatorStatus.OFF) {
+    if (settings.hideGui || minecraft.player == null || minecraft.gameMode == null || minecraft.gameMode.getPlayerMode() == GameType.SPECTATOR || indicator == AttackIndicatorStatus.OFF) {
       return;
     }
 
@@ -221,9 +225,9 @@ public class ClientEvents {
     if (!VanillaGuiLayers.CROSSHAIR.equals(event.getName())) {
       return;
     }
-    // must not be in a screen, though chat is fine
+    // must have the GUI shown and not be in a screen, though chat is fine
     Minecraft minecraft = Minecraft.getInstance();
-    if (minecraft.screen != null && minecraft.screen.getClass() != ChatScreen.class) {
+    if (minecraft.options.hideGui || minecraft.screen != null && minecraft.screen.getClass() != ChatScreen.class) {
       return;
     }
     // must have a hit result
@@ -240,12 +244,14 @@ public class ClientEvents {
     }
     BlockEntity gaugeContainer;
     BlockPos gaugePos;
-    Direction side;
+    Direction side = blockHit.getDirection();
     if (targeted.is(MantleTags.Blocks.ATTACHED_GAUGES)) {
-      side = targeted.getValue(BlockStateProperties.FACING);
+      // the tag is data driven, so a tagged block may lack the facing property
+      if (targeted.hasProperty(BlockStateProperties.FACING)) {
+        side = targeted.getValue(BlockStateProperties.FACING);
+      }
       gaugePos = pos.relative(side.getOpposite());
     } else {
-      side = blockHit.getDirection();
       gaugePos = pos;
     }
     gaugeContainer = minecraft.level.getBlockEntity(gaugePos);

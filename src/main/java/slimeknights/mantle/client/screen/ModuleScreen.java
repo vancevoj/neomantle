@@ -121,7 +121,8 @@ public abstract class ModuleScreen<P extends MultiModuleScreen<?>, C extends Abs
   }
 
   /**
-   * Custom mouse click handling.
+   * Called when the mouse is released to handle the end of a click and drag.
+   * Called regardless of whether the mouse is in the module. If you need to ensure the mouse is in the module, use {@link #isMouseInModule(int, int)}.
    *
    * @return True to prevent the main container handling the mouseclick
    */

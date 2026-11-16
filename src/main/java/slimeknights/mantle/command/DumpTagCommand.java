@@ -142,17 +142,17 @@ public class DumpTagCommand {
         // save creates a file in the data dump location of the tag at the proper path
         Path output = DumpAllTagsCommand.getOutputFile(context).toPath().resolve(path.getNamespace() + "/" + path.getPath());
         saveTag(list, output);
-        context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_tag.success_log", regName, name, GeneratePackHelper.getOutputComponent(output)), true);
+        context.getSource().sendSuccess(() -> Component.translatableEscape("command.mantle.dump_tag.success_log", regName, name, GeneratePackHelper.getOutputComponent(output)), true);
       }
       case LOG -> {
         // log writes the merged JSON to the console
-        Component message = Component.translatable("command.mantle.dump_tag.success", regName, name);
+        Component message = Component.translatableEscape("command.mantle.dump_tag.success", regName, name);
         context.getSource().sendSuccess(() -> message, true);
         Mantle.logger.info("Tag dump of {} tag '{}':\n{}", regName, name, tagToJson(list));
       }
       case SOURCES -> {
         // sources prints a list of each entry and the source of the entry
-        Component message = Component.translatable("command.mantle.dump_tag.success", regName, name);
+        Component message = Component.translatableEscape("command.mantle.dump_tag.success", regName, name);
         context.getSource().sendSuccess(() -> message, true);
         StringBuilder builder = new StringBuilder();
         builder.append("Tag list dump of ").append(regName).append(" tag ").append(name).append(" with sources:");

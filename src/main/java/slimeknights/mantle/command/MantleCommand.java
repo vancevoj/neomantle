@@ -49,7 +49,8 @@ public class MantleCommand {
     // register interesting sources
     SourcesCommand.register(Registries.LOOT_TABLE.location().getPath(), (context, builder)
       -> SharedSuggestionProvider.suggestResource(context.getSource().getServer().reloadableRegistries().getKeys(Registries.LOOT_TABLE), builder));
-    SourcesCommand.register("recipes", (context, builder)
+    // 1.21 recipes live in the singular "recipe" folder, keep "recipes" as the argument name
+    SourcesCommand.register("recipes", Registries.elementsDirPath(Registries.RECIPE), ".json", (context, builder)
       -> SharedSuggestionProvider.suggestResource(context.getSource().getRecipeNames(), builder));
 
     // add command listener

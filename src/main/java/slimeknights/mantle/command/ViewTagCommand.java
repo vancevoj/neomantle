@@ -23,7 +23,7 @@ public class ViewTagCommand {
   /** Tag has no values */
   private static final Component EMPTY = Component.translatable("command.mantle.tag.empty");
   /** Tag type cannot be found */
-  protected static final Dynamic2CommandExceptionType TAG_NOT_FOUND = new Dynamic2CommandExceptionType((type, name) -> Component.translatable("command.mantle.tag.not_found", type, name));
+  protected static final Dynamic2CommandExceptionType TAG_NOT_FOUND = new Dynamic2CommandExceptionType((type, name) -> Component.translatableEscape("command.mantle.tag.not_found", type, name));
 
   /**
    * Registers this sub command with the root command
@@ -45,7 +45,7 @@ public class ViewTagCommand {
     Collection<ResourceLocation> values = registry.keysInTag(name);
     if (values != null) {
       // start building output message
-      MutableComponent output = Component.translatable("command.mantle.view_tag.success", registry.key().location(), name);
+      MutableComponent output = Component.translatableEscape("command.mantle.view_tag.success", registry.key().location(), name);
 
       // if no values, print empty
       if (values.isEmpty()) {
