@@ -1,0 +1,16 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "mantle:tag_filled",
+      "registry": "minecraft:fluid",
+      "tag": "c:potion"
+    }
+  ],
+  "type": "mantle:fill_nbt",
+  "fluid": {
+    "amount": 250,
+    "tag": "c:potion"
+  },
+  "input": "minecraft:glass_bottle",
+  "result": "minecraft:potion"
+}

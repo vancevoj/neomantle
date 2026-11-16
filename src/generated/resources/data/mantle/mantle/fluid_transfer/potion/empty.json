@@ -1,0 +1,6 @@
+{
+  "type": "mantle:empty_potion",
+  "amount": 250,
+  "input": "minecraft:potion",
+  "result": "minecraft:glass_bottle"
+}

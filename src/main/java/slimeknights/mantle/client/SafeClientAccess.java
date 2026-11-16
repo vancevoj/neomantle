@@ -1,0 +1,92 @@
+package slimeknights.mantle.client;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
+
+import javax.annotation.Nullable;
+
+/** Class to add one level of static indirection to client only lookups */
+public class SafeClientAccess {
+  /** Gets the currently pressed key for tooltips, returns UNKNOWN on a server */
+  public static TooltipKey getTooltipKey() {
+    if (FMLEnvironment.getDist() == Dist.CLIENT) {
+      return ClientOnly.getPressedKey();
+    }
+    return TooltipKey.UNKNOWN;
+  }
+
+  /** Gets the client player entity, or null on a server */
+  @Nullable
+  public static Player getPlayer() {
+    if (FMLEnvironment.getDist() == Dist.CLIENT) {
+      return ClientOnly.getClientPlayer();
+    }
+    return null;
+  }
+
+  /** Gets the client player entity, or null on a server */
+  @Nullable
+  public static Level getLevel() {
+    if (FMLEnvironment.getDist() == Dist.CLIENT) {
+      return ClientOnly.getClientLevel();
+    }
+    return null;
+  }
+
+  /** Gets the registry access client side */
+  @Nullable
+  public static RegistryAccess getRegistryAccess() {
+    Level level = getLevel();
+    if (level != null) {
+      return level.registryAccess();
+    }
+    return null;
+  }
+
+  /** Checks if its advanced tooltips */
+  public static boolean isAdvancedTooltip() {
+    return FMLEnvironment.getDist() == Dist.CLIENT && ClientOnly.isAdvancedTooltip();
+  }
+
+  /** This class is only loaded on the client, so is safe to reference client only methods */
+  private static class ClientOnly {
+    /** Gets the currently pressed key modifier for tooltips */
+    public static TooltipKey getPressedKey() {
+      if (Minecraft.getInstance().hasShiftDown()) {
+        return TooltipKey.SHIFT;
+      }
+      if (Minecraft.getInstance().hasControlDown()) {
+        return TooltipKey.CONTROL;
+      }
+      if (Minecraft.getInstance().hasAltDown()) {
+        return TooltipKey.ALT;
+      }
+      return TooltipKey.NORMAL;
+    }
+
+    /** Gets the client player instance */
+    @Nullable
+    public static Player getClientPlayer() {
+      // null during data generation, which runs on the client dist without a client
+      Minecraft minecraft = Minecraft.getInstance();
+      return minecraft != null ? minecraft.player : null;
+    }
+
+    /** Gets the client level instance */
+    @Nullable
+    public static Level getClientLevel() {
+      Minecraft minecraft = Minecraft.getInstance();
+      return minecraft != null ? minecraft.level : null;
+    }
+
+    /** Checks if its advanced tooltips */
+    public static boolean isAdvancedTooltip() {
+      return Minecraft.getInstance().options.advancedItemTooltips;
+    }
+  }
+}

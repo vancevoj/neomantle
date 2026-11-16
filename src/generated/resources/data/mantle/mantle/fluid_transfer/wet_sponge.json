@@ -1,0 +1,9 @@
+{
+  "type": "mantle:fill_item",
+  "fluid": {
+    "amount": 1000,
+    "tag": "mantle:water"
+  },
+  "input": "minecraft:sponge",
+  "result": "minecraft:wet_sponge"
+}

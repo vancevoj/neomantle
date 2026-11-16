@@ -1,0 +1,16 @@
+{
+  "type": "mantle:fill_item",
+  "fluid": {
+    "amount": 500,
+    "tag": "mantle:water"
+  },
+  "input": "minecraft:glass_bottle",
+  "result": {
+    "components": {
+      "minecraft:potion_contents": {
+        "potion": "minecraft:water"
+      }
+    },
+    "item": "minecraft:potion"
+  }
+}

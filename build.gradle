@@ -1,0 +1,150 @@
+/*
+ * Mantle - NeoForge 26.3 port build file
+ * Original ForgeGradle build by Sunstrike, ProgWML6 (Slime Knights).
+ * Converted to ModDevGradle for NeoForge 1.21.1, updated for Minecraft 26.3.
+ */
+
+plugins {
+    id 'idea'
+    id 'eclipse'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.148'
+    id 'io.freefair.lombok' version '8.11'
+}
+
+// The freefair default lombok is too old for Java 25
+lombok {
+    version = '1.18.46'
+}
+
+group = 'slimeknights.mantle'
+// version = <mc>-<upstream Mantle version>-v<fork version>, e.g. 1.21.1-1.21.0-v1.0
+version = "${minecraft_version}-${mod_version}-v${fork_version}"
+base {
+    archivesName = 'NeoMantle'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    withSourcesJar()
+}
+
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}, Version: ${version}"
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'BlameJared (JEI, CraftTweaker, etc.)'
+        url = 'https://maven.blamejared.com/'
+    }
+}
+
+neoForge {
+    version = neoforge_version
+
+    // Mantle widens access to a few vanilla members.
+    accessTransformers.from('src/main/resources/META-INF/accesstransformer.cfg')
+
+    runs {
+        configureEach {
+            gameDirectory = project.file('run')
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+        client {
+            client()
+        }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+        data {
+            clientData()
+            programArguments.addAll(
+                '--mod', 'mantle',
+                '--all',
+                '--output', file('src/generated/resources/').absolutePath,
+                '--existing', file('src/main/resources/').absolutePath
+            )
+        }
+    }
+
+    mods {
+        mantle {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+// Generated datagen output is packed into the jar.
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+    exclude '.cache'
+}
+
+// Runtime only mods that should not be published as dependencies
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    // javax.annotation no longer comes in transitively with Guava
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+    // JEI integration lives in slimeknights.mantle.plugin
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+        version        : version,
+        mod_version    : mod_version,
+        fork_version   : fork_version,
+        minecraft_range: minecraft_range,
+        neoforge_range : neoforge_range,
+        jei_range      : jei_range
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                "Specification-Title"     : "Mantle",
+                "Specification-Vendor"    : "Slime Knights",
+                "Specification-Version"   : "1",
+                "Implementation-Title"    : project.name,
+                "Implementation-Version"  : "${version}",
+                "Implementation-Vendor"   : "Slime Knights"
+        ])
+    }
+}
+
+sourcesJar {
+    exclude 'assets/**'
+    exclude 'data/**'
+    exclude 'pack.png'
+    exclude 'pack.mcmeta'
+    exclude 'META-INF/neoforge.mods.toml'
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        if (project.hasProperty('DEPLOY_DIR')) {
+            maven { url DEPLOY_DIR }
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
