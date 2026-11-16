@@ -37,6 +37,8 @@ public class BookData implements IDataItem, BookScreenOpener {
   public transient AppearanceData appearance = new AppearanceData();
   public transient HashMap<String, String> strings = new HashMap<>();
   public transient Font fontRenderer;
+  /** If true, {@link #fontRenderer} was set by {@link AppearanceData#uniformFont} instead of by code */
+  private transient boolean appearanceFont = false;
   private transient boolean initialized = false;
 
   protected final transient ArrayList<BookTransformer> transformers = new ArrayList<>();
@@ -124,10 +126,17 @@ public class BookData implements IDataItem, BookScreenOpener {
 
       // set unicode font if requested
       if (this.appearance.uniformFont) {
-        this.fontRenderer = BookScreen.getUniformFont();
-      // font is cached in the book data so we need to reset it; but don't reset it if set to another font instance
+        if (this.fontRenderer != BookScreen.getUniformFont()) {
+          this.fontRenderer = BookScreen.getUniformFont();
+          this.appearanceFont = true;
+        }
+      // font is cached in the book data so we need to clear it; but don't clear a font set in code, even if it is the uniform font
+      } else if (this.appearanceFont) {
+        this.fontRenderer = null;
+        this.appearanceFont = false;
+      }
       // transformers and page contents measure text with this font while loading, so it cannot be null
-      } else if (this.fontRenderer == null || this.fontRenderer == BookScreen.getUniformFont()) {
+      if (this.fontRenderer == null) {
         this.fontRenderer = Minecraft.getInstance().font;
       }
 
@@ -182,6 +191,10 @@ public class BookData implements IDataItem, BookScreenOpener {
         }
       }
     } catch (Exception e) {
+      // the error page measures its title with the book font
+      if (this.fontRenderer == null) {
+        this.fontRenderer = Minecraft.getInstance().font;
+      }
       this.sections.clear();
       SectionData section = new SectionData(true);
       section.name = "errorenous";
