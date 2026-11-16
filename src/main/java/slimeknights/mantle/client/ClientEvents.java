@@ -257,12 +257,14 @@ public class ClientEvents {
     }
     BlockEntity gaugeContainer;
     BlockPos gaugePos;
-    Direction side;
+    Direction side = blockHit.getDirection();
     if (targeted.is(MantleTags.Blocks.ATTACHED_GAUGES)) {
-      side = targeted.getValue(BlockStateProperties.FACING);
+      // the tag is data driven, so a tagged block may lack the facing property
+      if (targeted.hasProperty(BlockStateProperties.FACING)) {
+        side = targeted.getValue(BlockStateProperties.FACING);
+      }
       gaugePos = pos.relative(side.getOpposite());
     } else {
-      side = blockHit.getDirection();
       gaugePos = pos;
     }
     gaugeContainer = minecraft.level.getBlockEntity(gaugePos);
