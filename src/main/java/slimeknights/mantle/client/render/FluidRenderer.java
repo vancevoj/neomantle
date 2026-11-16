@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.Direction;
+import net.minecraft.data.AtlasIds;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.level.material.Fluid;
@@ -34,12 +35,16 @@ import java.util.List;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class FluidRenderer {
   /**
-   * Gets a block sprite from the given location
+   * Gets a block sprite from the given location.
+   * <p>
+   * {@link net.minecraft.client.resources.model.sprite.AtlasManager#getAtlasOrThrow(Identifier)} takes the atlas definition ID
+   * ({@link AtlasIds#BLOCKS}), not the atlas texture location ({@link TextureAtlas#LOCATION_BLOCKS}), which is what a
+   * {@link net.minecraft.client.resources.model.sprite.SpriteId} uses. Unknown sprites return the missing sprite.
    * @param sprite  Sprite name
    * @return  Sprite location
    */
   public static TextureAtlasSprite getBlockSprite(Identifier sprite) {
-    return Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(TextureAtlas.LOCATION_BLOCKS).getSprite(sprite);
+    return Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.BLOCKS).getSprite(sprite);
   }
 
   /**
