@@ -21,6 +21,9 @@ Needs NeoForge 21.1 and Java 21.
 
 Release notes: [Neo Mantle v1.28](https://github.com/vancevoj/neomantle/releases/tag/v1.28), [Neo Tinkers' v1.31](https://github.com/vancevoj/neotinkers/releases/tag/v1.31)
 
+<br>
+<br>
+
 ### Minecraft 26.3
 
 Needs NeoForge 26.3.0.103 or newer and Java 25.
@@ -31,5 +34,3 @@ Needs NeoForge 26.3.0.103 or newer and Java 25.
 | **Neo Tinkers'** | v1.31 | [NeoTinkers-26.3-3.12.1-v1.31.jar](https://github.com/vancevoj/neotinkers/releases/download/v1.31-26.3/NeoTinkers-26.3-3.12.1-v1.31.jar) |
 
 Release notes: [Neo Mantle v1.28 for 26.3](https://github.com/vancevoj/neomantle/releases/tag/v1.28-26.3), [Neo Tinkers' v1.31 for 26.3](https://github.com/vancevoj/neotinkers/releases/tag/v1.31-26.3)
-
-Older versions and dev builds: [all Neo Mantle releases](https://github.com/vancevoj/neomantle/releases), [all Neo Tinkers' releases](https://github.com/vancevoj/neotinkers/releases)
