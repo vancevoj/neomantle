@@ -4,6 +4,7 @@ import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.network.chat.Component;
@@ -22,6 +23,7 @@ import org.joml.Vector2ic;
 import slimeknights.mantle.client.screen.book.BookScreen;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class BookElement {
@@ -162,7 +164,8 @@ public abstract class BookElement {
       : textLines.stream().map(Component::getVisualOrderText).toList();
 
     // render the tooltip, last tooltip requested in the frame wins as it is drawn on top
-    graphics.setTooltipForNextFrame(font, lines, pagePositioner(graphics.pose()), mouseX, mouseY, true);
+    // keep the gap after the first line that all multi line tooltips had on 1.21.1, 26.3 only adds it to item tooltips
+    graphics.setTooltipForNextFrameInternal(font, lines.stream().map(ClientTooltipComponent::create).collect(Collectors.toList()), mouseX, mouseY, pagePositioner(graphics.pose()), null, true, true);
   }
 
   /**
