@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in Neo Mantle (NeoForge 1.21.1)
+description: Report a bug in Neo Mantle
 labels: ["bug"]
 body:
   - type: markdown
@@ -7,7 +7,16 @@ body:
       value: |
         Thanks for the report! Please [search existing issues](https://github.com/vancevoj/neomantle/issues?q=is%3Aissue) first so we don't get duplicates.
 
-        Neo Mantle is a library, so most bugs show up through a mod that depends on it (e.g. Neo Tinkers) — please include that below.
+        Neo Mantle is a library, so most bugs show up through a mod that depends on it (e.g. Neo Tinkers). Please include that below.
+  - type: dropdown
+    id: minecraft-version
+    attributes:
+      label: Minecraft version
+      options:
+        - "1.21.1"
+        - "26.3"
+    validations:
+      required: true
   - type: input
     id: neomantle-version
     attributes:
@@ -27,7 +36,7 @@ body:
     id: what-happened
     attributes:
       label: What happened?
-      description: Describe the bug — what you expected to happen, and what actually happened.
+      description: Describe the bug. What did you expect to happen, and what actually happened?
     validations:
       required: true
   - type: textarea
