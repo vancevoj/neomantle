@@ -1,6 +1,6 @@
 # Neo Mantle
 
-An unofficial **Minecraft NeoForge** port of **Mantle** by SlimeKnights. This port is an actively maintained project to keep Tinkers' Construct up-to-date with the latest Minecraft versions!
+**Neo Mantle** is a **Minecraft NeoForge** port of **Mantle** by SlimeKnights, specifically built to support Neo Tinkers'. This port is an actively maintained project to keep Tinkers' Construct up-to-date with the latest Minecraft versions!
 
 Neo Mantle is a library/dependency mod & is **required by [Neo Tinkers'](https://github.com/vancevoj/neotinkers)**.
 
